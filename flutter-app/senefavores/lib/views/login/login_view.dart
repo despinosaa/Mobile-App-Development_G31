@@ -10,7 +10,7 @@ class LoginView extends StatelessWidget {
         width: double.infinity,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Column(
               children: [
@@ -19,28 +19,35 @@ class LoginView extends StatelessWidget {
                   height: 250,
                   width: 250,
                 ),
-                Text("Senefavores"),
+                Text("Senefavores",
+                    style: TextStyle(
+                      fontSize: 70,
+                      fontWeight: FontWeight.bold,
+                    )),
               ],
             ),
-            TextButton(
-              style: TextButton.styleFrom(
-                side: BorderSide(color: Colors.black, width: 1),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 30),
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  side: BorderSide(color: Colors.orange, width: 1.5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Iniciar sesión con Microsoft  '),
+                    Image.asset(
+                      'assets/images/microsoft_logo.png',
+                      height: 30,
+                      width: 30,
+                    ),
+                  ],
+                ),
+                onPressed: () {},
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Iniciar sesión con Microsoft  '),
-                  Image.asset(
-                    'assets/images/microsoft_logo.png',
-                    height: 30,
-                    width: 30,
-                  ),
-                ],
-              ),
-              onPressed: () {},
             ),
           ],
         ),
