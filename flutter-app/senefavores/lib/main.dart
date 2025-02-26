@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:senefavores/views/login/login_view.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/views/navigation/navigation_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -14,10 +19,22 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.yellowAccent),
-        useMaterial3: true,
+        colorScheme: const ColorScheme.light(
+          primary: Colors.white, // Primary color as white
+          onPrimary: Colors.black, // Text color on white background
+        ),
+        scaffoldBackgroundColor: Colors.white, // Scaffold background white
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white, // AppBar white
+          iconTheme: IconThemeData(color: Colors.black), // Icons black
+          titleTextStyle: TextStyle(color: Colors.black, fontSize: 20),
+          elevation: 0, // Optional: remove AppBar shadow
+        ),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.black),
+        ),
       ),
-      home: LoginView(),
+      home: SafeArea(child: NavigationScreen()),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginView extends StatelessWidget {
   const LoginView({super.key});
@@ -19,11 +20,12 @@ class LoginView extends StatelessWidget {
                   height: 250,
                   width: 250,
                 ),
-                Text("Senefavores",
-                    style: TextStyle(
-                      fontSize: 70,
-                      fontWeight: FontWeight.bold,
-                    )),
+                Text(
+                  "Senefavores",
+                  style: GoogleFonts.oswald(
+                    fontSize: 50,
+                  ),
+                ),
               ],
             ),
             Padding(
@@ -38,7 +40,8 @@ class LoginView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Iniciar sesión con Microsoft  '),
+                    Text('Iniciar sesión con Microsoft  ',
+                        style: TextStyle(color: Colors.black)),
                     Image.asset(
                       'assets/images/microsoft_logo.png',
                       height: 30,
