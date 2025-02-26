@@ -1,4 +1,4 @@
-enum SelectedCategoryFilterButton {
+enum FilterButtonCategory {
   none,
   favor,
   compra,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/views/home/components/category_filter_button.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -55,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 IconButton(onPressed: () {}, icon: Icon(Icons.search)),
-                IconButton(onPressed: () {}, icon: Icon(Icons.filter_alt))
+                IconButton(onPressed: () {}, icon: Icon(Icons.filter_alt)),
               ],
             ),
             Row(
@@ -64,16 +65,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   backgroundColor: Colors.red,
                   text: "Favor",
                   isSelected: false,
+                  filterButtonCategory: FilterButtonCategory.favor,
                 ),
                 CategoryFilterButton(
                   backgroundColor: Colors.blue,
                   text: "Compra",
                   isSelected: false,
+                  filterButtonCategory: FilterButtonCategory.compra,
                 ),
                 CategoryFilterButton(
                   backgroundColor: Colors.yellow,
                   text: "Tutoria",
                   isSelected: false,
+                  filterButtonCategory: FilterButtonCategory.tutoria,
                 ),
               ],
             )
