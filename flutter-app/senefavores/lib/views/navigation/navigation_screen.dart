@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:senefavores/views/home/home_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
 
@@ -34,15 +35,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: FaIcon(FontAwesomeIcons.igloo),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline_outlined),
+            icon: FaIcon(FontAwesomeIcons.circlePlus),
             label: 'Pedir favor',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_task_sharp),
+            icon: FaIcon(FontAwesomeIcons.checkDouble),
             label: 'Mis favores',
           ),
         ],
