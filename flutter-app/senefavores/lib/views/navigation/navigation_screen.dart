@@ -43,7 +43,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
             label: 'Pedir favor',
           ),
           BottomNavigationBarItem(
-            icon: FaIcon(FontAwesomeIcons.checkDouble),
+            icon: FaIcon(FontAwesomeIcons.clockRotateLeft),
             label: 'Mis favores',
           ),
         ],

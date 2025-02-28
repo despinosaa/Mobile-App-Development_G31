@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/views/home/components/category_filter_button.dart';
+import 'package:senefavores/views/home/components/favor_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -82,6 +83,17 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             )
           ],
+        ),
+        Expanded(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              FavorCard(),
+              FavorCard(),
+              FavorCard(),
+              FavorCard(),
+            ],
+          ),
         ),
       ],
     );
