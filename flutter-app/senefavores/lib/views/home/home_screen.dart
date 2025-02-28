@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/views/home/components/category_filter_button.dart';
+import 'package:senefavores/views/home/components/favor_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,11 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 IconButton(
                   onPressed: () {},
-                  icon: Icon(
-                    Icons.person_2_outlined,
-                    size: 35,
-                    color: Colors.black,
-                  ),
+                  icon: FaIcon(FontAwesomeIcons.circleUser),
                 ),
               ],
             ),
@@ -55,8 +53,11 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                IconButton(onPressed: () {}, icon: Icon(Icons.search)),
-                IconButton(onPressed: () {}, icon: Icon(Icons.filter_alt)),
+                IconButton(
+                    onPressed: () {}, icon: FaIcon(FontAwesomeIcons.filter)),
+                IconButton(
+                    onPressed: () {},
+                    icon: FaIcon(FontAwesomeIcons.arrowDownWideShort)),
               ],
             ),
             Row(
@@ -82,6 +83,17 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             )
           ],
+        ),
+        Expanded(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              FavorCard(),
+              FavorCard(),
+              FavorCard(),
+              FavorCard(),
+            ],
+          ),
         ),
       ],
     );
