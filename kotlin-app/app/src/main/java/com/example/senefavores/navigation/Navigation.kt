@@ -8,6 +8,7 @@ import com.example.senefavores.ui.screens.LogInScreen
 import com.example.senefavores.ui.screens.RegisterScreen
 import com.example.senefavores.ui.screens.ForgotPasswordScreen
 import com.example.senefavores.ui.screens.HomeScreen
+import com.example.senefavores.ui.screens.HistoryScreen
 @Composable
 fun AppNavHost(navController: NavHostController) {
     NavHost(navController = navController, startDestination = "login") {
@@ -15,5 +16,6 @@ fun AppNavHost(navController: NavHostController) {
         composable("register") { RegisterScreen(navController) }
         composable("forgot") { ForgotPasswordScreen(navController) }
         composable("home") { HomeScreen(navController) }
+        composable("history") { HistoryScreen(navController) }
     }
 }
