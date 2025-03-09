@@ -8,8 +8,26 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import com.example.senefavores.R
+
+val OswaldFontFamily = FontFamily(
+    Font(R.font.oswald_regular, FontWeight.Normal),
+    Font(R.font.oswald_bold, FontWeight.Bold)
+)
+
+// Custom Typography
+val CustomTypography = Typography(
+    bodyLarge = Typography().bodyLarge.copy(fontFamily = OswaldFontFamily),
+    titleLarge = Typography().titleLarge.copy(fontFamily = OswaldFontFamily),
+    labelLarge = Typography().labelLarge.copy(fontFamily = OswaldFontFamily)
+)
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -20,7 +38,8 @@ private val DarkColorScheme = darkColorScheme(
 private val LightColorScheme = lightColorScheme(
     primary = Purple40,
     secondary = PurpleGrey40,
-    tertiary = Pink40
+    tertiary = Pink40,
+    background = Color(0xFFFFFFFF),
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -52,7 +71,7 @@ fun SenefavoresTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = CustomTypography,
         content = content
     )
 }

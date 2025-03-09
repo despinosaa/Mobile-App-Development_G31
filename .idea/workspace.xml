@@ -5,44 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="89537754-5876-4895-b4e2-50537049f0f0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/kotlin-app/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/build.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/proguard-rules.pro" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/androidTest/java/com/example/senefavores/ExampleInstrumentedTest.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/java/com/example/senefavores/MainActivity.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/java/com/example/senefavores/ui/theme/Color.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/java/com/example/senefavores/ui/theme/Theme.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/java/com/example/senefavores/ui/theme/Type.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/drawable/ic_launcher_background.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-hdpi/ic_launcher.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-mdpi/ic_launcher.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-xhdpi/ic_launcher.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/values/colors.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/values/strings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/values/themes.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/xml/backup_rules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/main/res/xml/data_extraction_rules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/app/src/test/java/com/example/senefavores/ExampleUnitTest.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/build.gradle.kts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/gradle.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/gradle/libs.versions.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/gradlew" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/gradlew.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kotlin-app/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,9 +23,21 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Sinis16"
+  }
 }]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/despinosaa/Mobile-App-Development_G31.git",
+    "accountId": "93833502-166c-4b29-8eb9-6b7c06e65ac6"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2tfsabASfYOup7JwzPGOePmsE1n" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -72,12 +47,13 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "Sinis",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/User/Mobile-App-Development_G31"
+    "last_opened_file_path": "C:/Users/User/AndroidStudioProjects"
   }
 }]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
