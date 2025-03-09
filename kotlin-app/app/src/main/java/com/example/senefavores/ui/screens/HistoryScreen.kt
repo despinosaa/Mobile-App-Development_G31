@@ -8,26 +8,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.senefavores.ui.components.SenefavoresHeader
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HistoryScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Pantalla vacia de Home")
+
+        SenefavoresHeader()
+
+        Text(text = "Pantalla vacia de History")
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { navController.navigate("login") }) {
+        Button(onClick = { navController.navigate("home") }) {
             Text(text = "Go Back to Home")
-        }
-
-        Button(onClick = { navController.navigate("history") }) {
-            Text(text = "Go to History")
         }
     }
 }
