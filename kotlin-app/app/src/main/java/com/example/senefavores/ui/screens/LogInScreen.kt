@@ -2,6 +2,7 @@ package com.example.senefavores.ui.screens
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
 import com.example.senefavores.ui.components.CustomButton
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 @Composable
@@ -28,6 +34,7 @@ fun LogInScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val imageBitmap = loadBitmapFromAssets(context, "senefavores_logoHi.png")
 
@@ -44,7 +51,7 @@ fun LogInScreen(navController: NavController) {
                 contentDescription = "App Logo",
                 modifier = Modifier
                     .size(300.dp)
-                    .padding(top = 80.dp, bottom = 46.dp),
+                    .padding(top = 80.dp, bottom = 21.dp),
                 contentScale = ContentScale.Fit
             )
         }
@@ -53,9 +60,8 @@ fun LogInScreen(navController: NavController) {
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("Usuario") },
-            modifier = Modifier
-                .fillMaxWidth()
+            label = { Text("Correo uniandes") },
+            //modifier = Modifier .fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -65,7 +71,7 @@ fun LogInScreen(navController: NavController) {
             value = password,
             onValueChange = { password = it },
             label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
+            //modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
@@ -75,12 +81,30 @@ fun LogInScreen(navController: NavController) {
                 )
             }
         )
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage ?: "",
+                color = Color.Red,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(48.dp))
         // Log In Button (Black with White Text)
         CustomButton(
             text = "Iniciar sesión",
-            onClick = { navController.navigate("home") },
+            onClick = {
+                if (username.isBlank() || password.isBlank()) {
+                    errorMessage = "Por favor, llena todos los campos."
+                } else {
+                    loginUser(username, password, context, navController) { success, message ->
+                        if (!success) {
+                            errorMessage = message
+                        }
+                    }
+                }
+            },
             backgroundColor = Color.Black,
             textColor = Color.White,
             hasBorder = false
@@ -106,6 +130,37 @@ fun LogInScreen(navController: NavController) {
             textColor = Color.Black,
             hasBorder = true
         )
+    }
+}
+
+fun loginUser(
+    email: String,
+    password: String,
+    context: Context,
+    navController: NavController,
+    onResult: (Boolean, String?) -> Unit
+) {
+    CoroutineScope(Dispatchers.IO).launch {
+        //val supabase = supabase // Get your Supabase instance
+        /*
+        val result = supabase.auth.signInWithPassword(email, password)
+
+
+
+        withContext(Dispatchers.Main) {
+            if (result.user != null) {
+                Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+                navController.navigate("home")
+                onResult(true, null)
+            } else {
+                onResult(false, "Usuario o contraseña incorrectos")
+            }
+        }
+
+         */
+        Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+        navController.navigate("home")
+        onResult(true, null)
     }
 }
 
