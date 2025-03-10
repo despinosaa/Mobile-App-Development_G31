@@ -1,8 +1,52 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class LoginView extends StatelessWidget {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
+
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  @override
+  void initState() {
+    super.initState();
+    handleRedirectResult();
+  }
+
+  void microsoftSignIn() async {
+    final provider = OAuthProvider('microsoft.com');
+
+    provider.setCustomParameters({
+      "prompt": "select_account",
+      "tenant": "common", // Use your tenant ID if needed
+      "response_mode": "form_post" // Ensures a proper POST request
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithRedirect(provider);
+      print("Redirecting to Microsoft login...");
+    } catch (e) {
+      print("Login failed: $e");
+    }
+  }
+
+  void handleRedirectResult() async {
+    try {
+      final userCredential = await FirebaseAuth.instance.getRedirectResult();
+      if (userCredential.user != null) {
+        print("Login successful: ${userCredential.user?.email}");
+        Navigator.pushReplacementNamed(
+            context, '/home'); // Redirect to home screen
+      } else {
+        print("No user signed in after redirect.");
+      }
+    } catch (e) {
+      print("Error handling redirect: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +93,27 @@ class LoginView extends StatelessWidget {
                     ),
                   ],
                 ),
-                onPressed: () {},
+                onPressed: () async {
+                  FirebaseAuth.instance.signOut();
+                  try {
+                    print("STARTING LOGIN WITH MICROSOFT");
+
+                    final provider = OAuthProvider('microsoft.com');
+
+                    provider.setCustomParameters({
+                      "prompt": "select_account",
+                      "tenant": "common",
+                    });
+
+                    final userCredential = await FirebaseAuth.instance
+                        .signInWithProvider(provider);
+
+                    print("Login successful: ${userCredential.user?.email}");
+                    print("User: ${userCredential.user}");
+                  } catch (e) {
+                    print("Login failed: $e");
+                  }
+                },
               ),
             ),
           ],
