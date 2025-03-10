@@ -1,0 +1,2 @@
+C:/Users/K K K/Desktop/Desktop/repos/Mobile-App-Development_G31/flutter-app/senefavores/android/app/.cxx/Debug/6b1s342i/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/K K K/Desktop/Desktop/repos/Mobile-App-Development_G31/flutter-app/senefavores/android/app/.cxx/Debug/6b1s342i/arm64-v8a/CMakeFiles/rebuild_cache.dir

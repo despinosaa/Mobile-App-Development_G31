@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:senefavores/views/home/home_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
+import 'package:senefavores/views/misfavores/mis_favores_view.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -17,7 +18,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   static const List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
     LoginView(),
-    HomeScreen(),
+    MisFavoresView(),
   ];
 
   void _onItemTapped(int index) {
