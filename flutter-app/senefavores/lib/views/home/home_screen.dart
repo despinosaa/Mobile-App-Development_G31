@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/views/home/components/category_filter_button.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
+import 'package:senefavores/core/constant.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -63,19 +64,19 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 CategoryFilterButton(
-                  backgroundColor: Colors.red,
+                  backgroundColor: AppColors.lightRed,
                   text: "Favor",
                   isSelected: false,
                   filterButtonCategory: FilterButtonCategory.favor,
                 ),
                 CategoryFilterButton(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: AppColors.lightSkyBlue,
                   text: "Compra",
                   isSelected: false,
                   filterButtonCategory: FilterButtonCategory.compra,
                 ),
                 CategoryFilterButton(
-                  backgroundColor: Colors.yellow,
+                  backgroundColor: AppColors.orangeWeb,
                   text: "Tutoria",
                   isSelected: false,
                   filterButtonCategory: FilterButtonCategory.tutoria,
