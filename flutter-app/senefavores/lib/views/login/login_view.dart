@@ -1,35 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
 
-class LoginView extends StatefulWidget {
+class LoginView extends ConsumerWidget {
   const LoginView({super.key});
 
   @override
-  State<LoginView> createState() => _LoginViewState();
-}
-
-class _LoginViewState extends State<LoginView> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            onPressed: () async {
-              final supabase = Supabase.instance.client;
-              await supabase.auth.signOut();
-            },
-            icon: Icon(Icons.logout),
-          ),
-          IconButton(
-              onPressed: () async {
-                final supabase = Supabase.instance.client;
-                print('Supabase user: ${supabase.auth.currentUser}');
-              },
-              icon: Icon(Icons.refresh))
-        ],
-      ),
       body: SizedBox(
         width: double.infinity,
         child: Column(
@@ -73,17 +52,9 @@ class _LoginViewState extends State<LoginView> {
                   ],
                 ),
                 onPressed: () async {
-                  final supabase = Supabase.instance.client;
-                  //await supabase.auth.signOut();
-                  await supabase.auth.signInWithOAuth(
-                    OAuthProvider.azure,
-                    authScreenLaunchMode: LaunchMode.externalApplication,
-                    redirectTo: 'io.supabase.flutter://login-callback',
-                    scopes: 'openid profile email User.Read',
-                    queryParams: {
-                      'prompt': 'select_account',
-                    },
-                  );
+                  await ref
+                      .read(authStateProvider.notifier)
+                      .signInWithMicrosoft();
                 },
               ),
             ),

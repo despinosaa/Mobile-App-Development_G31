@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/core/theme.dart';
+import 'package:senefavores/state/auth/models/auth_result.dart';
+import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
+import 'package:senefavores/state/loading/is_loading_provider.dart';
+import 'package:senefavores/views/components/loading_screen.dart';
+import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/navigation/navigation_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -25,23 +31,27 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: const ColorScheme.light(
-          primary: Colors.white, // Primary color as white
-          onPrimary: Colors.black, // Text color on white background
-        ),
-        scaffoldBackgroundColor: Colors.white, // Scaffold background white
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white, // AppBar white
-          iconTheme: IconThemeData(color: Colors.black), // Icons black
-          titleTextStyle: TextStyle(color: Colors.black, fontSize: 20),
-          elevation: 0, // Optional: remove AppBar shadow
-        ),
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(color: Colors.black),
+      theme: AppTheme.lightTheme,
+      home: SafeArea(
+        child: Consumer(
+          builder: (context, ref, child) {
+            ref.listen<bool>(isLoadingProvider, (previous, next) {
+              if (next) {
+                LoadingScreen.instance()
+                    .show(context: context, text: 'Loading...');
+              } else {
+                LoadingScreen.instance().hide();
+              }
+            });
+            final authState = ref.watch(authStateProvider);
+            if (authState.result == AuthResult.loggedIn) {
+              return const NavigationScreen();
+            } else {
+              return const LoginView();
+            }
+          },
         ),
       ),
-      home: SafeArea(child: NavigationScreen()),
     );
   }
 }

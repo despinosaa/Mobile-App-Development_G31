@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
 import 'package:senefavores/views/home/home_screen.dart';
-import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/misfavores/mis_favores_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -13,12 +15,22 @@ class NavigationScreen extends StatefulWidget {
 
 class _NavigationScreenState extends State<NavigationScreen> {
   int _selectedIndex = 0;
-  static const TextStyle optionStyle =
-      TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
-  static const List<Widget> _widgetOptions = <Widget>[
+  static final List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
-    LoginView(),
-    MisFavoresView(),
+    Center(
+      child: Consumer(
+        builder: (context, ref, child) {
+          return IconButton(
+              onPressed: () {
+                ref.read(authStateProvider.notifier).signOut();
+              },
+              icon: Icon(Icons.logout));
+        },
+      ),
+    ),
+    Center(
+      child: Text("misfavores"),
+    ),
   ];
 
   void _onItemTapped(int index) {
