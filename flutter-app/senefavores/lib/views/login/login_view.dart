@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uni_links/uni_links.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -13,6 +16,23 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () async {
+              final supabase = Supabase.instance.client;
+              await supabase.auth.signOut();
+            },
+            icon: Icon(Icons.logout),
+          ),
+          IconButton(
+              onPressed: () async {
+                final supabase = Supabase.instance.client;
+                print('Supabase user: ${supabase.auth.currentUser}');
+              },
+              icon: Icon(Icons.refresh))
+        ],
+      ),
       body: SizedBox(
         width: double.infinity,
         child: Column(
@@ -61,8 +81,11 @@ class _LoginViewState extends State<LoginView> {
                   await supabase.auth.signInWithOAuth(
                     OAuthProvider.azure,
                     authScreenLaunchMode: LaunchMode.externalApplication,
-                    redirectTo:
-                        'https://kebumzcxttyquorhiicf.supabase.co/auth/v1/callback',
+                    redirectTo: 'io.supabase.flutter://login-callback',
+                    scopes: 'openid profile email User.Read',
+                    queryParams: {
+                      'prompt': 'select_account',
+                    },
                   );
                 },
               ),
