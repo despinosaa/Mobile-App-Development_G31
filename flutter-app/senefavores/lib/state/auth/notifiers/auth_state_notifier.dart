@@ -7,11 +7,12 @@ class AuthStateNotifier extends StateNotifier<AuthStatus> {
   final _supabase = Supabase.instance.client;
 
   AuthStateNotifier()
-      : super(const AuthStatus(result: null, isLoading: false, userId: null));
+      : super(const AuthStatus(
+            result: AuthResult.none, isLoading: false, userId: null));
 
   Future<void> signInWithMicrosoft() async {
     _supabase.auth.signOut();
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, result: AuthResult.none);
 
     await _supabase.auth.signInWithOAuth(
       OAuthProvider.azure,
@@ -42,9 +43,14 @@ class AuthStateNotifier extends StateNotifier<AuthStatus> {
             isLoading: false,
           );
         }
-        state = state.copyWith(isLoading: false);
       }
     });
+
+    // Future.delayed(Duration(seconds: 30), () {
+    //   if (state.isLoading) {
+    //     state = state.copyWith(result: AuthResult.cancelled, isLoading: false);
+    //   }
+    // });
   }
 
   Future<void> signOut() async {

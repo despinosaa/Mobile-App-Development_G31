@@ -57,8 +57,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(
                     onPressed: () {}, icon: FaIcon(FontAwesomeIcons.filter)),
                 IconButton(
-                    onPressed: () {},
-                    icon: FaIcon(FontAwesomeIcons.arrowDownWideShort)),
+                  onPressed: () {},
+                  icon: const FaIcon(FontAwesomeIcons
+                      .arrowDownWideShort), // Added const for optimization
+                ),
               ],
             ),
             Row(

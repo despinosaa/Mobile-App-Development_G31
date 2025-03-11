@@ -4,6 +4,9 @@ import 'package:senefavores/core/theme.dart';
 import 'package:senefavores/state/auth/models/auth_result.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
 import 'package:senefavores/state/loading/is_loading_provider.dart';
+import 'package:senefavores/state/snackbar/models/snackbar_message_model.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_notification_provider.dart';
+import 'package:senefavores/state/snackbar/snackbar_provider.dart';
 import 'package:senefavores/views/components/loading_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/navigation/navigation_screen.dart';
@@ -35,6 +38,17 @@ class MyApp extends StatelessWidget {
       home: SafeArea(
         child: Consumer(
           builder: (context, ref, child) {
+            ref.read(snackbarProvider).setContext(context);
+
+            ref.listen<SnackbarMessageModel>(snackbarNotificationProvider,
+                (previous, next) {
+              if (next.message.isNotEmpty) {
+                ref
+                    .read(snackbarProvider)
+                    .showSnackbar(next.message, isError: next.isError);
+              }
+            });
+
             ref.listen<bool>(isLoadingProvider, (previous, next) {
               if (next) {
                 LoadingScreen.instance()
