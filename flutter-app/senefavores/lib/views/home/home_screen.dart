@@ -13,6 +13,7 @@ import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/home/components/category_filter_button.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
 import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/views/profile/profile_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -33,23 +34,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            // Top row (logo, user icon)
             Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Image.asset(
-                  'assets/images/senefavores_logo.png',
-                  height: 50,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/images/senefavores_logo.png',
+                      height: 50,
+                    ),
+                    Text(
+                      "Senefavores",
+                      style: GoogleFonts.oswald(fontSize: 24),
+                    ),
+                  ],
                 ),
-                Text(
-                  "Senefavores",
-                  style: GoogleFonts.oswald(
-                    fontSize: 24,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ProfileScreen()),
+                        );
+                      },
+                      icon: FaIcon(FontAwesomeIcons.circleUser),
+                    ),
+                  ],
                 ),
               ],
             ),
+            // Filter row
             Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
                   onPressed: () {
@@ -60,6 +83,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   },
                   icon: FaIcon(FontAwesomeIcons.circleUser),
                 ),
+                Row(
+                  children: [
+                    CategoryFilterButton(
+                      backgroundColor: AppColors.lightRed,
+                      text: "Favor",
+                      isSelected: false,
+                      filterButtonCategory: FilterButtonCategory.favor,
+                    ),
+                    CategoryFilterButton(
+                      backgroundColor: AppColors.lightSkyBlue,
+                      text: "Compra",
+                      isSelected: false,
+                      filterButtonCategory: FilterButtonCategory.compra,
+                    ),
+                    CategoryFilterButton(
+                      backgroundColor: AppColors.orangeWeb,
+                      text: "Tutoria",
+                      isSelected: false,
+                      filterButtonCategory: FilterButtonCategory.tutoria,
+                    ),
+                  ],
+                )
               ],
             ),
           ],
@@ -84,28 +129,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ],
             ),
-            Row(
-              children: [
-                CategoryFilterButton(
-                  backgroundColor: AppColors.lightRed,
-                  text: "Favor",
-                  isSelected: false,
-                  filterButtonCategory: FilterButtonCategory.favor,
-                ),
-                CategoryFilterButton(
-                  backgroundColor: AppColors.lightSkyBlue,
-                  text: "Compra",
-                  isSelected: false,
-                  filterButtonCategory: FilterButtonCategory.compra,
-                ),
-                CategoryFilterButton(
-                  backgroundColor: AppColors.orangeWeb,
-                  text: "Tutoria",
-                  isSelected: false,
-                  filterButtonCategory: FilterButtonCategory.tutoria,
-                ),
-              ],
-            )
           ],
         ),
         Expanded(
