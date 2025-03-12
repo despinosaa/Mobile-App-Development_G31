@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:senefavores/state/auth/models/auth_result.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
-import 'package:senefavores/state/snackbar/snackbar_provider.dart';
 
 class LoginView extends ConsumerWidget {
   const LoginView({super.key});

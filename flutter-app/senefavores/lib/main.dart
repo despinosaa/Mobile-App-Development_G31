@@ -6,7 +6,7 @@ import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dar
 import 'package:senefavores/state/loading/is_loading_provider.dart';
 import 'package:senefavores/state/snackbar/models/snackbar_message_model.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_notification_provider.dart';
-import 'package:senefavores/state/snackbar/snackbar_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/views/components/loading_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/navigation/navigation_screen.dart';

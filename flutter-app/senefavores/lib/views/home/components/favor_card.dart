@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/core/format_utils.dart';
+import 'package:senefavores/state/favors/models/favor_model.dart';
+import 'package:senefavores/state/home/models/filter_button_category.dart';
+import 'package:senefavores/state/user/models/user_model.dart';
 
 class FavorCard extends StatelessWidget {
-  const FavorCard({super.key});
+  final FavorModel favor;
+  final UserModel user;
+
+  const FavorCard({
+    super.key,
+    required this.favor,
+    required this.user,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +39,7 @@ class FavorCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("12:30",
+                Text(formatFavorTime(favor.favorTime),
                     style: TextStyle(fontSize: 14, color: Colors.black54)),
                 Row(
                   children: [
@@ -35,17 +47,21 @@ class FavorCard extends StatelessWidget {
                       padding:
                           EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade200,
+                        color: favor.category == FilterButtonCategory.favor.name
+                            ? AppColors.lightRed
+                            : favor.category == FilterButtonCategory.compra.name
+                                ? AppColors.lightSkyBlue
+                                : AppColors.orangeWeb,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        "Favor",
+                        favor.category,
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                     SizedBox(width: 10),
-                    Text("\$9.000",
+                    Text(formatCurrency(favor.reward),
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
                   ],
@@ -53,11 +69,11 @@ class FavorCard extends StatelessWidget {
               ],
             ),
             SizedBox(height: 8),
-            Text("Favor 1",
+            Text(favor.title,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 4),
             Text(
-              "Descripción detallada del favor 1, incluye el detalle de los componentes del favor.",
+              favor.description,
               style: TextStyle(fontSize: 14, color: Colors.black87),
             ),
             SizedBox(height: 12),
@@ -69,21 +85,36 @@ class FavorCard extends StatelessWidget {
                     CircleAvatar(
                       radius: 16,
                       backgroundColor: Colors.black,
-                      child: CircleAvatar(
-                        radius: 15,
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.person, color: Colors.black),
-                      ),
+                      child: user.profilePic != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(50),
+                              child: Image.network(
+                                user.profilePic!,
+                                width: 32,
+                                height: 32,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.white,
+                              child: Icon(Icons.person, color: Colors.black),
+                            ),
                     ),
                     SizedBox(width: 8),
-                    Text("Nombre Usuario",
+                    Text(
+                        user.name != null
+                            ? truncateText(user.name!)
+                            : 'Anônimo',
                         style: TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
                 Row(
                   children: List.generate(5, (index) {
                     return Icon(
-                      index < 4 ? Icons.star : Icons.star_border,
+                      index < (user.stars ?? 5)
+                          ? Icons.star
+                          : Icons.star_border,
                       color: Colors.black,
                     );
                   }),

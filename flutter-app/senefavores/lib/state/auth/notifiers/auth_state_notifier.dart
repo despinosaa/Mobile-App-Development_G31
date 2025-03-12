@@ -24,13 +24,25 @@ class AuthStateNotifier extends StateNotifier<AuthStatus> {
       },
     );
 
-    _supabase.auth.onAuthStateChange.listen((data) {
+    _supabase.auth.onAuthStateChange.listen((data) async {
       final session = data.session;
       final user = session?.user;
 
       if (user != null) {
         final userdomain = user.email!.split('@')[1];
         if (userdomain == 'uniandes.edu.co') {
+          final Map<String, dynamic>? existingUser = await _supabase
+              .from('users')
+              .select()
+              .eq('email', user.email!)
+              .maybeSingle(); // Gets a single record or null
+
+          if (existingUser == null) {
+            await _supabase.from('users').insert({
+              'email': user.email,
+              'name': user.userMetadata?['full_name'],
+            });
+          }
           state = state.copyWith(
             result: AuthResult.loggedIn,
             userId: user.id,
@@ -64,7 +76,7 @@ class AuthStateNotifier extends StateNotifier<AuthStatus> {
 
       if (user == null) {
         state = state.copyWith(
-          result: AuthResult.loggedOut,
+          result: AuthResult.none,
           userId: null,
           isLoading: false,
         );
