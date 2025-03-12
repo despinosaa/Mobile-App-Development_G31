@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
+import 'package:senefavores/state/favors/providers/favors_provider.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
+import 'package:senefavores/state/home/models/filter_button_sort.dart';
+import 'package:senefavores/state/home/providers/selected_sort_filter_button_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_notification_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
+import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/home/components/category_filter_button.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/views/profile/profile_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Use a Scaffold for the page structure
-      body: SafeArea(
-        // SafeArea ensures content avoids system UI (status bar, notches)
-        child: Column(
+    final favors = ref.watch(favorsStreamProvider);
+    final filter = ref.watch(selectedSortFilterButtonProvider);
+
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Top row (logo, user icon)
             Row(
@@ -63,15 +74,14 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                        onPressed: () {},
-                        icon: FaIcon(FontAwesomeIcons.filter)),
-                    IconButton(
-                        onPressed: () {},
-                        icon: FaIcon(FontAwesomeIcons.arrowDownWideShort)),
-                  ],
+                IconButton(
+                  onPressed: () {
+                    ref.read(authStateProvider.notifier).signOut();
+                    ref
+                        .read(snackbarProvider)
+                        .showSnackbar("✅ Logged out successfully");
+                  },
+                  icon: FaIcon(FontAwesomeIcons.circleUser),
                 ),
                 Row(
                   children: [
@@ -97,21 +107,68 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               ],
             ),
-            // List of FavorCards
-            Expanded(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  FavorCard(),
-                  FavorCard(),
-                  FavorCard(),
-                  FavorCard(),
-                ],
-              ),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                IconButton(
+                    onPressed: () {}, icon: FaIcon(FontAwesomeIcons.filter)),
+                IconButton(
+                  onPressed: () {
+                    ref
+                        .read(selectedSortFilterButtonProvider.notifier)
+                        .toggle();
+                  },
+                  icon: filter == FilterButtonSort.desc
+                      ? FaIcon(FontAwesomeIcons.arrowDownWideShort)
+                      : FaIcon(FontAwesomeIcons.arrowUpWideShort),
+                ),
+              ],
             ),
           ],
         ),
-      ),
+        Expanded(
+          child: favors.when(
+            data: (favorsList) {
+              if (favorsList.isEmpty) {
+                return Center(child: Text("No hay favores disponibles"));
+              }
+
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
+                itemCount: favorsList.length,
+                itemBuilder: (context, index) {
+                  final favor = favorsList[index];
+                  final userAsync =
+                      ref.watch(userProvider(favor.requestUserId));
+
+                  return userAsync.when(
+                    data: (user) => FavorCard(favor: favor, user: user),
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (error, stack) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Center(child: Text("Error loading user: $error")),
+                    ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(
+                child: CircularProgressIndicator(
+              color: Colors.black,
+            )),
+            error: (error, stack) => Center(child: Text("Error: $error")),
+          ),
+        ),
+      ],
     );
   }
 }

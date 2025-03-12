@@ -1,0 +1,51 @@
+class FavorModel {
+  final int id;
+  final String title;
+  final String description;
+  final String category;
+  final int reward;
+  final DateTime favorTime;
+  final DateTime createdAt;
+  final int requestUserId;
+  final int? acceptUserId;
+
+  FavorModel({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.category,
+    required this.reward,
+    required this.favorTime,
+    required this.createdAt,
+    required this.requestUserId,
+    this.acceptUserId,
+  });
+
+  factory FavorModel.fromJson(Map<String, dynamic> json) {
+    return FavorModel(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      category: json['category'] as String,
+      reward: json['reward'] as int,
+      favorTime: DateTime.parse(json['favor_time']),
+      createdAt: DateTime.parse(json['created_at']),
+      requestUserId: json['request_user_id'] as int,
+      acceptUserId: json['accept_user_id'] as int?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'category': category,
+      'reward': reward,
+      'favor_time': favorTime.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'request_user_id': requestUserId,
+      'accept_user_id': acceptUserId,
+    };
+  }
+}

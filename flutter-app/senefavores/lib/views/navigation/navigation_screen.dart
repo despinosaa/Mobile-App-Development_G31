@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:senefavores/views/home/home_screen.dart';
-import 'package:senefavores/views/login/login_view.dart';
-import 'package:senefavores/views/misfavores/mis_favores_view.dart';
+import 'package:senefavores/views/postfavor/post_favor_screen.dart';
 
 class NavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -16,8 +15,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
   late int _selectedIndex;
   static const List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
-    LoginView(),
-    MisFavoresView(),
+    PostFavorScreen(),
+    Center(
+      child: Text("misfavores"),
+    ),
   ];
 
   @override
