@@ -100,7 +100,6 @@ class PostFavorScreen extends HookWidget {
     );
   }
 
-  // Widget for "Otros" section text fields
   Widget _textInputField(String label, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),

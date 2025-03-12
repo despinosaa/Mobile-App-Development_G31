@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
+import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title.dart';
 import 'package:senefavores/views/profile/components/review_card.dart';
-import 'package:senefavores/views/navigation/navigation_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Hardcoded list of reviews
+    final user = ref.watch(currentUserProvider);
+
     final List<Map<String, dynamic>> reviews = [
       {
         "date": "21/11/2024",
@@ -63,148 +63,161 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       // Remove the default AppBar; use a custom header in the body
-      body: SafeArea(
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                SenefavoresImageAndTitle(),
-                IconButton(
-                  onPressed: () {
-                    ref.read(authStateProvider.notifier).signOut();
-                    ref
-                        .read(snackbarProvider)
-                        .showSnackbar("✅ Logged out successfully");
-                  },
-                  icon: Icon(Icons.logout),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-            // Profile Information Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 1,
-                  ),
-                ],
-              ),
-              child: Row(
+      body: user.when(data: (user) {
+        return SafeArea(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.max,
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Colors.grey.shade300,
-                    child:
-                        const Icon(Icons.person, size: 40, color: Colors.black),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Nombre Usuario",
-                          style: GoogleFonts.oswald(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Row(
-                          children: List.generate(5, (index) {
-                            return const Icon(Icons.star,
-                                color: AppColors.mikadoYellow, size: 18);
-                          }),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "correo@uniandes.edu.co",
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                        const Text(
-                          "+57 300 1234567",
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ),
+                  SenefavoresImageAndTitle(),
                   IconButton(
-                    icon: const Icon(Icons.edit),
                     onPressed: () {
-                      // TODO: Implement edit profile functionality
+                      ref.read(authStateProvider.notifier).signOut();
+                      Navigator.pop(context);
+                      ref
+                          .read(snackbarProvider)
+                          .showSnackbar("✅ Logged out successfully");
                     },
+                    icon: Icon(Icons.logout),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            // Reviews Section Title
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Mis reseñas:",
-                style: GoogleFonts.oswald(
-                    fontSize: 18, fontWeight: FontWeight.bold),
+
+              const SizedBox(height: 20),
+              // Profile Information Card
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 2,
+                        blurRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundColor: Colors.grey.shade300,
+                        child: const Icon(Icons.person,
+                            size: 40, color: Colors.black),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Nombre Usuario",
+                              style: GoogleFonts.oswald(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Row(
+                              children: List.generate(5, (index) {
+                                return const Icon(Icons.star,
+                                    color: AppColors.mikadoYellow, size: 18);
+                              }),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              "correo@uniandes.edu.co",
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                            const Text(
+                              "+57 300 1234567",
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () {
+                          // TODO: Implement edit profile functionality
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            // Scrollable list of Review Cards
-            Expanded(
-              child: ListView.builder(
-                itemCount: reviews.length,
-                itemBuilder: (context, index) {
-                  final review = reviews[index];
-                  return ReviewCard(
-                    date: review["date"],
-                    rating: review["rating"],
-                    title: review["title"],
-                    content: review["content"],
-                  );
-                },
+              const SizedBox(height: 20),
+              // Reviews Section Title
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Mis reseñas:",
+                    style: AppTextStyles.oswaldSubtitle,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-      // Bottom Navigation Bar (Same as other screens)
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // Default index (adjust if needed)
-        onTap: (index) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => NavigationScreen(initialIndex: index),
-            ),
-          );
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: FaIcon(FontAwesomeIcons.igloo),
-            label: 'Home',
+              const SizedBox(height: 10),
+              // Scrollable list of Review Cards
+              Expanded(
+                child: ListView.builder(
+                  itemCount: reviews.length,
+                  itemBuilder: (context, index) {
+                    final review = reviews[index];
+                    return ReviewCard(
+                      date: review["date"],
+                      rating: review["rating"],
+                      title: review["title"],
+                      content: review["content"],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: FaIcon(FontAwesomeIcons.circlePlus),
-            label: 'Pedir favor',
-          ),
-          BottomNavigationBarItem(
-            icon: FaIcon(FontAwesomeIcons.clockRotateLeft),
-            label: 'Mis favores',
-          ),
-        ],
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-        selectedItemColor: Colors.black,
-        selectedFontSize: 12,
-      ),
+        );
+      }, error: (error, stacktrace) {
+        print(stacktrace);
+        return Center(child: Text("Error: $error"));
+      }, loading: () {
+        return Center(child: CircularProgressIndicator(color: Colors.black));
+      }),
+      // // Bottom Navigation Bar (Same as other screens)
+      // bottomNavigationBar: BottomNavigationBar(
+      //   currentIndex: 0, // Default index (adjust if needed)
+      //   onTap: (index) {
+      //     Navigator.pushReplacement(
+      //       context,
+      //       MaterialPageRoute(
+      //         builder: (_) => NavigationScreen(initialIndex: index),
+      //       ),
+      //     );
+      //   },
+      //   items: const [
+      //     BottomNavigationBarItem(
+      //       icon: FaIcon(FontAwesomeIcons.igloo),
+      //       label: 'Home',
+      //     ),
+      //     BottomNavigationBarItem(
+      //       icon: FaIcon(FontAwesomeIcons.circlePlus),
+      //       label: 'Pedir favor',
+      //     ),
+      //     BottomNavigationBarItem(
+      //       icon: FaIcon(FontAwesomeIcons.clockRotateLeft),
+      //       label: 'Mis favores',
+      //     ),
+      //   ],
+      //   type: BottomNavigationBarType.fixed,
+      //   elevation: 0,
+      //   selectedItemColor: Colors.black,
+      //   selectedFontSize: 12,
+      // ),
     );
   }
 }

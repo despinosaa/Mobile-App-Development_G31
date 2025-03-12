@@ -24,9 +24,9 @@ class AppTextStyles {
 
   // Subtitles (Semi-Bold)
   static final TextStyle oswaldSubtitle = GoogleFonts.oswald(
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-    color: AppColors.mediumDarkGray,
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    color: Colors.black,
   );
 
   // Body Text (Regular)
