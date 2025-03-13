@@ -37,7 +37,6 @@ class FavorModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'title': title,
       'description': description,
       'category': category,

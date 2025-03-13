@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/state/auth/models/auth_status.dart';
+import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
+import 'package:senefavores/state/favors/models/favor_model.dart';
+import 'package:senefavores/state/favors/providers/upload_favor_state_notifier_provider.dart.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
+import 'package:senefavores/state/user/models/user_model.dart';
+import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title.dart';
 
-class PostFavorScreen extends HookWidget {
+class PostFavorScreen extends HookConsumerWidget {
   const PostFavorScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final titleController = useTextEditingController();
     final descriptionController = useTextEditingController();
     final rewardController = useTextEditingController();
@@ -90,7 +98,7 @@ class PostFavorScreen extends HookWidget {
                           "Compra", Colors.blueAccent, selectedCategory),
                       SizedBox(width: 10),
                       _categoryButton(
-                          "Tutoría", Colors.orangeAccent, selectedCategory),
+                          "Tutoria", Colors.orangeAccent, selectedCategory),
                     ],
                   ),
 
@@ -105,7 +113,54 @@ class PostFavorScreen extends HookWidget {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () async {
+                final currentUserAsync =
+                    ref.read(currentUserProvider); // ✅ Read user once
+
+                currentUserAsync.when(
+                  data: (user) async {
+                    final success = await ref
+                        .read(uploadFavorStateNotifierProvider.notifier)
+                        .uploadFavor(
+                          favor: FavorModel(
+                            id: 0,
+                            title: titleController.text,
+                            description: descriptionController.text,
+                            category: (selectedCategory.value ?? "favor")
+                                .toLowerCase(),
+                            reward: int.tryParse(rewardController.text) ?? 0,
+                            favorTime: DateTime.now(),
+                            createdAt: DateTime.now(),
+                            requestUserId: user.id,
+                          ),
+                        );
+
+                    if (success) {
+                      titleController.clear();
+                      descriptionController.clear();
+                      rewardController.clear();
+                      selectedCategory.value = null;
+                      ref
+                          .read(snackbarProvider)
+                          .showSnackbar("Uploaded", isError: false);
+                    } else {
+                      ref
+                          .read(snackbarProvider)
+                          .showSnackbar("Upload failed", isError: true);
+                    }
+                  },
+                  loading: () {
+                    ref
+                        .read(snackbarProvider)
+                        .showSnackbar("Loading", isError: false);
+                  },
+                  error: (error, stack) {
+                    ref
+                        .read(snackbarProvider)
+                        .showSnackbar("Error", isError: true);
+                  },
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.black,
