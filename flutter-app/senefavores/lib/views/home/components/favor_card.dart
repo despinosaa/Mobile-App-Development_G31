@@ -4,6 +4,7 @@ import 'package:senefavores/core/format_utils.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/user/models/user_model.dart';
+import 'package:senefavores/views/components/build_star_rating.dart';
 
 class FavorCard extends StatelessWidget {
   final FavorModel favor;
@@ -109,16 +110,7 @@ class FavorCard extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
-                Row(
-                  children: List.generate(5, (index) {
-                    return Icon(
-                      index < (user.stars ?? 5)
-                          ? Icons.star
-                          : Icons.star_border,
-                      color: Colors.black,
-                    );
-                  }),
-                ),
+                buildStarRating(user.stars ?? 0.0),
               ],
             ),
           ],

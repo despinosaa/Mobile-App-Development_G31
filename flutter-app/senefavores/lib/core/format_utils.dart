@@ -19,3 +19,7 @@ String truncateText(String text, {int maxLength = 18}) {
   }
   return text;
 }
+
+String formatReviewDate(DateTime reviewDate) {
+  return DateFormat('dd-MM-yyyy').format(reviewDate);
+}

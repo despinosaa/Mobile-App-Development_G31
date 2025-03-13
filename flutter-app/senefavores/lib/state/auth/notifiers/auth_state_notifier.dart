@@ -11,6 +11,12 @@ class AuthStateNotifier extends StateNotifier<AuthStatus> {
             result: AuthResult.none, isLoading: false, userId: null));
 
   Future<void> signInWithMicrosoft() async {
+    //remover despues
+    // state = state.copyWith(
+    //     isLoading: false, result: AuthResult.loggedIn, userId: '3');
+    // return;
+    //end remover despues
+
     _supabase.auth.signOut();
     state = state.copyWith(isLoading: true, result: AuthResult.none);
 

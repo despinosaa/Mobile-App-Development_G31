@@ -42,7 +42,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
                 icon: FaIcon(FontAwesomeIcons.circleUser),
               ),
-              // Filter row
             ],
           ),
           Row(
@@ -117,11 +116,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         padding: EdgeInsets.symmetric(vertical: 10),
                         child: Center(child: CircularProgressIndicator()),
                       ),
-                      error: (error, stack) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child:
-                            Center(child: Text("Error loading user: $error")),
-                      ),
+                      error: (error, stack) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child:
+                              Center(child: Text("Error loading user: $error")),
+                        );
+                      },
                     );
                   },
                 );

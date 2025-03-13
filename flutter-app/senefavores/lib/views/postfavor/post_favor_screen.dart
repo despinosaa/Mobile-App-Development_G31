@@ -1,85 +1,159 @@
 import 'package:flutter/material.dart';
+// ignore: depend_on_referenced_packages
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/views/components/senefavores_image_and_title.dart';
 
 class PostFavorScreen extends HookWidget {
   const PostFavorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Using useTextEditingController for better memory management
     final titleController = useTextEditingController();
     final descriptionController = useTextEditingController();
     final rewardController = useTextEditingController();
-    final estimatedTimeController = useTextEditingController();
-    final startLocationController = useTextEditingController();
-    final endLocationController = useTextEditingController();
+    // final estimatedTimeController = useTextEditingController();
+    // final startLocationController = useTextEditingController();
+    // final endLocationController = useTextEditingController();
 
-    // Selected category state
     final selectedCategory = useState<String?>(null);
 
-    return Scaffold(
-      appBar: AppBar(title: Text("Crear Favor")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title Field
-            Text("Título:", style: TextStyle(fontWeight: FontWeight.bold)),
-            TextField(controller: titleController),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        SenefavoresImageAndTitle(),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text("Título:   ", style: AppTextStyles.oswaldSubtitle),
+                      Expanded(
+                        child: TextField(
+                          controller: titleController,
+                          decoration: customInputDecoration(),
+                        ),
+                      ),
+                    ],
+                  ),
 
-            SizedBox(height: 10),
+                  SizedBox(height: 15),
 
-            // Description Field
-            Text("Descripción:", style: TextStyle(fontWeight: FontWeight.bold)),
-            TextField(
-              controller: descriptionController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
+                  // Description Field
+                  Text("Descripción:   ", style: AppTextStyles.oswaldSubtitle),
+                  SizedBox(height: 5),
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 4,
+                    decoration: customInputDecoration(),
+                  ),
+
+                  SizedBox(height: 15),
+
+                  // Reward Field
+                  Row(
+                    children: [
+                      Text("Recompensa:   ",
+                          style: AppTextStyles.oswaldSubtitle),
+                      Expanded(
+                        child: TextField(
+                          controller: rewardController,
+                          keyboardType: TextInputType.number,
+                          decoration: customInputDecoration(),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 15),
+
+                  // Category Selection
+                  Text("Categoría:", style: AppTextStyles.oswaldSubtitle),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      _categoryButton(
+                          "Favor", AppColors.lightRed, selectedCategory),
+                      SizedBox(width: 10),
+                      _categoryButton(
+                          "Compra", Colors.blueAccent, selectedCategory),
+                      SizedBox(width: 10),
+                      _categoryButton(
+                          "Tutoría", Colors.orangeAccent, selectedCategory),
+                    ],
+                  ),
+
+                  SizedBox(height: 15),
+                ],
               ),
-            ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.black, width: 2),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                  ),
+                  child: Text(
+                    "Publicar",
+                    style: AppTextStyles.oswaldTitle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
 
-            SizedBox(height: 10),
+        // Expandable Section - Otros
+        // ExpansionTile(
+        //   title:
+        //       Text("Otros:", style: TextStyle(fontWeight: FontWeight.bold)),
+        //   children: [
+        //     _textInputField("Tiempo estimado:", estimatedTimeController),
+        //     _textInputField("Lugar inicio:", startLocationController),
+        //     _textInputField("Lugar final:", endLocationController),
+        //   ],
+        // ),
+      ],
+    );
+  }
 
-            // Reward Field
-            Text("Recompensa:", style: TextStyle(fontWeight: FontWeight.bold)),
-            TextField(
-              controller: rewardController,
-              keyboardType: TextInputType.number,
-            ),
-
-            SizedBox(height: 10),
-
-            // Category Selection
-            Text("Categoría:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                _categoryButton("Favor", Colors.redAccent, selectedCategory),
-                SizedBox(width: 10),
-                _categoryButton("Compra", Colors.blueAccent, selectedCategory),
-                SizedBox(width: 10),
-                _categoryButton(
-                    "Tutoría", Colors.orangeAccent, selectedCategory),
-              ],
-            ),
-
-            SizedBox(height: 10),
-
-            // Expandable Section - Otros
-            ExpansionTile(
-              title:
-                  Text("Otros:", style: TextStyle(fontWeight: FontWeight.bold)),
-              children: [
-                _textInputField("Tiempo estimado:", estimatedTimeController),
-                _textInputField("Lugar inicio:", startLocationController),
-                _textInputField("Lugar final:", endLocationController),
-              ],
-            ),
-          ],
+  InputDecoration customInputDecoration() {
+    return InputDecoration(
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(
+          color: Colors.grey, // ✅ Border color when focused
+          width: 4,
         ),
       ),
+
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(
+          color: Colors.black, // ✅ Border color when not focused
+          width: 2,
+        ),
+      ),
+      contentPadding: EdgeInsets.symmetric(
+          horizontal: 16, vertical: 12), // ✅ Padding inside field
     );
   }
 
@@ -91,7 +165,7 @@ class PostFavorScreen extends HookWidget {
       onTap: () => selectedCategory.value = text,
       child: Chip(
         label: Text(text),
-        backgroundColor: isSelected ? color.withOpacity(0.8) : Colors.grey[300],
+        backgroundColor: isSelected ? color.withOpacity(0.8) : Colors.white,
         labelStyle: TextStyle(
           color: isSelected ? Colors.white : Colors.black,
           fontWeight: FontWeight.bold,
@@ -100,16 +174,16 @@ class PostFavorScreen extends HookWidget {
     );
   }
 
-  Widget _textInputField(String label, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-          TextField(controller: controller),
-        ],
-      ),
-    );
-  }
+  // Widget _textInputField(String label, TextEditingController controller) {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 5),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+  //         TextField(controller: controller),
+  //       ],
+  //     ),
+  //   );
+  // }
 }

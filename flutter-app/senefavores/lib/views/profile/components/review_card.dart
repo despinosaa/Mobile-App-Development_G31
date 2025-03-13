@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/core/format_utils.dart';
+import 'package:senefavores/state/reviews/models/review_model.dart';
+import 'package:senefavores/views/components/build_star_rating.dart';
 
 class ReviewCard extends StatelessWidget {
-  final String date;
-  final int rating; // 1 to 5
-  final String title;
-  final String content;
+  final ReviewModel review;
 
-  const ReviewCard({
-    super.key,
-    required this.date,
-    required this.rating,
-    required this.title,
-    required this.content,
-  });
+  const ReviewCard({super.key, required this.review});
 
   @override
   Widget build(BuildContext context) {
@@ -43,33 +37,27 @@ class ReviewCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  date,
+                  formatReviewDate(review.createdAt),
                   style: const TextStyle(color: Colors.black54),
                 ),
-                Row(
-                  children: List.generate(5, (index) {
-                    if (index < rating) {
-                      return const Icon(Icons.star,
-                          color: AppColors.mikadoYellow, size: 18);
-                    } else {
-                      return const Icon(Icons.star_border,
-                          color: AppColors.mikadoYellow, size: 18);
-                    }
-                  }),
-                ),
+                buildStarRating(
+                  review.stars.toDouble(),
+                  size: 18,
+                  color: AppColors.mikadoYellow,
+                )
               ],
             ),
             const SizedBox(height: 6),
 
             Text(
-              title,
+              review.title,
               style:
                   GoogleFonts.oswald(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
 
             /// Content
-            Text(content),
+            Text(review.description),
           ],
         ),
       ),

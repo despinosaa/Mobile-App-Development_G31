@@ -57,7 +57,9 @@ class MyApp extends StatelessWidget {
                 LoadingScreen.instance().hide();
               }
             });
+
             final authState = ref.watch(authStateProvider);
+
             if (authState.result == AuthResult.loggedIn) {
               return const NavigationScreen();
             } else {

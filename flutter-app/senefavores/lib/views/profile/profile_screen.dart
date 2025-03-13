@@ -3,8 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
+import 'package:senefavores/state/reviews/providers/user_reviews_provider.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
+import 'package:senefavores/views/components/build_star_rating.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title.dart';
 import 'package:senefavores/views/profile/components/review_card.dart';
 
@@ -13,6 +15,8 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.refresh(currentUserProvider);
+
     final user = ref.watch(currentUserProvider);
 
     final List<Map<String, dynamic>> reviews = [
@@ -64,6 +68,7 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       // Remove the default AppBar; use a custom header in the body
       body: user.when(data: (user) {
+        ref.refresh(userReviewsProvider(user.id));
         return SafeArea(
           child: Column(
             children: [
@@ -117,25 +122,24 @@ class ProfileScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Nombre Usuario",
+                              user.name ?? user.email.split('@').first,
                               style: GoogleFonts.oswald(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Row(
-                              children: List.generate(5, (index) {
-                                return const Icon(Icons.star,
-                                    color: AppColors.mikadoYellow, size: 18);
-                              }),
+                            buildStarRating(
+                              user.stars ?? 0,
+                              color: AppColors.mikadoYellow,
+                              size: 18,
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              "correo@uniandes.edu.co",
-                              style: TextStyle(color: Colors.black54),
+                            Text(
+                              user.email,
+                              style: const TextStyle(color: Colors.black54),
                             ),
-                            const Text(
-                              "+57 300 1234567",
+                            Text(
+                              user.phone ?? "No phone number provided",
                               style: TextStyle(color: Colors.black54),
                             ),
                           ],
@@ -143,9 +147,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          // TODO: Implement edit profile functionality
-                        },
+                        onPressed: () {},
                       ),
                     ],
                   ),
@@ -166,24 +168,33 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 10),
               // Scrollable list of Review Cards
               Expanded(
-                child: ListView.builder(
-                  itemCount: reviews.length,
-                  itemBuilder: (context, index) {
-                    final review = reviews[index];
-                    return ReviewCard(
-                      date: review["date"],
-                      rating: review["rating"],
-                      title: review["title"],
-                      content: review["content"],
-                    );
-                  },
-                ),
+                child: ref.watch(userReviewsProvider(user.id)).when(
+                      data: (reviews) {
+                        if (reviews.isEmpty) {
+                          return Center(child: Text("No reviews available."));
+                        }
+                        return ListView.builder(
+                          itemCount: reviews.length,
+                          itemBuilder: (context, index) {
+                            final review = reviews[index];
+                            return ReviewCard(
+                              review: review,
+                            );
+                          },
+                        );
+                      },
+                      loading: () => Center(
+                          child: CircularProgressIndicator(
+                        color: Colors.black,
+                      )),
+                      error: (error, stack) =>
+                          Center(child: Text("Error: $error")),
+                    ),
               ),
             ],
           ),
         );
       }, error: (error, stacktrace) {
-        print(stacktrace);
         return Center(child: Text("Error: $error"));
       }, loading: () {
         return Center(child: CircularProgressIndicator(color: Colors.black));

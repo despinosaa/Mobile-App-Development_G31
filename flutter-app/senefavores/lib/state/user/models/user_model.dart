@@ -4,7 +4,7 @@ class UserModel {
   final String email;
   final String? phone;
   final String? profilePic;
-  final int? stars;
+  final double? stars;
 
   UserModel({
     required this.id,
@@ -22,7 +22,7 @@ class UserModel {
       email: json['email'] as String,
       phone: json['phone'] as String?,
       profilePic: json['profile_pic'] as String?,
-      stars: json['stars'] as int?,
+      stars: (json['stars'] as num?)?.toDouble(),
     );
   }
 
