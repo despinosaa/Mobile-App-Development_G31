@@ -19,7 +19,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavController
+import com.example.senefavores.R
 import com.example.senefavores.ui.components.CustomButton
 import java.io.IOException
 
@@ -29,7 +31,6 @@ fun LogInScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val imageBitmap = loadBitmapFromAssets(context, "senefavores_logoHi.png")
 
     Column(
         modifier = Modifier
@@ -37,17 +38,16 @@ fun LogInScreen(navController: NavController) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo from assets
-        imageBitmap?.let {
-            Image(
-                bitmap = it.asImageBitmap(),
-                contentDescription = "App Logo",
-                modifier = Modifier
-                    .size(300.dp)
-                    .padding(top = 80.dp, bottom = 46.dp),
-                contentScale = ContentScale.Fit
-            )
-        }
+
+        // Logo
+        Image(
+            painter = painterResource(R.drawable.ic_logo_cabra),
+            contentDescription = "App Logo",
+            modifier = Modifier
+                .size(300.dp)
+                .padding(top = 80.dp, bottom = 46.dp),
+            contentScale = ContentScale.Fit
+        )
 
         // Username Input
         OutlinedTextField(
@@ -88,7 +88,6 @@ fun LogInScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(2.dp))
 
-        // Forgot Password
         Text(
             text = "¿Olvidaste tu contraseña?",
             fontSize = 14.sp,
@@ -98,7 +97,6 @@ fun LogInScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Register Button (White with Black Text)
         CustomButton(
             text = "Crear cuenta",
             onClick = { navController.navigate("register") },

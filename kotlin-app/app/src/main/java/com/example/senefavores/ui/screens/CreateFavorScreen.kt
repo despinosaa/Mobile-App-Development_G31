@@ -1,9 +1,7 @@
 package com.example.senefavores.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,8 +15,8 @@ import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.SenefavoresHeader
 
 @Composable
-fun HistoryScreen(navController: NavController) {
-    var selectedItem by remember { mutableStateOf(2) } // Estado para el ítem seleccionado (2: Historial)
+fun CreateFavorScreen(navController: NavController) {
+    var selectedItem by remember { mutableStateOf(1) } // Estado para el ítem seleccionado (1: Crear Favor)
 
     Scaffold(
         topBar = {
@@ -45,13 +43,13 @@ fun HistoryScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(text = "Pantalla vacía de History")
+            Text("Pantalla de Crear Favor")
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = { navController.navigate("home") }) {
-                Text("Go Back to Home")
+                Text("Volver a Home")
             }
         }
     }
