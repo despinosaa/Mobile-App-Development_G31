@@ -19,7 +19,7 @@ class PostFavorScreen extends HookWidget {
     final selectedCategory = useState<String?>(null);
 
     return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.max,
       children: [
@@ -34,6 +34,7 @@ class PostFavorScreen extends HookWidget {
               Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.max,
                 children: [
                   Row(
                     children: [
@@ -96,28 +97,31 @@ class PostFavorScreen extends HookWidget {
                   SizedBox(height: 15),
                 ],
               ),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.black, width: 2),
-                    ),
-                    elevation: 0,
-                    shadowColor: Colors.transparent,
-                  ),
-                  child: Text(
-                    "Publicar",
-                    style: AppTextStyles.oswaldTitle,
-                  ),
-                ),
-              ),
             ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                padding: EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.black, width: 2),
+                ),
+                elevation: 0,
+                shadowColor: Colors.transparent,
+              ),
+              child: Text(
+                "Publicar",
+                style: AppTextStyles.oswaldTitle,
+              ),
+            ),
           ),
         ),
 
