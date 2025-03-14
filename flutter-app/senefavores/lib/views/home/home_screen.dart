@@ -6,11 +6,11 @@ import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/home/models/filter_button_sort.dart';
 import 'package:senefavores/state/home/providers/selected_sort_filter_button_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
-import 'package:senefavores/views/components/senefavores_image_and_title.dart';
+import 'package:senefavores/views/acceptfavor/accept_favor_screen.dart';
+import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 import 'package:senefavores/views/home/components/category_filter_button.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
 import 'package:senefavores/core/constant.dart';
-import 'package:senefavores/views/profile/profile_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -28,22 +28,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return SafeArea(
       child: Column(
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              SenefavoresImageAndTitle(),
-              IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ProfileScreen()),
-                  );
-                },
-                icon: FaIcon(FontAwesomeIcons.circleUser),
-              ),
-            ],
-          ),
+          SenefavoresImageAndTitleAndProfile(),
           Row(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -111,7 +96,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ref.watch(userProvider(favor.requestUserId));
 
                     return userAsync.when(
-                      data: (user) => FavorCard(favor: favor, user: user),
+                      data: (user) => InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AcceptFavorScreen(
+                                favor: favor,
+                              ),
+                            ),
+                          );
+                        },
+                        child: FavorCard(favor: favor, user: user),
+                      ),
                       loading: () => const Padding(
                         padding: EdgeInsets.symmetric(vertical: 10),
                         child: Center(child: CircularProgressIndicator()),
@@ -131,7 +128,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: CircularProgressIndicator(
                 color: Colors.black,
               )),
-              error: (error, stack) => Center(child: Text("Error: $error")),
+              error: (error, stack) =>
+                  Center(child: Text("Error loading favors: $error")),
             ),
           ),
         ],

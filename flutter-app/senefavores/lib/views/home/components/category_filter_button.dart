@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/home/providers/selected_category_filter_button_provider.dart';
 
@@ -48,7 +49,7 @@ class CategoryFilterButton extends ConsumerWidget {
                 : backgroundColor.withOpacity(0.4),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(text),
+          child: Text(text, style: AppTextStyles.oswaldBody),
         ),
       ),
     );

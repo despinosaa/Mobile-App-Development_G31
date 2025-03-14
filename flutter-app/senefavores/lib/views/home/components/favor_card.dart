@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/core/extension.dart';
 import 'package:senefavores/core/format_utils.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
@@ -56,15 +57,19 @@ class FavorCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        favor.category,
+                        favor.category.capitalize(),
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                     SizedBox(width: 10),
-                    Text(formatCurrency(favor.reward),
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      formatCurrency(favor.reward),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ],

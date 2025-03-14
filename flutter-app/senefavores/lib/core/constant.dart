@@ -31,22 +31,22 @@ class AppTextStyles {
 
   // Body Text (Regular)
   static final TextStyle oswaldBody = GoogleFonts.oswald(
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: FontWeight.w400,
-    color: AppColors.mediumDarkGray,
+    color: Colors.black,
   );
 
   // Buttons (Medium Weight)
   static final TextStyle oswaldButton = GoogleFonts.oswald(
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: FontWeight.w600,
-    color: AppColors.lightGray,
+    color: Colors.black,
   );
 
   // Small Labels
   static final TextStyle oswaldSmall = GoogleFonts.oswald(
     fontSize: 14,
     fontWeight: FontWeight.w300,
-    color: AppColors.silver,
+    color: Colors.black,
   );
 }
