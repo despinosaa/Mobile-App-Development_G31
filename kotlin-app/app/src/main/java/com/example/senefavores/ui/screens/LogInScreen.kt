@@ -45,8 +45,6 @@ fun LogInScreen(navController: NavController) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-<<<<<<< HEAD
-
         // Logo
         Image(
             painter = painterResource(R.drawable.ic_logo_cabra),
@@ -56,19 +54,8 @@ fun LogInScreen(navController: NavController) {
                 .padding(top = 80.dp, bottom = 46.dp),
             contentScale = ContentScale.Fit
         )
-=======
-        // Logo from assets
-        imageBitmap?.let {
-            Image(
-                bitmap = it.asImageBitmap(),
-                contentDescription = "App Logo",
-                modifier = Modifier
-                    .size(300.dp)
-                    .padding(top = 80.dp, bottom = 21.dp),
-                contentScale = ContentScale.Fit
-            )
-        }
->>>>>>> Sinis
+
+
 
         // Username Input
         OutlinedTextField(
@@ -152,28 +139,7 @@ fun loginUser(
     navController: NavController,
     onResult: (Boolean, String?) -> Unit
 ) {
-    CoroutineScope(Dispatchers.IO).launch {
-        //val supabase = supabase // Get your Supabase instance
-        /*
-        val result = supabase.auth.signInWithPassword(email, password)
-
-
-
-        withContext(Dispatchers.Main) {
-            if (result.user != null) {
-                Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
-                navController.navigate("home")
-                onResult(true, null)
-            } else {
-                onResult(false, "Usuario o contraseña incorrectos")
-            }
-        }
-
-         */
-        Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
-        navController.navigate("home")
-        onResult(true, null)
-    }
+    navController.navigate("home")
 }
 
 fun loadBitmapFromAssets(context: Context, assetName: String): android.graphics.Bitmap? {
