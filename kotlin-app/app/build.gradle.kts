@@ -2,7 +2,11 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+<<<<<<< HEAD
     alias(libs.plugins.kotlin.serialization)
+=======
+
+>>>>>>> Sinis
 }
 
 android {
@@ -41,7 +45,10 @@ android {
 }
 
 dependencies {
+<<<<<<< HEAD
     // AndroidX y Kotlin
+=======
+>>>>>>> Sinis
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -53,6 +60,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
+<<<<<<< HEAD
 
     // Serialización
     implementation(libs.kotlinx.serialization.json)
@@ -64,6 +72,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
 
     // Pruebas
+=======
+    //implementation(platform("io.github.jan-tennert.supabase:bom:3.1.2"))
+    //implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    //implementation("io.github.jan-tennert.supabase:auth-kt")
+    //implementation("io.github.jan-tennert.supabase:realtime-kt")
+    //implementation("io.ktor:ktor-client-android:3.0.0-rc-1")
+    //implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+>>>>>>> Sinis
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -71,4 +87,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+
 }

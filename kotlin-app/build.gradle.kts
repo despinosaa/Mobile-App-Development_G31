@@ -3,5 +3,10 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.compose) apply false
+<<<<<<< HEAD
     alias(libs.plugins.kotlin.serialization) apply false
 }
+=======
+    //kotlin("plugin.serialization") version "3.1.2"
+}
+>>>>>>> Sinis
