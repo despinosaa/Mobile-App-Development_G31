@@ -31,7 +31,13 @@ fun AppNavHost(
         composable("home") { HomeScreen(navController) }
         composable("history") { HistoryScreen(navController) }
         composable("account") { AccountScreen(navController) }
-        composable("createFavor") { CreateFavorScreen(navController) }
+        composable("createFavor") {
+            CreateFavorScreen(
+                navController = navController,
+                locationHelper = locationHelper,
+                hasLocationPermission = hasLocationPermission
+            )
+        }
         composable(
             route = "favorScreen/{favorJson}",
             arguments = listOf(navArgument("favorJson") {})
@@ -46,7 +52,6 @@ fun AppNavHost(
                     hasLocationPermission = hasLocationPermission
                 )
             } else {
-                // Manejar error si el favor no se puede deserializar
                 Text("Error al cargar el favor")
             }
         }
