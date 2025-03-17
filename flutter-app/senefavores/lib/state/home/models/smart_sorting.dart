@@ -1,0 +1,4 @@
+enum SmartSorting {
+  enabled,
+  disabled,
+}

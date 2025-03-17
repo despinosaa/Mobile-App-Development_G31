@@ -9,4 +9,8 @@ class SelectedSortFilterButtonNotifier extends StateNotifier<FilterButtonSort> {
         ? FilterButtonSort.desc
         : FilterButtonSort.asc;
   }
+
+  void set(FilterButtonSort filter) {
+    state = filter;
+  }
 }

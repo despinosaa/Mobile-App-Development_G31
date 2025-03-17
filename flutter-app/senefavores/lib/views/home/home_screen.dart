@@ -4,7 +4,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/state/favors/providers/favors_provider.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/home/models/filter_button_sort.dart';
+import 'package:senefavores/state/home/models/smart_sorting.dart';
+import 'package:senefavores/state/home/providers/selected_category_filter_button_provider.dart';
 import 'package:senefavores/state/home/providers/selected_sort_filter_button_provider.dart';
+import 'package:senefavores/state/home/providers/smart_sorting_state_notifier_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/acceptfavor/accept_favor_screen.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
@@ -24,6 +27,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final favors = ref.watch(favorsStreamProvider);
     final filter = ref.watch(selectedSortFilterButtonProvider);
+    final smartSorting = ref.watch(smartSortingStateNotifierProvider);
 
     return SafeArea(
       child: Column(
@@ -36,9 +40,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Row(
                 children: [
                   IconButton(
-                      onPressed: () {}, icon: FaIcon(FontAwesomeIcons.filter)),
+                    onPressed: () {
+                      if (smartSorting == SmartSorting.disabled) {
+                        ref
+                            .read(selectedSortFilterButtonProvider.notifier)
+                            .set(FilterButtonSort.asc);
+                        ref
+                            .read(selectedCategoryFilterButtonProvider.notifier)
+                            .setCategoryFilter(FilterButtonCategory.none);
+                      }
+
+                      ref
+                          .read(smartSortingStateNotifierProvider.notifier)
+                          .toggleSorting();
+                    },
+                    icon: FaIcon(
+                      FontAwesomeIcons.magicWandSparkles,
+                      color: smartSorting == SmartSorting.enabled
+                          ? Colors.green
+                          : Colors.black,
+                    ),
+                  ),
                   IconButton(
                     onPressed: () {
+                      ref
+                          .read(smartSortingStateNotifierProvider.notifier)
+                          .setSorting(SmartSorting.disabled);
+
                       ref
                           .read(selectedSortFilterButtonProvider.notifier)
                           .toggle();
