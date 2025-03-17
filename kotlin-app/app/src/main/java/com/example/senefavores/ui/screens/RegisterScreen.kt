@@ -1,5 +1,6 @@
 package com.example.senefavores.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -28,7 +29,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
 import com.example.senefavores.ui.components.CustomButton
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import com.example.senefavores.ui.viewmodel.FavorViewModel
+import kotlinx.io.IOException
 
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -157,10 +162,21 @@ fun RegisterScreen(navController: NavController) {
         // Log In Button (Black with White Text)
         CustomButton(
             text = "Crear",
-            onClick = { navController.navigate("home") },
+            onClick = { navController.navigate("trialFavor") },
             backgroundColor = Color.Black,
             textColor = Color.White,
             hasBorder = false
         )
+    }
+}
+
+fun loadBitmapFromAssets(context: Context, assetName: String): Bitmap? {
+    return try {
+        context.assets.open(assetName).use { inputStream ->
+            BitmapFactory.decodeStream(inputStream)
+        }
+    } catch (e: IOException) {
+        e.printStackTrace()
+        null
     }
 }

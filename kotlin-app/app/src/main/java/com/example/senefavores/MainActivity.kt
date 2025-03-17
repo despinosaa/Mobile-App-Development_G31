@@ -8,40 +8,40 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.senefavores.navigation.AppNavHost
 import com.example.senefavores.ui.theme.SenefavoresTheme
 import com.example.senefavores.util.LocationHelper
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private lateinit var locationHelper: LocationHelper
+    @Inject
+    lateinit var locationHelper: LocationHelper // Injected by Hilt
     private var hasLocationPermission by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Inicializar LocationHelper
-        locationHelper = LocationHelper(applicationContext)
-
-        // Registrar el callback para permisos
+        // Register callback for permissions
         val permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                     permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-            println("Permisos concedidos: $hasLocationPermission") // Log para depuración
+
+            println("Permisos concedidos: $hasLocationPermission") // Debug log
             if (hasLocationPermission) {
                 locationHelper.getLastLocation()
             }
         }
 
-        // Solicitar permisos al iniciar la actividad
+        // Request permissions when activity starts
         permissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,

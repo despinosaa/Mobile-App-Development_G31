@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    id("dagger.hilt.android.plugin")
+    kotlin("kapt")
 }
 
 android {
@@ -41,35 +43,36 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
-    // Jetpack Compose (usando BOM para consistencia)
+    // Jetpack Compose (Using BOM for consistency)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0") // ✅ Fix for hiltViewModel issue
 
-    // Serialización
+    // Serialization
     implementation(libs.kotlinx.serialization.json)
 
-    // Ubicación
+    // Location
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
 
-    // Pruebas
-    //implementation(platform("io.github.jan-tennert.supabase:bom:3.1.2"))
-    //implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    //implementation("io.github.jan-tennert.supabase:auth-kt")
-    //implementation("io.github.jan-tennert.supabase:realtime-kt")
-    //implementation("io.ktor:ktor-client-android:3.0.0-rc-1")
-    //implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    // Supabase
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.1.2"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:auth-kt")
+    implementation("io.github.jan-tennert.supabase:realtime-kt")
+    implementation(libs.ktor.client.android)
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -78,5 +81,12 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    // Hilt Dependency Injection
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.android.compiler)
+}
 
+// Allow references to generated code
+kapt {
+    correctErrorTypes = true
 }
