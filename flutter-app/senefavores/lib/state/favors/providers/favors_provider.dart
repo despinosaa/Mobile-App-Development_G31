@@ -10,7 +10,7 @@ import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final favorsStreamProvider =
-    StreamProvider.autoDispose<List<FavorModel>>((ref) {
+    StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
   final supabase = Supabase.instance.client;
 
   final selectedCategory = ref.watch(selectedCategoryFilterButtonProvider);
@@ -18,39 +18,78 @@ final favorsStreamProvider =
   final currentUser = ref.watch(currentUserNotifierProvider);
   final smartSorting = ref.watch(smartSortingStateNotifierProvider);
 
+  if (currentUser == null) {
+    yield []; // ✅ Handle case where user is not logged in
+    return;
+  }
+
+  Stream<List<FavorModel>> favorStream;
+
   if (smartSorting == SmartSorting.enabled) {
-    return supabase
+    final acceptedFavors = await supabase
+        .from('favors')
+        .select('category')
+        .eq('accept_user_id', currentUser.id);
+
+    final categoryCount = <String, int>{};
+    for (var favor in acceptedFavors) {
+      String category = favor['category'];
+      categoryCount[category] = (categoryCount[category] ?? 0) + 1;
+    }
+
+    final sortedCategories = categoryCount.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final preferredCategories = sortedCategories.map((e) => e.key).toList();
+
+    favorStream = supabase
         .from('favors')
         .stream(primaryKey: ['id'])
-        .neq('request_user_id', currentUser!.id)
+        .neq('request_user_id', currentUser.id)
+        .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
+        .map((data) => data
+            .map((favor) => FavorModel.fromJson(favor))
+            .where((favor) => favor.acceptUserId == null)
+            .toList());
+
+    favorStream = favorStream.map((favors) {
+      favors.sort((a, b) {
+        int aPriority = preferredCategories.contains(a.category)
+            ? preferredCategories.indexOf(a.category)
+            : preferredCategories.length;
+        int bPriority = preferredCategories.contains(b.category)
+            ? preferredCategories.indexOf(b.category)
+            : preferredCategories.length;
+        return aPriority.compareTo(bPriority);
+      });
+      return favors;
+    });
+
+    yield* favorStream;
+    return;
+  }
+
+  // ✅ If Smart Sorting is disabled, fetch favors normally
+  if (selectedCategory == FilterButtonCategory.none) {
+    yield* supabase
+        .from('favors')
+        .stream(primaryKey: ['id'])
+        .neq('request_user_id', currentUser.id)
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
         .map((data) => data
             .map((favor) => FavorModel.fromJson(favor))
             .where((favor) => favor.acceptUserId == null)
             .toList());
   } else {
-    if (selectedCategory == FilterButtonCategory.none) {
-      return supabase
-          .from('favors')
-          .stream(primaryKey: ['id'])
-          .neq('request_user_id', currentUser!.id)
-          .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
-          .map((data) => data
-              .map((favor) => FavorModel.fromJson(favor))
-              .where((favor) => favor.acceptUserId == null)
-              .toList());
-    } else {
-      return supabase
-          .from('favors')
-          .stream(primaryKey: ['id'])
-          .eq('category', selectedCategory.toString().split('.').last)
-          .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
-          .map((data) => data
-              .map((favor) => FavorModel.fromJson(favor))
-              .where((favor) =>
-                  favor.requestUserId != currentUser!.id &&
-                  favor.acceptUserId == null)
-              .toList());
-    }
+    yield* supabase
+        .from('favors')
+        .stream(primaryKey: ['id'])
+        .eq('category', selectedCategory.toString().split('.').last)
+        .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
+        .map((data) => data
+            .map((favor) => FavorModel.fromJson(favor))
+            .where((favor) =>
+                favor.requestUserId != currentUser.id &&
+                favor.acceptUserId == null)
+            .toList());
   }
 });
