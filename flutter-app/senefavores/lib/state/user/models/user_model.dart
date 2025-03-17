@@ -36,4 +36,23 @@ class UserModel {
       'stars': stars,
     };
   }
+
+  /// **✅ Corrected copyWith method**
+  UserModel copyWith({
+    int? id,
+    String? name,
+    String? email,
+    String? phone,
+    String? profilePic,
+    double? stars,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      profilePic: profilePic ?? this.profilePic,
+      stars: stars ?? this.stars,
+    );
+  }
 }

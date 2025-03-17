@@ -19,89 +19,77 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserAsync = ref.watch(currentUserProvider);
+    final currentUser = ref.watch(currentUserNotifierProvider);
 
     return SafeArea(
-      child: currentUserAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text("Error: $error")),
-        data: (currentUser) {
-          if (currentUser.id == 0) {
-            return const Center(child: Text("Usuario inválido o no logueado"));
-          }
-
-          return Column(
-            children: [
-              const SenefavoresImageAndTitleAndProfile(),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => showSolicitados = false),
-                        child: Container(
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: !showSolicitados
-                                ? AppColors.mikadoYellow
-                                : Colors.white,
-                            border: Border.all(color: Colors.black),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            "Aceptados",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: !showSolicitados
-                                  ? Colors.black
-                                  : Colors.grey[700],
-                            ),
-                          ),
+      child: Column(
+        children: [
+          const SenefavoresImageAndTitleAndProfile(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => showSolicitados = false),
+                    child: Container(
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: !showSolicitados
+                            ? AppColors.mikadoYellow
+                            : Colors.white,
+                        border: Border.all(color: Colors.black),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "Aceptados",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: !showSolicitados
+                              ? Colors.black
+                              : Colors.grey[700],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => showSolicitados = true),
-                        child: Container(
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: showSolicitados
-                                ? AppColors.mikadoYellow
-                                : Colors.white,
-                            border: Border.all(color: Colors.black),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            "Solicitados",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: showSolicitados
-                                  ? Colors.black
-                                  : Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: showSolicitados
-                    ? _buildSolicitadosList(currentUser.id)
-                    : _buildAceptadosList(currentUser.id),
-              ),
-            ],
-          );
-        },
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => showSolicitados = true),
+                    child: Container(
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: showSolicitados
+                            ? AppColors.mikadoYellow
+                            : Colors.white,
+                        border: Border.all(color: Colors.black),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "Solicitados",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color:
+                              showSolicitados ? Colors.black : Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: showSolicitados
+                ? _buildSolicitadosList(currentUser!.id)
+                : _buildAceptadosList(currentUser!.id),
+          ),
+        ],
       ),
     );
   }
@@ -110,7 +98,10 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
     final favorsRequested = ref.watch(favorsRequestedByUserProvider(userId));
 
     return favorsRequested.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+          child: CircularProgressIndicator(
+        color: Colors.black,
+      )),
       error: (error, stack) => Center(child: Text("Error: $error")),
       data: (favorsList) {
         if (favorsList.isEmpty) {
@@ -124,7 +115,10 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
             return userAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                    child: CircularProgressIndicator(
+                  color: Colors.black,
+                )),
               ),
               error: (error, stack) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -142,7 +136,11 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
     final favorsAccepted = ref.watch(favorsAcceptedByUserProvider(userId));
 
     return favorsAccepted.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          color: Colors.black,
+        ),
+      ),
       error: (error, stack) => Center(child: Text("Error: $error")),
       data: (favorsList) {
         if (favorsList.isEmpty) {

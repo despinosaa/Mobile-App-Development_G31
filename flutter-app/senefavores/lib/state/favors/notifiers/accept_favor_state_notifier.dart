@@ -12,7 +12,7 @@ class AcceptFavorNotifier extends StateNotifier<bool> {
 
       final List response = await supabase
           .from('favors')
-          .update({'accept_user_id': userId})
+          .update({'accept_user_id': userId, 'favor_time': 'now()'})
           .eq('id', favorId)
           .select();
 

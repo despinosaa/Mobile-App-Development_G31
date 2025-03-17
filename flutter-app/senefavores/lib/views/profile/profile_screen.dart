@@ -17,14 +17,12 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Force dark icons on a white status bar
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
       statusBarColor: Colors.white,
     ));
 
-    // Refresh the current user each time this screen is built
-    ref.refresh(currentUserProvider);
-    final userAsync = ref.watch(currentUserProvider);
+    ref.read(currentUserNotifierProvider.notifier).refreshUser();
+    final currentUser = ref.watch(currentUserNotifierProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -47,218 +45,204 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: userAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Colors.black),
-        ),
-        error: (error, stacktrace) => Center(child: Text("Error: $error")),
-        data: (user) {
-          // Also refresh user reviews
-          ref.refresh(userReviewsProvider(user.id));
+      body: Column(
+        children: [
+          const SizedBox(height: 20),
 
-          return Column(
-            children: [
-              const SizedBox(height: 20),
-
-              // Profile Information Card
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        spreadRadius: 2,
-                        blurRadius: 1,
-                      ),
-                    ],
+          // Profile Information Card
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 2,
+                    blurRadius: 1,
                   ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 32,
-                        backgroundColor: Colors.grey.shade300,
-                        child: const Icon(Icons.person,
-                            size: 40, color: Colors.black),
-                      ),
-                      const SizedBox(width: 12),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: Colors.grey.shade300,
+                    child:
+                        const Icon(Icons.person, size: 40, color: Colors.black),
+                  ),
+                  const SizedBox(width: 12),
 
-                      // Name, stars, email, phone
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.name ?? user.email.split('@').first,
-                              style: GoogleFonts.oswald(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            buildStarRating(
-                              user.stars ?? 0,
-                              color: AppColors.mikadoYellow,
-                              size: 18,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              user.email,
-                              style: const TextStyle(color: Colors.black54),
-                            ),
-                            Text(
-                              user.phone ?? "No phone number provided",
-                              style: const TextStyle(color: Colors.black54),
-                            ),
-                          ],
+                  // Name, stars, email, phone
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentUser!.name ??
+                              currentUser.email.split('@').first,
+                          style: GoogleFonts.oswald(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        buildStarRating(
+                          currentUser.stars ?? 0,
+                          color: AppColors.mikadoYellow,
+                          size: 18,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          currentUser.email,
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        Text(
+                          currentUser.phone ?? "No phone number provided",
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                      // Edit button
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {
-                          // Show a dialog to edit phone number
-                          showDialog(
-                            context: context,
-                            builder: (context) {
-                              // Default to "0123456789" if user.phone is empty/null
-                              final phoneController = TextEditingController(
-                                text:
-                                    (user.phone == null || user.phone!.isEmpty)
-                                        ? "0123456789"
-                                        : user.phone,
-                              );
-                              return AlertDialog(
-                                title: const Text("Editar Número de Teléfono"),
-                                content: TextField(
-                                  controller: phoneController,
-                                  keyboardType: TextInputType.number,
-                                  maxLength: 10,
-                                  decoration: const InputDecoration(
-                                    labelText: "Ej: 310 123 4567",
-                                  ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(10),
-                                  ],
+                  // Edit button
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () {
+                      // Show a dialog to edit phone number
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          // Default to "0123456789" if user.phone is empty/null
+                          final phoneController = TextEditingController(
+                            text: (currentUser.phone == null ||
+                                    currentUser.phone!.isEmpty)
+                                ? "Agregar numero"
+                                : currentUser.phone,
+                          );
+                          return AlertDialog(
+                            title: const Text("Editar Número de Teléfono"),
+                            content: TextField(
+                              controller: phoneController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 10,
+                              decoration: const InputDecoration(
+                                labelText: "Ej: 310 123 4567",
+                              ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () async {
+                                  final phone = phoneController.text.trim();
+                                  // Check length == 10
+                                  if (phone.length != 10) {
+                                    ref.read(snackbarProvider).showSnackbar(
+                                          "El número de teléfono debe tener 10 dígitos",
+                                          isError: true,
+                                        );
+                                    return;
+                                  }
+
+                                  // Update phone in Supabase
+                                  try {
+                                    final supabase = Supabase.instance.client;
+                                    final List response = await supabase
+                                        .from('users')
+                                        .update({'phone': phone})
+                                        .eq('id', currentUser.id)
+                                        .select();
+
+                                    if (response.isEmpty) {
+                                      ref.read(snackbarProvider).showSnackbar(
+                                            "Error: No se pudo actualizar el teléfono",
+                                            isError: true,
+                                          );
+                                    } else {
+                                      ref
+                                          .read(currentUserNotifierProvider
+                                              .notifier)
+                                          .updatePhone(phone);
+
+                                      ref.read(snackbarProvider).showSnackbar(
+                                            "Número de teléfono actualizado",
+                                            isError: false,
+                                          );
+
+                                      Navigator.pop(context);
+                                    }
+                                  } catch (e) {
+                                    ref.read(snackbarProvider).showSnackbar(
+                                          "Excepción al actualizar: $e",
+                                          isError: true,
+                                        );
+                                  }
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.black,
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () async {
-                                      final phone = phoneController.text.trim();
-                                      // Check length == 10
-                                      if (phone.length != 10) {
-                                        ref.read(snackbarProvider).showSnackbar(
-                                              "El número de teléfono debe tener 10 dígitos",
-                                              isError: true,
-                                            );
-                                        return;
-                                      }
-
-                                      // Update phone in Supabase
-                                      try {
-                                        final supabase =
-                                            Supabase.instance.client;
-                                        final List response = await supabase
-                                            .from('users')
-                                            .update({'phone': phone})
-                                            .eq('id', user.id)
-                                            .select();
-
-                                        if (response.isEmpty) {
-                                          ref
-                                              .read(snackbarProvider)
-                                              .showSnackbar(
-                                                "Error: No se pudo actualizar el teléfono",
-                                                isError: true,
-                                              );
-                                        } else {
-                                          // success
-                                          ref
-                                              .read(snackbarProvider)
-                                              .showSnackbar(
-                                                "Número de teléfono actualizado",
-                                                isError: false,
-                                              );
-                                          // refresh user data
-                                          ref.refresh(currentUserProvider);
-                                          Navigator.pop(context);
-                                        }
-                                      } catch (e) {
-                                        ref.read(snackbarProvider).showSnackbar(
-                                              "Excepción al actualizar: $e",
-                                              isError: true,
-                                            );
-                                      }
-                                    },
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.black,
-                                    ),
-                                    child: const Text("Guardar"),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.black,
-                                    ),
-                                    child: const Text("Cancelar"),
-                                  ),
-                                ],
-                              );
-                            },
+                                child: const Text("Guardar"),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.black,
+                                ),
+                                child: const Text("Cancelar"),
+                              ),
+                            ],
                           );
                         },
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                ),
+                ],
               ),
+            ),
+          ),
 
-              const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-              // Reviews Section Title
-              Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Mis reseñas:",
-                    style: AppTextStyles.oswaldSubtitle,
-                  ),
-                ),
+          // Reviews Section Title
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Mis reseñas:",
+                style: AppTextStyles.oswaldSubtitle,
               ),
-              const SizedBox(height: 10),
+            ),
+          ),
+          const SizedBox(height: 10),
 
-              // Scrollable list of Review Cards
-              Expanded(
-                child: ref.watch(userReviewsProvider(user.id)).when(
-                      data: (reviews) {
-                        if (reviews.isEmpty) {
-                          return const Center(
-                              child: Text("No reviews available."));
-                        }
-                        return ListView.builder(
-                          itemCount: reviews.length,
-                          itemBuilder: (context, index) {
-                            final review = reviews[index];
-                            return ReviewCard(review: review);
-                          },
-                        );
+          // Scrollable list of Review Cards
+          Expanded(
+            child: ref.watch(userReviewsProvider(currentUser.id)).when(
+                  data: (reviews) {
+                    if (reviews.isEmpty) {
+                      return const Center(child: Text("No reviews available."));
+                    }
+                    return ListView.builder(
+                      itemCount: reviews.length,
+                      itemBuilder: (context, index) {
+                        final review = reviews[index];
+                        return ReviewCard(review: review);
                       },
-                      loading: () => const Center(
-                        child: CircularProgressIndicator(color: Colors.black),
-                      ),
-                      error: (error, stack) =>
-                          Center(child: Text("Error: $error")),
-                    ),
-              ),
-            ],
-          );
-        },
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: Colors.black),
+                  ),
+                  error: (error, stack) => Center(child: Text("Error: $error")),
+                ),
+          ),
+        ],
       ),
     );
   }

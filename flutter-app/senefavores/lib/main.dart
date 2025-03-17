@@ -7,6 +7,7 @@ import 'package:senefavores/state/loading/is_loading_provider.dart';
 import 'package:senefavores/state/snackbar/models/snackbar_message_model.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_notification_provider.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
+import 'package:senefavores/state/user/providers/auth_watcher_provider.dart';
 import 'package:senefavores/views/components/loading_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/navigation/navigation_screen.dart';
@@ -38,8 +39,8 @@ class MyApp extends StatelessWidget {
       home: SafeArea(
         child: Consumer(
           builder: (context, ref, child) {
+            ref.watch(authWatcherProvider);
             ref.read(snackbarProvider).setContext(context);
-
             ref.listen<SnackbarMessageModel>(snackbarNotificationProvider,
                 (previous, next) {
               if (next.message.isNotEmpty) {

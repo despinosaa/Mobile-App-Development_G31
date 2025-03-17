@@ -41,7 +41,7 @@ class FavorCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(formatFavorTime(favor.favorTime),
+                Text(formatFavorTime(favor.createdAt),
                     style: TextStyle(fontSize: 14, color: Colors.black54)),
                 Row(
                   children: [

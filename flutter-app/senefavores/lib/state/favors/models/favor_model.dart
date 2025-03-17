@@ -4,7 +4,7 @@ class FavorModel {
   final String description;
   final String category;
   final int reward;
-  final DateTime favorTime;
+  final DateTime? favorTime;
   final DateTime createdAt;
   final int requestUserId;
   final int? acceptUserId;
@@ -15,7 +15,7 @@ class FavorModel {
     required this.description,
     required this.category,
     required this.reward,
-    required this.favorTime,
+    this.favorTime,
     required this.createdAt,
     required this.requestUserId,
     this.acceptUserId,
@@ -28,7 +28,9 @@ class FavorModel {
       description: json['description'] as String,
       category: json['category'] as String,
       reward: json['reward'] as int,
-      favorTime: DateTime.parse(json['favor_time']),
+      favorTime: json['favor_time'] != null
+          ? DateTime.parse(json['favor_time'])
+          : null,
       createdAt: DateTime.parse(json['created_at']),
       requestUserId: json['request_user_id'] as int,
       acceptUserId: json['accept_user_id'] as int?,
@@ -41,7 +43,7 @@ class FavorModel {
       'description': description,
       'category': category,
       'reward': reward,
-      'favor_time': favorTime.toIso8601String(),
+      'favor_time': favorTime?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'request_user_id': requestUserId,
       'accept_user_id': acceptUserId,

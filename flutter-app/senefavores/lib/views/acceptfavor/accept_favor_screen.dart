@@ -22,7 +22,7 @@ class AcceptFavorScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requesterAsync = ref.watch(userProvider(favor.requestUserId));
-    final currentUserAsync = ref.watch(currentUserProvider);
+    final currentUser = ref.watch(currentUserNotifierProvider);
 
     return SafeArea(
       child: Scaffold(
@@ -104,39 +104,47 @@ class AcceptFavorScreen extends ConsumerWidget {
                         orElse: () => null,
                       );
 
-                      currentUserAsync.whenData((currentUser) async {
-                        final bool hasBeenUploaded = await ref
-                            .read(acceptFavorProvider.notifier)
-                            .acceptFavor(
-                              favorId: favor.id,
-                              userId: currentUser.id,
+                      if (currentUser == null) {
+                        ref.read(snackbarProvider).showSnackbar(
+                              "Error: No current user found",
+                              isError: true,
                             );
+                        return;
+                      }
 
-                        if (hasBeenUploaded) {
-                          if (!context.mounted) return;
+                      final bool hasBeenUploaded = await ref
+                          .read(acceptFavorProvider.notifier)
+                          .acceptFavor(
+                            favorId: favor.id,
+                            userId: currentUser.id,
+                          );
 
-                          if (requesterUser != null) {
-                            await showDialog(
-                              context: context,
-                              builder: (context) => buildCustomDialog(
-                                  context, requesterUser, favor),
+                      if (!hasBeenUploaded) {
+                        ref.read(snackbarProvider).showSnackbar(
+                              "No se aceptó el favor",
+                              isError: true,
                             );
-                          } else {
-                            ref.read(snackbarProvider).showSnackbar(
-                                  "Error: Requester data not loaded",
-                                  isError: true,
-                                );
-                          }
+                        return;
+                      }
 
-                          if (!context.mounted) return;
-                          Navigator.pop(context);
-                        } else {
-                          ref.read(snackbarProvider).showSnackbar(
-                                "No se aceptó el favor",
-                                isError: true,
-                              );
-                        }
-                      });
+                      if (!context.mounted) return;
+
+                      if (requesterUser == null) {
+                        ref.read(snackbarProvider).showSnackbar(
+                              "Error: Requester data not loaded",
+                              isError: true,
+                            );
+                        return;
+                      }
+
+                      await showDialog(
+                        context: context,
+                        builder: (context) =>
+                            buildCustomDialog(context, requesterUser, favor),
+                      );
+
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
                     } catch (e) {
                       ref.read(snackbarProvider).showSnackbar(
                             "Excepción: $e",

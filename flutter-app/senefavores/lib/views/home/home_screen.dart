@@ -128,8 +128,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: CircularProgressIndicator(
                 color: Colors.black,
               )),
-              error: (error, stack) =>
-                  Center(child: Text("Error loading favors: $error")),
+              error: (error, stack) {
+                if (error.toString() ==
+                    'Null check operator used on a null value') {
+                  return const Center(
+                      child: CircularProgressIndicator(
+                    color: Colors.black,
+                  ));
+                }
+                return Center(child: Text("Error loading favors: $error"));
+              },
             ),
           ),
         ],
