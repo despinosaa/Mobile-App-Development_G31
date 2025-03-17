@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/user/models/user_model.dart';
+import 'package:senefavores/views/navigation/navigation_screen.dart';
 
 Widget buildCustomDialog(
     BuildContext context, UserModel requesterUser, FavorModel favor) {
@@ -48,7 +49,12 @@ Widget buildCustomDialog(
             ),
           ),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => NavigationScreen(initialIndex: 2)),
+              (route) => false,
+            );
           },
           child: const Text("Ir a Mis Favores"),
         ),
