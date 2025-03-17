@@ -4,9 +4,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
+import 'package:senefavores/state/user/providers/current_user_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/views/acceptfavor/components/favor_category_chip.dart';
 import 'package:senefavores/views/components/build_star_rating.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AcceptFavorScreen extends ConsumerWidget {
   final FavorModel favor;
@@ -17,21 +20,20 @@ class AcceptFavorScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(userProvider(favor.requestUserId));
+    final requesterAsync = ref.watch(userProvider(favor.requestUserId));
+    final currentUserAsync = ref.watch(currentUserProvider);
+
     return SafeArea(
       child: Scaffold(
         body: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
           children: [
-            SenefavoresImageAndTitleAndProfile(),
+            // Top bar with logo and profile
+            const SenefavoresImageAndTitleAndProfile(),
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.max,
                 children: [
                   Text(
                     favor.title,
@@ -39,14 +41,14 @@ class AcceptFavorScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(favor.description, style: AppTextStyles.oswaldBody),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
                     'Recompensa: ${favor.reward}',
                     style: AppTextStyles.oswaldBody,
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Text(
@@ -56,63 +58,97 @@ class AcceptFavorScreen extends ConsumerWidget {
                       FavorCategoryChip(favor: favor.category),
                     ],
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
                     'Solicitado por: ',
-                    style: AppTextStyles.oswaldSubtitle
-                        .copyWith(fontWeight: FontWeight.w300),
+                    style: AppTextStyles.oswaldSubtitle.copyWith(
+                      fontWeight: FontWeight.w300,
+                    ),
                   ),
-                  SizedBox(height: 10),
-                  user.when(
-                    data: (user) {
+                  const SizedBox(height: 10),
+                  requesterAsync.when(
+                    data: (reqUser) {
                       return Row(
                         children: [
-                          FaIcon(FontAwesomeIcons.circleUser),
-                          SizedBox(width: 10),
+                          const FaIcon(FontAwesomeIcons.circleUser),
+                          const SizedBox(width: 10),
                           Text(
-                            user.name!,
+                            reqUser.name ?? "Anónimo",
                             style: AppTextStyles.oswaldBody,
                           ),
-                          SizedBox(width: 10),
-                          buildStarRating(user.stars!, size: 18),
+                          const SizedBox(width: 10),
+                          buildStarRating(reqUser.stars ?? 0, size: 18),
                         ],
                       );
                     },
-                    error: (error, stack) {
-                      return Text('Error: $error');
-                    },
-                    loading: () {
-                      return CircularProgressIndicator(
-                        color: Colors.black,
-                      );
-                    },
+                    loading: () => const CircularProgressIndicator(
+                      color: Colors.black,
+                    ),
+                    error: (error, stack) =>
+                        Text('Error: $error', style: AppTextStyles.oswaldBody),
                   ),
                 ],
               ),
             ),
+            const Spacer(),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: SizedBox(
-                width: double.infinity, // ✅ Makes button expand horizontally
-                height: 50, // ✅ Adjusts button height
+                width: double.infinity,
+                height: 50,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    try {
+                      await currentUserAsync.whenData((currentUser) async {
+                        final List response = await Supabase.instance.client
+                            .from('favors')
+                            .update({
+                              'accept_user_id': currentUser.id,
+                              // Optionally update a status field if needed:
+                              // 'status': 'accepted',
+                            })
+                            .eq('id', favor.id)
+                            .select();
+
+                        if (response.isNotEmpty) {
+                          ref.read(snackbarProvider).showSnackbar(
+                                "Favor aceptado con éxito",
+                                isError: false,
+                              );
+                          Navigator.pop(context);
+                        } else {
+                          ref.read(snackbarProvider).showSnackbar(
+                                "No se actualizó el favor",
+                                isError: true,
+                              );
+                        }
+                      });
+                    } catch (e) {
+                      ref.read(snackbarProvider).showSnackbar(
+                            "Excepción: $e",
+                            isError: true,
+                          );
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber, // ✅ Yellow background
-                    foregroundColor: Colors.black, // ✅ Black text
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(30), // ✅ Fully rounded corners
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    elevation: 0, // ✅ No shadow for a flat design
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
                   ),
-                  child: Text("ACEPTAR",
-                      style: AppTextStyles.oswaldBody.copyWith(
-                        fontWeight: FontWeight.bold,
-                      )),
+                  child: Text(
+                    "ACEPTAR",
+                    style: AppTextStyles.oswaldBody.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
@@ -9,43 +10,56 @@ import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/build_star_rating.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title.dart';
 import 'package:senefavores/views/profile/components/review_card.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ignore: unused_result
-    ref.refresh(currentUserProvider);
+    // Force dark icons on a white status bar
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
+      statusBarColor: Colors.white,
+    ));
 
-    final user = ref.watch(currentUserProvider);
+    // Refresh the current user each time this screen is built
+    ref.refresh(currentUserProvider);
+    final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      body: user.when(data: (user) {
-        // ignore: unused_result
-        ref.refresh(userReviewsProvider(user.id));
-        return SafeArea(
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  SenefavoresImageAndTitle(),
-                  IconButton(
-                    onPressed: () {
-                      ref.read(authStateProvider.notifier).signOut();
-                      Navigator.pop(context);
-                      ref
-                          .read(snackbarProvider)
-                          .showSnackbar("✅ Logged out successfully");
-                    },
-                    icon: Icon(Icons.logout),
-                  ),
-                ],
-              ),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Removes the back arrow
+        backgroundColor: Colors.white,
+        elevation: 0,
+        // Use the SenefavoresImageAndTitle widget for the logo/title
+        title: const SenefavoresImageAndTitle(),
+        actions: [
+          IconButton(
+            onPressed: () {
+              ref.read(authStateProvider.notifier).signOut();
+              Navigator.pop(context);
+              ref
+                  .read(snackbarProvider)
+                  .showSnackbar("Logged out successfully");
+            },
+            icon: const Icon(Icons.logout, color: Colors.black),
+          ),
+        ],
+      ),
+      body: userAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Colors.black),
+        ),
+        error: (error, stacktrace) => Center(child: Text("Error: $error")),
+        data: (user) {
+          // Also refresh user reviews
+          ref.refresh(userReviewsProvider(user.id));
 
+          return Column(
+            children: [
               const SizedBox(height: 20),
+
               // Profile Information Card
               Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -72,6 +86,8 @@ class ProfileScreen extends ConsumerWidget {
                             size: 40, color: Colors.black),
                       ),
                       const SizedBox(width: 12),
+
+                      // Name, stars, email, phone
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,20 +111,115 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                             Text(
                               user.phone ?? "No phone number provided",
-                              style: TextStyle(color: Colors.black54),
+                              style: const TextStyle(color: Colors.black54),
                             ),
                           ],
                         ),
                       ),
+
+                      // Edit button
                       IconButton(
                         icon: const Icon(Icons.edit),
-                        onPressed: () {},
+                        onPressed: () {
+                          // Show a dialog to edit phone number
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              // Default to "0123456789" if user.phone is empty/null
+                              final phoneController = TextEditingController(
+                                text:
+                                    (user.phone == null || user.phone!.isEmpty)
+                                        ? "0123456789"
+                                        : user.phone,
+                              );
+                              return AlertDialog(
+                                title: const Text("Editar Número de Teléfono"),
+                                content: TextField(
+                                  controller: phoneController,
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 10,
+                                  decoration: const InputDecoration(
+                                    labelText: "Ej: 310 123 4567",
+                                  ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(10),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () async {
+                                      final phone = phoneController.text.trim();
+                                      // Check length == 10
+                                      if (phone.length != 10) {
+                                        ref.read(snackbarProvider).showSnackbar(
+                                              "El número de teléfono debe tener 10 dígitos",
+                                              isError: true,
+                                            );
+                                        return;
+                                      }
+
+                                      // Update phone in Supabase
+                                      try {
+                                        final supabase =
+                                            Supabase.instance.client;
+                                        final List response = await supabase
+                                            .from('users')
+                                            .update({'phone': phone})
+                                            .eq('id', user.id)
+                                            .select();
+
+                                        if (response.isEmpty) {
+                                          ref
+                                              .read(snackbarProvider)
+                                              .showSnackbar(
+                                                "Error: No se pudo actualizar el teléfono",
+                                                isError: true,
+                                              );
+                                        } else {
+                                          // success
+                                          ref
+                                              .read(snackbarProvider)
+                                              .showSnackbar(
+                                                "Número de teléfono actualizado",
+                                                isError: false,
+                                              );
+                                          // refresh user data
+                                          ref.refresh(currentUserProvider);
+                                          Navigator.pop(context);
+                                        }
+                                      } catch (e) {
+                                        ref.read(snackbarProvider).showSnackbar(
+                                              "Excepción al actualizar: $e",
+                                              isError: true,
+                                            );
+                                      }
+                                    },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    child: const Text("Guardar"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    child: const Text("Cancelar"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
               ),
+
               const SizedBox(height: 20),
+
               // Reviews Section Title
               Padding(
                 padding: const EdgeInsets.only(left: 16),
@@ -121,69 +232,34 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
+
               // Scrollable list of Review Cards
               Expanded(
                 child: ref.watch(userReviewsProvider(user.id)).when(
                       data: (reviews) {
                         if (reviews.isEmpty) {
-                          return Center(child: Text("No reviews available."));
+                          return const Center(
+                              child: Text("No reviews available."));
                         }
                         return ListView.builder(
                           itemCount: reviews.length,
                           itemBuilder: (context, index) {
                             final review = reviews[index];
-                            return ReviewCard(
-                              review: review,
-                            );
+                            return ReviewCard(review: review);
                           },
                         );
                       },
-                      loading: () => Center(
-                          child: CircularProgressIndicator(
-                        color: Colors.black,
-                      )),
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(color: Colors.black),
+                      ),
                       error: (error, stack) =>
                           Center(child: Text("Error: $error")),
                     ),
               ),
             ],
-          ),
-        );
-      }, error: (error, stacktrace) {
-        return Center(child: Text("Error: $error"));
-      }, loading: () {
-        return Center(child: CircularProgressIndicator(color: Colors.black));
-      }),
-      // // Bottom Navigation Bar (Same as other screens)
-      // bottomNavigationBar: BottomNavigationBar(
-      //   currentIndex: 0, // Default index (adjust if needed)
-      //   onTap: (index) {
-      //     Navigator.pushReplacement(
-      //       context,
-      //       MaterialPageRoute(
-      //         builder: (_) => NavigationScreen(initialIndex: index),
-      //       ),
-      //     );
-      //   },
-      //   items: const [
-      //     BottomNavigationBarItem(
-      //       icon: FaIcon(FontAwesomeIcons.igloo),
-      //       label: 'Home',
-      //     ),
-      //     BottomNavigationBarItem(
-      //       icon: FaIcon(FontAwesomeIcons.circlePlus),
-      //       label: 'Pedir favor',
-      //     ),
-      //     BottomNavigationBarItem(
-      //       icon: FaIcon(FontAwesomeIcons.clockRotateLeft),
-      //       label: 'Mis favores',
-      //     ),
-      //   ],
-      //   type: BottomNavigationBarType.fixed,
-      //   elevation: 0,
-      //   selectedItemColor: Colors.black,
-      //   selectedFontSize: 12,
-      // ),
+          );
+        },
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:senefavores/views/home/home_screen.dart';
+import 'package:senefavores/views/misfavores/mis_favores_view.dart';
 import 'package:senefavores/views/postfavor/post_favor_screen.dart';
 
 class NavigationScreen extends StatefulWidget {
@@ -16,9 +17,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   static const List<Widget> _widgetOptions = <Widget>[
     HomeScreen(),
     PostFavorScreen(),
-    Center(
-      child: Text("misfavores"),
-    ),
+    MisFavoresView(),
   ];
 
   @override
