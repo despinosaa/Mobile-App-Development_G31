@@ -1,8 +1,5 @@
 package com.example.senefavores.ui.screens
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -21,7 +18,7 @@ import androidx.navigation.NavController
 import com.example.senefavores.R
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import java.io.IOException
+
 @Composable
 fun LogInScreen(
     navController: NavController,
@@ -29,10 +26,7 @@ fun LogInScreen(
 ) {
     val context = LocalContext.current
     val isAuthenticated by userViewModel.isAuthenticated.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        userViewModel.logout(context) // Ensure logout when screen starts
-    }
+    var isLoading by remember { mutableStateOf(false) } // For loading feedback
 
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
@@ -62,11 +56,30 @@ fun LogInScreen(
 
         // Azure Login Button
         CustomButton(
-            text = "Iniciar sesión con Microsoft",
-            onClick = { userViewModel.signInWithAzure(context) },
+            text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Microsoft",
+            onClick = {
+                isLoading = true
+                userViewModel.signInWithAzure(context)
+            },
             backgroundColor = Color(0xFF0078D4),
             textColor = Color.White,
             hasBorder = false
         )
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .size(30.dp),
+                color = Color(0xFF0078D4)
+            )
+        }
+    }
+
+    // Show error messages if authentication fails
+    LaunchedEffect(userViewModel.isAuthenticated) {
+        if (!isAuthenticated) {
+            isLoading = false
+        }
     }
 }

@@ -1,6 +1,8 @@
 package com.example.senefavores
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,34 +16,41 @@ import androidx.navigation.compose.rememberNavController
 import com.example.senefavores.navigation.AppNavHost
 import com.example.senefavores.ui.theme.SenefavoresTheme
 import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.data.remote.SupabaseManagement
 import dagger.hilt.android.AndroidEntryPoint
+import io.github.jan.supabase.auth.handleDeeplinks
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject
-    lateinit var locationHelper: LocationHelper // Injected by Hilt
+    lateinit var locationHelper: LocationHelper
+
     private var hasLocationPermission by mutableStateOf(false)
+
+    // Create only one instance of SupabaseClient
+    private val supabaseClient by lazy { SupabaseManagement() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Register callback for permissions
+        // Handle deep link for OAuth login
+        intent?.data?.let { handleDeepLink(intent) }
+
+        // Request location permissions
         val permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                     permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
 
-            println("Permisos concedidos: $hasLocationPermission") // Debug log
+            println("DEBUG: Location permissions granted: $hasLocationPermission")
             if (hasLocationPermission) {
                 locationHelper.getLastLocation()
             }
         }
-
-        // Request permissions when activity starts
         permissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -60,6 +69,21 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent) {
+        val uri: Uri? = intent.data
+        if (uri != null) {
+            println("DEBUG: Deep link received: $uri")
+            supabaseClient.supabase.handleDeeplinks(intent)
+        } else {
+            println("DEBUG: No deep link found in intent")
         }
     }
 }

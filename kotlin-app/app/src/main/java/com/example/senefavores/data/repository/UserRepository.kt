@@ -1,7 +1,7 @@
 package com.example.senefavores.data.repository
 
 import com.example.senefavores.data.model.User
-import com.example.senefavores.data.remote.SupabaseClient
+import com.example.senefavores.data.remote.SupabaseManagement
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Azure
 import io.github.jan.supabase.postgrest.from
@@ -11,7 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class UserRepository @Inject constructor(private val supabaseClient: SupabaseClient) {
+class UserRepository @Inject constructor(private val supabaseClient: SupabaseManagement) {
 
     suspend fun getUsers(): List<User> {
         return withContext(Dispatchers.IO) {

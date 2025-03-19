@@ -11,11 +11,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.senefavores.data.remote.SupabaseClient
+import com.example.senefavores.data.remote.SupabaseManagement
 
 @HiltViewModel
 class UserViewModel @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseManagement
 ) : ViewModel() {
 
     private val _isAuthenticated = MutableStateFlow(false)
