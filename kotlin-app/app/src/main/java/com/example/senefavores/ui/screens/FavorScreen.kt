@@ -39,14 +39,19 @@ fun FavorScreen(
     var selectedItem by remember { mutableStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
     var userStars by remember { mutableStateOf(0f) }
+    var userName by remember { mutableStateOf("") }  // Store user's name
 
-    // Fetch user details from ViewModel
-    LaunchedEffect(favor.requested_user_id) {
-        val user = userViewModel.getClientById(favor.requested_user_id)
-        user?.let {
-            userStars = it.stars!!
+// Fetch user details from ViewModel
+    LaunchedEffect(favor.request_user_id) {
+        favor.request_user_id?.takeIf { it.isNotEmpty() }?.let { userId ->
+            val user = userViewModel.getClientById(userId)
+            user?.let {
+                userStars = it.stars ?: 0f
+                userName = it.name ?: "Unknown"  // Assuming `name` exists in the user object
+            }
         }
     }
+
 
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
@@ -176,7 +181,7 @@ fun FavorScreen(
                             .padding(end = 4.dp)
                     )
                     Text(
-                        text = favor.title,
+                        text = userName,
                         fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))

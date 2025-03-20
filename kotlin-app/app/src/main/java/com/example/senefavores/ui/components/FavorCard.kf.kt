@@ -1,5 +1,7 @@
 package com.example.senefavores.ui.components
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,14 +31,30 @@ import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
+fun formatTime(favorTime: String): String {
+    // Define the formatter for parsing
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+
+    // Parse the string into a LocalDateTime object
+    val dateTime = LocalDateTime.parse(favorTime, formatter)
+
+    // Format it as "HH:mm"
+    return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+}
+
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onClick: () -> Unit) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
 
-    LaunchedEffect(favor.requested_user_id) {
-        userViewModel.getClientById(favor.requested_user_id.toString())?.let { user ->
+    LaunchedEffect(favor.request_user_id) {
+        userViewModel.getClientById(favor.request_user_id.toString())?.let { user ->
             userName = user.name ?: "Usuario desconocido"
             userRating = user.stars ?: 0.0f
         }
@@ -54,8 +72,9 @@ fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onCl
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
+
             ) {
-                Text(text = favor.favor_time, fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
+                Text(text = formatTime(favor.favor_time), fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(
@@ -81,7 +100,7 @@ fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onCl
                             maxLines = 1
                         )
                     }
-                    Text(text = favor.reward, fontSize = 14.sp)
+                    Text(text = "$ ${favor.reward}", fontSize = 14.sp)
                 }
             }
 
