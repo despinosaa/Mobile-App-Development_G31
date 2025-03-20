@@ -1,5 +1,6 @@
 package com.example.senefavores.data.repository
 
+import android.util.Log
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.remote.SupabaseManagement
 import io.github.jan.supabase.postgrest.from
@@ -19,7 +20,7 @@ class FavorRepository @Inject constructor(private val supabaseClient: SupabaseMa
                     .select()
                     .decodeList<Favor>()
             }.getOrElse {
-                println("Error fetching favors: ${it.localizedMessage}")
+                Log.e("FavorRepository", "Error fetching favors: ${it.localizedMessage}", it)
                 emptyList()
             }
         }

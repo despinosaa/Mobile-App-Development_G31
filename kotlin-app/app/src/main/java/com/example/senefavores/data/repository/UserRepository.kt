@@ -36,6 +36,24 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
         supabaseClient.supabase.auth.signOut()
     }
 
+    suspend fun getClientById(userId: String): User? {
+        return try {
+            val client = supabaseClient.supabase
+                .from("clients")
+                .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
+                    filter {
+                        eq("id", userId)
+                    }
+                }
+                .decodeSingle<User>()
+
+            Log.d("UserRepository", "Fetched client: $client")
+            client
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error fetching user: ${e.localizedMessage}", e)
+            null
+        }
+    }
 
 
 

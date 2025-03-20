@@ -12,8 +12,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.R
+import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.SenefavoresHeader
 import com.example.senefavores.ui.theme.BlackButtons
@@ -23,6 +25,7 @@ import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.theme.WhiteTextColor
+import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.LocationHelper
 
 @Composable
@@ -30,128 +33,40 @@ fun FavorScreen(
     navController: NavController,
     favor: Favor,
     locationHelper: LocationHelper,
-    hasLocationPermission: Boolean
+    hasLocationPermission: Boolean,
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
-    var selectedItem by remember { mutableStateOf(0) } // Estado para el ítem seleccionado (0: Home)
-    var showDialog by remember { mutableStateOf(false) } // Estado para mostrar el popup
+    var selectedItem by remember { mutableStateOf(0) }
+    var showDialog by remember { mutableStateOf(false) }
+    var userStars by remember { mutableStateOf(0f) }
 
-    // Verificar si el usuario está dentro del campus
+    // Fetch user details from ViewModel
+    LaunchedEffect(favor.requested_user_id) {
+        val user = userViewModel.getClientById(favor.requested_user_id)
+        user?.let {
+            userStars = it.stars!!
+        }
+    }
+
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
-        println("¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}") // Log para depuración
+        println("¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
         result
     } else {
         false
     }
 
-    // Habilitar el botón solo si está dentro del campus para "Favor" o "Compra", o si es "Tutoría"
     val isAcceptEnabled = when (favor.category) {
         "Favor", "Compra" -> isInsideCampus
         "Tutoría" -> true
         else -> true
     }
 
-    // Definir el color de la categoría dinámicamente
     val categoryColor = when (favor.category) {
         "Favor" -> FavorCategoryColor
         "Compra" -> CompraCategoryColor
         "Tutoría" -> TutoriaCategoryColor
-        else -> FavorCategoryColor // Por defecto
-    }
-
-    // Mostrar el popup si showDialog es true
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false }, // Cerrar el popup al hacer clic fuera
-            title = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    IconButton(
-                        onClick = { showDialog = false }
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_close), // Asegúrate de tener este ícono
-                            contentDescription = "Cerrar",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            },
-            text = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "¡Favor aceptado!",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BlackTextColor,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = "Comunícate con ${favor.user} para más detalles.",
-                        fontSize = 16.sp,
-                        color = BlackTextColor,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 10.dp),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 10.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_phone), // Asegúrate de tener este ícono
-                            contentDescription = "Teléfono",
-                            modifier = Modifier
-                                .size(24.dp)
-                                .padding(end = 4.dp)
-                        )
-                        Text(
-                            text = "Número de teléfono",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BlackTextColor
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDialog = false // Cerrar el popup
-                        navController.navigate("history") { launchSingleTop = true } // Navegar a HistoryScreen
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BlackButtons
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .height(48.dp)
-                ) {
-                    Text(
-                        text = "Ir a Mis Favores",
-                        fontSize = 16.sp,
-                        color = WhiteTextColor
-                    )
-                }
-            },
-            containerColor = MikadoYellow,
-            modifier = Modifier.padding(16.dp)
-        )
+        else -> FavorCategoryColor
     }
 
     Scaffold(
@@ -183,9 +98,8 @@ fun FavorScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Título del favor
             Text(
-                text = favor.name,
+                text = favor.title,
                 fontSize = 30.sp,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Start
@@ -193,7 +107,6 @@ fun FavorScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Descripción
             Text(
                 text = favor.description,
                 fontSize = 16.sp,
@@ -203,7 +116,6 @@ fun FavorScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Recompensa
             Text(
                 text = "Recompensa: ${favor.reward}",
                 fontSize = 16.sp,
@@ -213,7 +125,6 @@ fun FavorScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Categoría
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -245,7 +156,6 @@ fun FavorScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Solicitante y calificación
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.Start
@@ -266,17 +176,16 @@ fun FavorScreen(
                             .padding(end = 4.dp)
                     )
                     Text(
-                        text = favor.user,
+                        text = favor.title,
                         fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    RatingStars(rating = favor.rating.toFloat())
+                    RatingStars(rating = userStars)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Mensaje si no está dentro del campus (solo para "Favor" o "Compra")
             if (!isAcceptEnabled && (favor.category == "Favor" || favor.category == "Compra")) {
                 Text(
                     text = if (!hasLocationPermission) {
@@ -295,13 +204,12 @@ fun FavorScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón de Aceptar
             Button(
-                onClick = { if (isAcceptEnabled) showDialog = true }, // Mostrar el popup solo si está habilitado
-                enabled = isAcceptEnabled, // Habilitar/deshabilitar según la ubicación
+                onClick = { if (isAcceptEnabled) showDialog = true },
+                enabled = isAcceptEnabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MikadoYellow,
-                    disabledContainerColor = MikadoYellow.copy(alpha = 0.5f) // Gris claro cuando está deshabilitado
+                    disabledContainerColor = MikadoYellow.copy(alpha = 0.5f)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -316,6 +224,7 @@ fun FavorScreen(
         }
     }
 }
+
 
 // Componente reutilizable para las estrellas
 @Composable

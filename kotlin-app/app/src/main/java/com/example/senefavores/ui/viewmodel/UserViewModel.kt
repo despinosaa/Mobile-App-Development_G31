@@ -17,6 +17,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.senefavores.data.remote.SupabaseManagement
 import com.example.senefavores.data.repository.UserRepository
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
+
 @HiltViewModel
 class UserViewModel @Inject constructor(
     private val supabaseClient: SupabaseManagement,
@@ -45,7 +48,24 @@ class UserViewModel @Inject constructor(
         return userData
     }
 
+    suspend fun getClientById(userId: String): User? {
+        return try {
+            val client = supabaseClient.supabase
+                .from("clients")
+                .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
+                    filter {
+                        eq("id", userId)
+                    }
+                }
+                .decodeSingle<User>()
 
+            Log.d("UserRepository", "Fetched client: $client")
+            client
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error fetching user: ${e.localizedMessage}", e)
+            null
+        }
+    }
 
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
 

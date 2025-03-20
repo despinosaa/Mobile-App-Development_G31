@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.R
+import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.FavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
@@ -34,17 +35,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.data.model.User
+import com.example.senefavores.ui.viewmodel.FavorViewModel
+
 // Modelo de datos para un Favor (serializable para pasar por navegación)
-@Serializable
-data class Favor(
-    val time: String,
-    val category: String,
-    val reward: String,
-    val name: String,
-    val description: String,
-    val user: String,
-    val rating: Double
-)
+
 
 // Función para convertir el formato de hora (HH:mm) a minutos desde la medianoche
 fun timeToMinutes(time: String): Int {
@@ -64,8 +58,9 @@ fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
 }
 
 @Composable
-fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel()) {
+fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel(), favorViewModel: FavorViewModel = hiltViewModel()) {
     val userInfo by userViewModel.user.collectAsState()
+    val allFavors  by favorViewModel.favors.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var hasUpdated by remember { mutableStateOf(false) }
 
@@ -83,6 +78,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
             }
         }
         Log.d("Dialog", "The dialog: $showDialog")
+        favorViewModel.fetchFavors()
     }
 
     ShowUserInfoDialog(
@@ -100,23 +96,19 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
     // Historial fijo de categorías aceptadas (provisional para probar smart sort)
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
-    val allFavors = listOf(
-        Favor("12:30", "Favor", "$9,000", "Favor 1", "Descripción detallada del favor 1. Incluye las especificaciones necesarias para llevar a cabo el favor de manera satisfactoria.", "Nombre Usuario", 4.02),
-        Favor("10:05", "Tutoría", "$50,000", "Tutoría 1", "Descripción detallada del tipo de tutoría.", "Nombre Usuario", 4.7),
-        Favor("11:25", "Compra", "$6,500", "Compra 1", "Descripción detallada de la compra 1.", "Nombre Usuario", 3.6),
-        Favor("15:25", "Tutoría", "$60,000", "Tutoría 2", "Descripción detallada del tipo de tutoría.", "Nombre Usuario", 4.29)
-    )
+
 
     // Filtrar y ordenar los favores según el modo seleccionado
     val filteredFavors = if (selectedCategory == null) {
+        Log.d("Favors", "$allFavors")
         allFavors
     } else {
         allFavors.filter { it.category == selectedCategory }
     }.let { favors ->
         if (isSortDescending) {
-            favors.sortedBy { timeToMinutes(it.time) }.reversed()
+            favors.sortedBy { timeToMinutes(it.favor_time) }.reversed()
         } else {
-            favors.sortedBy { timeToMinutes(it.time) }
+            favors.sortedBy { timeToMinutes(it.favor_time) }
         }
     }
 

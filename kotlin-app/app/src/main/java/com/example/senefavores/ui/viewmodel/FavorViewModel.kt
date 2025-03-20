@@ -18,6 +18,11 @@ class FavorViewModel @Inject constructor(
     private val _favors = MutableStateFlow<List<Favor>>(emptyList())
     val favors: StateFlow<List<Favor>> = _favors
 
+    init {
+        fetchFavors() // Fetch favors as soon as ViewModel is created
+    }
+
+
     fun fetchFavors() {
         viewModelScope.launch {
             _favors.value = favorRepository.getFavors()

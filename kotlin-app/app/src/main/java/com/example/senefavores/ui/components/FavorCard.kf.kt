@@ -8,6 +8,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,15 +20,28 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.senefavores.ui.screens.Favor
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.senefavores.R
+import com.example.senefavores.data.model.Favor
+import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.theme.FavorCategoryColor // Importar colores
 import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
+import com.example.senefavores.ui.viewmodel.UserViewModel
 
 @Composable
-fun FavorCard(favor: Favor, onClick: () -> Unit) {
+fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onClick: () -> Unit) {
+    var userName by remember { mutableStateOf("Cargando...") }
+    var userRating by remember { mutableStateOf(0.0f) }
+
+    LaunchedEffect(favor.requested_user_id) {
+        userViewModel.getClientById(favor.requested_user_id.toString())?.let { user ->
+            userName = user.name ?: "Usuario desconocido"
+            userRating = user.stars ?: 0.0f
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -37,66 +55,46 @@ fun FavorCard(favor: Favor, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Hora en la esquina superior izquierda
-                Text(
-                    text = favor.time,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
+                Text(text = favor.favor_time, fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
 
-                // Categoría e ícono en la esquina superior derecha
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Botón de categoría
                     Button(
-                        onClick = { /* No action por ahora */ },
+                        onClick = { /* No action */ },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = when (favor.category) {
                                 "Favor" -> FavorCategoryColor
                                 "Compra" -> CompraCategoryColor
                                 "Tutoría" -> TutoriaCategoryColor
-                                else -> Color.Gray // Por defecto
+                                else -> Color.Gray
                             }
                         ),
                         modifier = Modifier
-                            .height(32.dp) // Mantener la altura
-                            .width(72.dp) // Aumentar el ancho para "Tutoría"
+                            .height(32.dp)
+                            .width(72.dp)
                             .padding(end = 4.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp) // Reducir padding interno
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = favor.category,
-                            fontSize = 14.sp, // Aumentar a 14sp para mayor visibilidad
-                            color = BlackTextColor, // Usar color estandarizado
-                            maxLines = 1 // Limitar a una línea para evitar truncamiento
+                            fontSize = 14.sp,
+                            color = BlackTextColor,
+                            maxLines = 1
                         )
                     }
-                    // Remuneración
-                    Text(
-                        text = favor.reward,
-                        fontSize = 14.sp
-                    )
+                    Text(text = favor.reward, fontSize = 14.sp)
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Nombre
-            Text(
-                text = favor.name,
-                fontSize = 18.sp
-            )
+            Text(text = favor.title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Descripción
-            Text(
-                text = favor.description,
-                fontSize = 14.sp
-            )
+            Text(text = favor.description, fontSize = 14.sp)
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Usuario y calificación
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -108,12 +106,9 @@ fun FavorCard(favor: Favor, onClick: () -> Unit) {
                         .size(20.dp)
                         .padding(end = 4.dp)
                 )
-                Text(
-                    text = favor.user,
-                    fontSize = 14.sp
-                )
+                Text(text = userName, fontSize = 14.sp)
                 Spacer(modifier = Modifier.width(8.dp))
-                RatingStars(rating = favor.rating.toFloat())
+                RatingStars(rating = userRating)
             }
         }
     }

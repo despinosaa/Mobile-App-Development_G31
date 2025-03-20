@@ -17,18 +17,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import com.example.senefavores.R
 
-val OswaldFontFamily = FontFamily(
-    Font(R.font.oswald_regular, FontWeight.Normal),
-    Font(R.font.oswald_bold, FontWeight.Bold)
-)
+
+
 
 // Custom Typography
 val CustomTypography = Typography(
-    bodyLarge = Typography().bodyLarge.copy(fontFamily = OswaldFontFamily),
-    titleLarge = Typography().titleLarge.copy(fontFamily = OswaldFontFamily),
-    labelLarge = Typography().labelLarge.copy(fontFamily = OswaldFontFamily)
+    bodyLarge = Typography().bodyLarge,
+    titleLarge = Typography().titleLarge,
+    labelLarge = Typography().labelLarge
 )
-
 private val DarkColorScheme = darkColorScheme(
     primary = MikadoYellow,
     secondary = Color.LightGray,
