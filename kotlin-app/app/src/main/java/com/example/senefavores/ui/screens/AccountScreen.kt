@@ -15,7 +15,7 @@ import com.example.senefavores.ui.viewmodel.UserViewModel
 
 @Composable
 fun AccountScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel()) {
-    val userInfo by userViewModel.userInfo.collectAsState()
+    val user by userViewModel.user.collectAsState()
 
     LaunchedEffect(Unit) {
         userViewModel.loadUserInfo()
@@ -32,7 +32,7 @@ fun AccountScreen(navController: NavController, userViewModel: UserViewModel = h
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        userInfo?.let { user ->
+        user?.let { user ->
             Text("ID: ${user.id}")
             Text("Email: ${user.email}")
         } ?: Text("Cargando información del usuario...")

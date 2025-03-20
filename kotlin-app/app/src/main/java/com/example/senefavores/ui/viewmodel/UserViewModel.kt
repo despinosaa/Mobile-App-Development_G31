@@ -1,9 +1,11 @@
 package com.example.senefavores.ui.viewmodel
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.senefavores.data.model.User
 import com.example.senefavores.data.model.UserInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.auth.auth
@@ -22,14 +24,28 @@ class UserViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _isAuthenticated = MutableStateFlow(false)
-    private val _userInfo = MutableStateFlow<UserInfo?>(null)
-    val userInfo: StateFlow<UserInfo?> = _userInfo
+    private val _user = MutableStateFlow<User?>(null)
+    val user: StateFlow<User?> = _user
+    private val _hasCompletedInfo = MutableStateFlow(false) // Track completion
+    val hasCompletedInfo: StateFlow<Boolean> = _hasCompletedInfo
 
-    fun loadUserInfo() {
-        viewModelScope.launch {
-            _userInfo.value = userRepository.getCurrentUser()
-        }
+
+    suspend fun loadUserInfo(): User? {
+        Log.d("UserInfo", "Fetching user data...")
+
+        val userData = userRepository.getCurrentUser()
+
+        Log.d("UserInfo", "User loaded: $userData")
+
+        _user.value = userData
+        _hasCompletedInfo.value = !userData?.name.isNullOrEmpty() && !userData?.phone.isNullOrEmpty()
+
+        Log.d("UserInfo", "hasCompletedInfo: ${_hasCompletedInfo.value}")
+
+        return userData
     }
+
+
 
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
 
@@ -37,38 +53,29 @@ class UserViewModel @Inject constructor(
         checkUserSession()
     }
 
+    fun updateUserInfo(clientId: String, name: String?, phone: String?, profilePic: String?, stars: Float?) {
+        viewModelScope.launch {
+            try {
+                userRepository.updateClient(clientId, phone, name, profilePic, stars)
+                loadUserInfo() // Refresh user data after update
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Error updating user info", e)
+            }
+        }
+    }
+
+
     private fun checkUserSession() {
-        viewModelScope.launch { // Allow Supabase time to restore session
-            val session = supabaseClient.supabase.auth.currentSessionOrNull()
-            println("Session after redirect: $session")
-            _isAuthenticated.value = session != null
+        viewModelScope.launch {
+            _isAuthenticated.value = userRepository.checkUserSession()
         }
     }
 
     fun signInWithAzure(context: Context) {
         viewModelScope.launch {
-            try {
-                supabaseClient.supabase.auth.signInWith(Azure) {
-                    scopes.add("email")
-                }
-
-                repeat(5) { attempt ->
-                    delay(1000) // Wait 1 second before checking session
-                    val session = supabaseClient.supabase.auth.currentSessionOrNull()
-                    println("Attempt $attempt: Session after login: $session")
-                    if (session != null) {
-                        _isAuthenticated.value = true
-                        Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
-                        return@launch
-                    }
-                }
-
-                _isAuthenticated.value = false
-                Toast.makeText(context, "Login failed.", Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {
-                _isAuthenticated.value = false
-                Toast.makeText(context, "Login failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-            }
+            val success = userRepository.signInWithAzure()
+            _isAuthenticated.value = success
+            Toast.makeText(context, if (success) "Login successful!" else "Login failed.", Toast.LENGTH_SHORT).show()
         }
     }
 
