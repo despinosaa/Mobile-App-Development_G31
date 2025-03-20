@@ -10,28 +10,29 @@ import androidx.compose.runtime.remember
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LocationHelper(private val context: Context) {
+@Singleton
+class LocationHelper @Inject constructor(@ApplicationContext private val context: Context) {
 
     private val fusedLocationClient: FusedLocationProviderClient by lazy {
         LocationServices.getFusedLocationProviderClient(context)
     }
 
-    // Estado para almacenar la ubicación
     val currentLocation = mutableStateOf<Location?>(null)
 
-    // Coordenadas del campus de la Universidad de los Andes (Bogotá, Colombia)
     private val campusBounds = listOf(
         Location("").apply { latitude = 4.598; longitude = -74.069 },
         Location("").apply { latitude = 4.605; longitude = -74.062 }
     )
 
-    // Verificar si el usuario está dentro del campus
     fun isInsideCampus(location: Location?): Boolean {
         if (location == null) return false
         val campusMinLat = campusBounds.minOf { it.latitude }
@@ -42,7 +43,6 @@ class LocationHelper(private val context: Context) {
                 location.longitude in campusMinLon..campusMaxLon
     }
 
-    // Obtener la última ubicación (llamado después de verificar permisos)
     fun getLastLocation() {
         CoroutineScope(Dispatchers.IO).launch {
             if (ActivityCompat.checkSelfPermission(
@@ -61,18 +61,15 @@ class LocationHelper(private val context: Context) {
                     fusedLocationClient.lastLocation
                 }.await()
                 currentLocation.value = location
-                println("Ubicación actualizada: $location") // Log para depuración
+                println("Ubicación actualizada: $location")
             } catch (e: Exception) {
-                println("Error al obtener la ubicación: ${e.message}") // Log para errores
+                println("Error al obtener la ubicación: ${e.message}")
             }
         }
     }
 }
 
-// Función composable para usar LocationHelper
 @Composable
 fun rememberLocationHelper(context: Context): LocationHelper {
-    return remember {
-        LocationHelper(context)
-    }
+    return remember { LocationHelper(context) }
 }

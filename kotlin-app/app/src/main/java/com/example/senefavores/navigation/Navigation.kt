@@ -6,15 +6,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.screens.AccountScreen
 import com.example.senefavores.ui.screens.CreateFavorScreen
 import com.example.senefavores.ui.screens.ForgotPasswordScreen
 import com.example.senefavores.ui.screens.HistoryScreen
 import com.example.senefavores.ui.screens.HomeScreen
 import com.example.senefavores.ui.screens.LogInScreen
-import com.example.senefavores.ui.screens.RegisterScreen
 import com.example.senefavores.ui.screens.FavorScreen
-import com.example.senefavores.ui.screens.Favor
 import com.example.senefavores.util.LocationHelper
 import kotlinx.serialization.json.Json
 
@@ -26,7 +25,6 @@ fun AppNavHost(
 ) {
     NavHost(navController = navController, startDestination = "login") {
         composable("login") { LogInScreen(navController) }
-        composable("register") { RegisterScreen(navController) }
         composable("forgot") { ForgotPasswordScreen(navController) }
         composable("home") { HomeScreen(navController) }
         composable("history") { HistoryScreen(navController) }

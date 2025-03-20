@@ -1,5 +1,6 @@
 package com.example.senefavores.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,8 +18,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.R
+import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.FavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
@@ -30,18 +33,12 @@ import com.example.senefavores.ui.theme.BlackTextColor
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.data.model.User
+import com.example.senefavores.ui.viewmodel.FavorViewModel
 
 // Modelo de datos para un Favor (serializable para pasar por navegación)
-@Serializable
-data class Favor(
-    val time: String,
-    val category: String,
-    val reward: String,
-    val name: String,
-    val description: String,
-    val user: String,
-    val rating: Double
-)
+
 
 // Función para convertir el formato de hora (HH:mm) a minutos desde la medianoche
 fun timeToMinutes(time: String): Int {
@@ -61,7 +58,36 @@ fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
 }
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel(), favorViewModel: FavorViewModel = hiltViewModel()) {
+    val userInfo by userViewModel.user.collectAsState()
+    val allFavors  by favorViewModel.favors.collectAsState()
+    var showDialog by remember { mutableStateOf(false) }
+    var hasUpdated by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userViewModel.hasCompletedInfo) {
+        Log.d("Dialog", "The dialog: $showDialog")
+        Log.d("UserInfo", "Loading user info...")
+        val user = userViewModel.loadUserInfo()
+        Log.d("UserInfo", "User loaded: $user")
+        Log.d("UserInfo", "hasCompletedInfo: ${userViewModel.hasCompletedInfo.value}")
+
+        if (user != null) {
+            if (user.name?.isNotEmpty() == true && user.phone?.isNotEmpty() == true) {
+                showDialog = true
+                hasUpdated = true
+            }
+        }
+        Log.d("Dialog", "The dialog: $showDialog")
+        favorViewModel.fetchFavors()
+    }
+
+    ShowUserInfoDialog(
+        showDialog = showDialog,
+        userInfo = userInfo,
+        userViewModel = userViewModel
+    ) { showDialog = true }
+
+
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedItem by remember { mutableStateOf(0) } // Estado para el ítem seleccionado
     var isSortDescending by remember { mutableStateOf(true) } // Estado para el modo de ordenamiento
@@ -70,23 +96,19 @@ fun HomeScreen(navController: NavController) {
     // Historial fijo de categorías aceptadas (provisional para probar smart sort)
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
-    val allFavors = listOf(
-        Favor("12:30", "Favor", "$9,000", "Favor 1", "Descripción detallada del favor 1. Incluye las especificaciones necesarias para llevar a cabo el favor de manera satisfactoria.", "Nombre Usuario", 4.02),
-        Favor("10:05", "Tutoría", "$50,000", "Tutoría 1", "Descripción detallada del tipo de tutoría.", "Nombre Usuario", 4.7),
-        Favor("11:25", "Compra", "$6,500", "Compra 1", "Descripción detallada de la compra 1.", "Nombre Usuario", 3.6),
-        Favor("15:25", "Tutoría", "$60,000", "Tutoría 2", "Descripción detallada del tipo de tutoría.", "Nombre Usuario", 4.29)
-    )
+
 
     // Filtrar y ordenar los favores según el modo seleccionado
     val filteredFavors = if (selectedCategory == null) {
+        Log.d("Favors", "$allFavors")
         allFavors
     } else {
         allFavors.filter { it.category == selectedCategory }
     }.let { favors ->
         if (isSortDescending) {
-            favors.sortedBy { timeToMinutes(it.time) }.reversed()
+            favors.sortedBy { timeToMinutes(it.favor_time) }.reversed()
         } else {
-            favors.sortedBy { timeToMinutes(it.time) }
+            favors.sortedBy { timeToMinutes(it.favor_time) }
         }
     }
 
@@ -228,6 +250,78 @@ fun CategoryButton(
             maxLines = 1,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+@Composable
+fun ShowUserInfoDialog(
+    showDialog: Boolean,
+    userInfo: User?, // Pass userInfo directly
+    userViewModel: UserViewModel, // Pass the ViewModel
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(userInfo?.name ?: "") }
+    var phone by remember { mutableStateOf(userInfo?.phone ?: "") }
+    var isPhoneValid by remember { mutableStateOf(true) }
+
+    // Update fields when userInfo changes
+    LaunchedEffect(userInfo) {
+        name = userInfo?.name ?: ""
+        phone = userInfo?.phone ?: ""
+    }
+
+    if (!showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Información Incompleta") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Nombre") },
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = {
+                            phone = it
+                            isPhoneValid = it.matches(Regex("^\\+?[0-9]{7,15}$")) // Basic phone validation
+                        },
+                        label = { Text("Teléfono") },
+                        singleLine = true,
+                        isError = !isPhoneValid
+                    )
+
+                    if (!isPhoneValid) {
+                        Text("Número de teléfono no válido", color = Color.Red, fontSize = 12.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (name.isNotBlank() && isPhoneValid) {
+                            userInfo?.id?.let { clientId ->
+                                userViewModel.updateUserInfo(
+                                    clientId = clientId,
+                                    phone = phone.takeIf { it.isNotBlank() }, // Only pass if not blank
+                                    name = name.takeIf { it.isNotBlank() }, // Only pass if not blank
+                                    profilePic = null, // Not updating profilePic
+                                    stars = null // Not updating stars
+                                )
+                                onDismiss()
+                            }
+                        }
+                    },
+                    enabled = name.isNotBlank() && isPhoneValid
+                ) {
+                    Text("Guardar")
+                }
+            }
         )
     }
 }
