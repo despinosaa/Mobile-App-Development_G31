@@ -9,9 +9,10 @@ import 'package:senefavores/state/home/providers/selected_sort_filter_button_pro
 import 'package:senefavores/state/home/providers/smart_sorting_state_notifier_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:senefavores/utils/logger.dart';
 
 final favorsStreamProvider =
-    StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
+StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
   final supabase = Supabase.instance.client;
 
   final selectedCategory = ref.watch(selectedCategoryFilterButtonProvider);
@@ -20,7 +21,7 @@ final favorsStreamProvider =
   final smartSorting = ref.watch(smartSortingStateNotifierProvider);
 
   if (currentUser == null) {
-    yield []; // ✅ Handle case where user is not logged in
+    yield []; // Handle case where user is not logged in
     return;
   }
 
@@ -42,15 +43,24 @@ final favorsStreamProvider =
       ..sort((a, b) => b.value.compareTo(a.value));
     final preferredCategories = sortedCategories.map((e) => e.key).toList();
 
+    final start = DateTime.now();
+
     favorStream = supabase
         .from('favors')
         .stream(primaryKey: ['id'])
         .neq('request_user_id', currentUser.id)
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
-        .map((data) => data
-            .map((favor) => FavorModel.fromJson(favor))
-            .where((favor) => favor.acceptUserId == null)
-            .toList());
+        .map((data) {
+      final duration = DateTime.now().difference(start).inMilliseconds;
+      AppLogger.logResponseTime(
+        screen: 'HomeScreen',
+        responseTimeMs: duration,
+      );
+      return data
+          .map((favor) => FavorModel.fromJson(favor))
+          .where((favor) => favor.acceptUserId == null)
+          .toList();
+    });
 
     favorStream = favorStream.map((favors) {
       favors.sort((a, b) {
@@ -69,29 +79,47 @@ final favorsStreamProvider =
     return;
   }
 
-  // ✅ If Smart Sorting is disabled, fetch favors normally
+  // If Smart Sorting is disabled, fetch favors normally
   if (selectedCategory == FilterButtonCategory.none) {
+    final start = DateTime.now();
+
     yield* supabase
         .from('favors')
         .stream(primaryKey: ['id'])
         .neq('request_user_id', currentUser.id)
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
-        .map((data) => data
-            .map((favor) => FavorModel.fromJson(favor))
-            .where((favor) => favor.acceptUserId == null)
-            .toList());
+        .map((data) {
+      final duration = DateTime.now().difference(start).inMilliseconds;
+      AppLogger.logResponseTime(
+        screen: 'HomeScreen',
+        responseTimeMs: duration,
+      );
+      return data
+          .map((favor) => FavorModel.fromJson(favor))
+          .where((favor) => favor.acceptUserId == null)
+          .toList();
+    });
   } else {
+    final start = DateTime.now();
+
     yield* supabase
         .from('favors')
         .stream(primaryKey: ['id'])
         .eq('category',
-            selectedCategory.toString().split('.').last.capitalize())
+        selectedCategory.toString().split('.').last.capitalize())
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
-        .map((data) => data
-            .map((favor) => FavorModel.fromJson(favor))
-            .where((favor) =>
-                favor.requestUserId != currentUser.id &&
-                favor.acceptUserId == null)
-            .toList());
+        .map((data) {
+      final duration = DateTime.now().difference(start).inMilliseconds;
+      AppLogger.logResponseTime(
+        screen: 'HomeScreen',
+        responseTimeMs: duration,
+      );
+      return data
+          .map((favor) => FavorModel.fromJson(favor))
+          .where((favor) =>
+      favor.requestUserId != currentUser.id &&
+          favor.acceptUserId == null)
+          .toList();
+    });
   }
 });
