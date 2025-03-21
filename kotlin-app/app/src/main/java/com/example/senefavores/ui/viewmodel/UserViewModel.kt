@@ -110,4 +110,9 @@ class UserViewModel @Inject constructor(
             }
         }
     }
+
+    fun getCurrentUserId(): String? {
+        return _user.value?.id
+    }
+
 }

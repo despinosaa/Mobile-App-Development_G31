@@ -32,7 +32,7 @@ class FavorRepository @Inject constructor(private val supabaseClient: SupabaseMa
                 .from("favors")
                 .insert(favor)
         }.onFailure {
-            println("Error adding favor: ${it.localizedMessage}")
+            Log.e("FavorRepository","Error adding favor: ${it.localizedMessage}")
         }
     }
 }
