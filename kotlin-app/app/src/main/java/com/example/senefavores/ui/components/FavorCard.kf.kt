@@ -33,17 +33,25 @@ import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun formatTime(favorTime: String): String {
-    // Define the formatter for parsing
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+    val possibleFormats = listOf(
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+    )
 
-    // Parse the string into a LocalDateTime object
-    val dateTime = LocalDateTime.parse(favorTime, formatter)
+    for (formatter in possibleFormats) {
+        try {
+            val dateTime = LocalDateTime.parse(favorTime, formatter)
+            return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+        } catch (e: DateTimeParseException) {
+            // Ignore and try the next format
+        }
+    }
 
-    // Format it as "HH:mm"
-    return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+    throw IllegalArgumentException("Invalid date format: $favorTime")
 }
 
 
@@ -74,7 +82,7 @@ fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onCl
                 verticalAlignment = Alignment.CenterVertically
 
             ) {
-                Text(text = formatTime(favor.favor_time), fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
+                Text(text = formatTime(favor.created_at), fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(

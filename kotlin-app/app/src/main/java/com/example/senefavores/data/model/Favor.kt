@@ -10,7 +10,7 @@ data class Favor(
     val description: String,
     val category: String,
     val reward: Int,
-    val favor_time: String = "",  // Default empty string
+    val favor_time: String? = "",  // Default empty string
     val created_at: String = "",  // Default empty string
     val request_user_id: String,  // Default null
     val accept_user_id: String? = ""  // Default null

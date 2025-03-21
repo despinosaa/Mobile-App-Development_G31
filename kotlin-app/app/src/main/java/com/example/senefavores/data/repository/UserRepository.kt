@@ -94,33 +94,34 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
 
 
     private suspend fun ensureUserExists(userId: String, email: String) {
-        try {
-            Log.d("UserCheck", "Checking if user exists: $userId")
+        withContext(Dispatchers.IO) {  // Moves work to IO thread
+            try {
+                Log.d("UserCheck", "Checking if user exists: $userId")
 
-            val existingUser = supabaseClient.supabase
-                .from("clients")
-                .select(columns = Columns.list("id", "email")) {
-                    filter {
-                        User::id eq userId
+                val existingUser = supabaseClient.supabase
+                    .from("clients")
+                    .select(columns = Columns.list("id", "email")) {
+                        filter { User::id eq userId }
                     }
+                    .decodeSingleOrNull<User>()
+
+                if (existingUser == null) {
+                    Log.d("UserCheck", "User does not exist, inserting: $userId")
+
+                    supabaseClient.supabase.from("clients").insert(
+                        User(id = userId, email = email)
+                    )
+
+                    Log.d("UserCheck", "New user added: $userId")
+                } else {
+                    Log.d("UserCheck", "User already exists: $userId")
                 }
-                .decodeSingleOrNull<User>()
-
-            if (existingUser == null) {
-                Log.d("UserCheck", "User does not exist, inserting: $userId")
-
-                supabaseClient.supabase.from("clients").insert(
-                    User(id = userId, email = email)
-                )
-
-                Log.d("UserCheck", "New user added: $userId")
-            } else {
-                Log.d("UserCheck", "User already exists: $userId")
+            } catch (e: Exception) {
+                Log.e("UserCheck", "Error checking user: ${e.localizedMessage}", e)
             }
-        } catch (e: Exception) {
-            Log.e("UserCheck", "Error checking user: ${e.localizedMessage}", e)
         }
     }
+
 
 
 

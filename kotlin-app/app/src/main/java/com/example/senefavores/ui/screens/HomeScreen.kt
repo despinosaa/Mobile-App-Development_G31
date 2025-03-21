@@ -40,6 +40,7 @@ import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 // Modelo de datos para un Favor (serializable para pasar por navegación)
 
@@ -47,14 +48,21 @@ import java.time.format.DateTimeFormatter
 // Función para convertir el formato de hora (HH:mm) a minutos desde la medianoche
 @RequiresApi(Build.VERSION_CODES.O)
 fun timeToMinutes(favorTime: String): Int {
-    // Define the formatter for parsing
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+    val possibleFormats = listOf(
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+    )
 
-    // Parse the string into a LocalDateTime object
-    val dateTime = LocalDateTime.parse(favorTime, formatter)
+    for (formatter in possibleFormats) {
+        try {
+            val dateTime = LocalDateTime.parse(favorTime, formatter)
+            return dateTime.hour * 60 + dateTime.minute
+        } catch (e: DateTimeParseException) {
+            // Ignore and try the next format
+        }
+    }
 
-    // Extract hours and minutes
-    return dateTime.hour * 60 + dateTime.minute
+    throw IllegalArgumentException("Invalid date format: $favorTime")
 }
 
 // Función para ordenar por smart sort según el historial
@@ -66,6 +74,7 @@ fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
         .thenByDescending { history.indexOfLast { cat -> cat == it.category } })
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel(), favorViewModel: FavorViewModel = hiltViewModel()) {
     val userInfo by userViewModel.user.collectAsState()
@@ -115,9 +124,9 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
         allFavors.filter { it.category == selectedCategory }
     }.let { favors ->
         if (isSortDescending) {
-            favors.sortedBy { timeToMinutes(it.favor_time) }.reversed()
+            favors.sortedBy { timeToMinutes(it.created_at) }.reversed()
         } else {
-            favors.sortedBy { timeToMinutes(it.favor_time) }
+            favors.sortedBy { timeToMinutes(it.created_at) }
         }
     }
 
