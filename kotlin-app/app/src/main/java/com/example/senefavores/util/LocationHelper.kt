@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,9 +62,9 @@ class LocationHelper @Inject constructor(@ApplicationContext private val context
                     fusedLocationClient.lastLocation
                 }.await()
                 currentLocation.value = location
-                println("Ubicación actualizada: $location")
+                Log.e("Location","Ubicación actualizada: $location")
             } catch (e: Exception) {
-                println("Error al obtener la ubicación: ${e.message}")
+                Log.e("Location","Error al obtener la ubicación: ${e.message}")
             }
         }
     }

@@ -41,8 +41,8 @@ fun FavorScreen(
     var userStars by remember { mutableStateOf(0f) }
 
     // Fetch user details from ViewModel
-    LaunchedEffect(favor.requested_user_id) {
-        val user = userViewModel.getClientById(favor.requested_user_id)
+    LaunchedEffect(favor.request_user_id) {
+        val user = userViewModel.getClientById(favor.request_user_id)
         user?.let {
             userStars = it.stars!!
         }

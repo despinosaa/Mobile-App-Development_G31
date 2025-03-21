@@ -1,5 +1,6 @@
 package com.example.senefavores.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,9 +14,13 @@ import androidx.navigation.NavController
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.SenefavoresHeader
 import com.example.senefavores.util.LocationHelper
-import com.example.senefavores.ui.theme.FavorCategoryColor
-import com.example.senefavores.ui.theme.CompraCategoryColor
-import com.example.senefavores.ui.theme.TutoriaCategoryColor
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.senefavores.ui.viewmodel.FavorViewModel
+import com.example.senefavores.data.model.Favor
+import com.example.senefavores.ui.viewmodel.UserViewModel
+import kotlinx.datetime.Clock.System
 
 @Composable
 fun CreateFavorScreen(
@@ -23,18 +28,30 @@ fun CreateFavorScreen(
     locationHelper: LocationHelper,
     hasLocationPermission: Boolean
 ) {
-    var selectedItem by remember { mutableStateOf(1) }
+    var selectedItem by remember { mutableStateOf(1) } // Estado para el ítem seleccionado (1: Crear Favor)
 
-    // El check de la locacion (me copie de dani)
+    // Inyectamos los ViewModels necesarios mediante Hilt
+    val favorViewModel: FavorViewModel = hiltViewModel()
+    val userViewModel: UserViewModel = hiltViewModel()
+
+    // Llamamos a loadUserInfo() para cargar la información del usuario
+    LaunchedEffect(Unit) {
+        userViewModel.loadUserInfo()
+    }
+    // Observamos el StateFlow del usuario
+    val currentUser by userViewModel.user.collectAsState(initial = null)
+
+    // Chequeo de ubicación: Si el usuario tiene permisos, se verifica si está dentro del campus
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
-        println("¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
+        Log.e("Locacion", "¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
         result
     } else {
         false
     }
 
-    // La vista per se jeje
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             SenefavoresHeader(
@@ -56,7 +73,7 @@ fun CreateFavorScreen(
             )
         }
     ) { padding ->
-        // Variables del favor
+        // Variables de estado para la información del favor
         var selectedCategory by remember { mutableStateOf("Favor") }
         var title by remember { mutableStateOf("") }
         var description by remember { mutableStateOf("") }
@@ -71,7 +88,7 @@ fun CreateFavorScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Titulo
+            // Fila para "Título" y su TextField
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -83,13 +100,13 @@ fun CreateFavorScreen(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Descripcion
+            // "Descripción" y su caja de texto más grande
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -107,12 +124,12 @@ fun CreateFavorScreen(
                     .fillMaxWidth()
                     .height(150.dp)
                     .padding(horizontal = 16.dp),
-                maxLines = 6,
+                maxLines = 6
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Recompensa
+            // Fila para "Recompensa" y su TextField
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -124,13 +141,13 @@ fun CreateFavorScreen(
                 OutlinedTextField(
                     value = recompensa,
                     onValueChange = { recompensa = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Categoria
+            // Fila para "Categoría" y botones de selección
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,12 +160,11 @@ fun CreateFavorScreen(
                     val categories = listOf("Favor", "Compra", "Tutoria")
                     for (category in categories) {
                         val categoryColor = when (category) {
-                            "Favor" -> FavorCategoryColor
-                            "Compra" -> CompraCategoryColor
-                            "Tutoria" -> TutoriaCategoryColor
+                            "Favor" -> Color(0xFFFFC0CB)   // rosa
+                            "Compra" -> Color(0xFF2196F3)  // azul
+                            "Tutoria" -> Color(0xFFF44336) // rojo
                             else -> Color.Black
                         }
-
                         val isSelected = (selectedCategory == category)
                         val containerColor = if (isSelected) categoryColor else Color.White
                         val contentColor = if (isSelected) Color.White else Color.Black
@@ -173,21 +189,28 @@ fun CreateFavorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Publicar
+            // Botón "Publicar" que envía el favor a la base de datos mediante el ViewModel.
             OutlinedButton(
                 onClick = {
-                    // detecta si esta en el campus, esto es un place holder
-                    // #TODO: cambiar cuando este el back conecatado
-                    val recompensaInt = recompensa.toIntOrNull() ?: 0
-                    val categoriaIndex = listOf("Favor", "Compra", "Tutoria").indexOf(selectedCategory)
-                    println(
-                        "Publicado: { " +
-                                "titulo: \"$title\", " +
-                                "descripcion: \"$description\", " +
-                                "recompensa: $recompensaInt, " +
-                                "categoria: $categoriaIndex " +
-                                "}"
-                    )
+                    scope.launch {
+                        val currentTime = System.now().toString()
+                        // Se obtiene el id del usuario actual del StateFlow
+                        val currentUserId = currentUser?.id ?: ""
+                        Log.e("CurrentUserId", "El id: $currentUserId")
+                        // Se crea el objeto Favor con la información ingresada.
+                        val newFavor = Favor(
+                            title = title,
+                            description = description,
+                            category = selectedCategory,
+                            reward = recompensa,
+                            favor_time = currentTime,
+                            created_at = currentTime,
+                            request_user_id = currentUserId,
+                            accept_user_id = ""
+                        )
+                        favorViewModel.addFavor(newFavor)
+                        navController.navigate("home") { launchSingleTop = true }
+                    }
                 },
                 enabled = isInsideCampus,
                 border = BorderStroke(1.dp, Color.Black),
@@ -205,7 +228,7 @@ fun CreateFavorScreen(
                 Text("Publicar")
             }
 
-            // Si no esta dentro del campus ewe
+            // Mensaje de advertencia si el usuario no está dentro del campus.
             if (!isInsideCampus) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

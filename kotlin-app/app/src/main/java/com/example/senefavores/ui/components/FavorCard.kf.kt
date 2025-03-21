@@ -35,8 +35,8 @@ fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onCl
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
 
-    LaunchedEffect(favor.requested_user_id) {
-        userViewModel.getClientById(favor.requested_user_id.toString())?.let { user ->
+    LaunchedEffect(favor.request_user_id) {
+        userViewModel.getClientById(favor.request_user_id.toString())?.let { user ->
             userName = user.name ?: "Usuario desconocido"
             userRating = user.stars ?: 0.0f
         }
