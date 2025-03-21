@@ -1,4 +1,5 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/core/extension.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/home/models/filter_button_sort.dart';
@@ -83,7 +84,8 @@ final favorsStreamProvider =
     yield* supabase
         .from('favors')
         .stream(primaryKey: ['id'])
-        .eq('category', selectedCategory.toString().split('.').last)
+        .eq('category',
+            selectedCategory.toString().split('.').last.capitalize())
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
         .map((data) => data
             .map((favor) => FavorModel.fromJson(favor))
