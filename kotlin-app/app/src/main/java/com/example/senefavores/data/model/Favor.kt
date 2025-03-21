@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Favor(
-    val id: String,  // Default value 0
     val title: String,
     val description: String,
     val category: String,
