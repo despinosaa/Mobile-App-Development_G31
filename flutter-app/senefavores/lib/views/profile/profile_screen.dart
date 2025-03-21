@@ -24,6 +24,7 @@ class ProfileScreen extends ConsumerWidget {
     ref.read(currentUserNotifierProvider.notifier).refreshUser();
     final currentUser = ref.watch(currentUserNotifierProvider);
     ref.refresh(userReviewsProvider(currentUser!.id));
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

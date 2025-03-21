@@ -1,3 +1,5 @@
+import 'package:senefavores/core/extension.dart';
+
 class FavorModel {
   final String id;
   final String title;
@@ -41,7 +43,7 @@ class FavorModel {
     return {
       'title': title,
       'description': description,
-      'category': category,
+      'category': category.capitalize(),
       'reward': reward,
       'favor_time': favorTime?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
