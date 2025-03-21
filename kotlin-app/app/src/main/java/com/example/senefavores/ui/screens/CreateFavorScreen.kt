@@ -24,6 +24,7 @@ import kotlinx.datetime.Clock.System
 import com.example.senefavores.ui.theme.FavorCategoryColor // Importar colores
 import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun CreateFavorScreen(
@@ -31,20 +32,21 @@ fun CreateFavorScreen(
     locationHelper: LocationHelper,
     hasLocationPermission: Boolean
 ) {
-    var selectedItem by remember { mutableStateOf(1) } // Estado para el ítem seleccionado (1: Crear Favor)
+    var selectedItem by remember { mutableStateOf(1) } // Ítem seleccionado (1: Crear Favor)
 
-    // Inyectamos los ViewModels necesarios mediante Hilt
+    // Inyección de ViewModels con Hilt
     val favorViewModel: FavorViewModel = hiltViewModel()
     val userViewModel: UserViewModel = hiltViewModel()
 
-    // Llamamos a loadUserInfo() para cargar la información del usuario
+    // Cargamos la información del usuario y los favores desde la base de datos
     LaunchedEffect(Unit) {
         userViewModel.loadUserInfo()
+        favorViewModel.fetchFavors()
     }
-    // Observamos el StateFlow del usuario
     val currentUser by userViewModel.user.collectAsState(initial = null)
+    val allFavors by favorViewModel.favors.collectAsState(initial = emptyList())
 
-    // Chequeo de ubicación: Si el usuario tiene permisos, se verifica si está dentro del campus
+    // Chequeo de ubicación
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
         Log.e("Locacion", "¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
@@ -54,6 +56,61 @@ fun CreateFavorScreen(
     }
 
     val scope = rememberCoroutineScope()
+
+    // Función auxiliar para convertir la fecha de tipo String a milisegundos desde la época
+    fun convertDateToMillis(date: String): Long {
+        // La fecha viene en formato "yyyy-MM-dd'T'HH:mm:ss" o "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        val dateParts = date.split("T")
+        val dateComponents = dateParts[0].split("-")
+        val timeComponents = dateParts[1].split(":")
+
+        val year = dateComponents[0].toInt()
+        val month = dateComponents[1].toInt()
+        val day = dateComponents[2].toInt()
+
+        val hour = timeComponents[0].toInt()
+        val minute = timeComponents[1].toInt()
+        val second = timeComponents[2].split(".")[0].toInt()
+
+        // Aquí asumimos que las fechas son locales y estamos calculando un timestamp simple
+        val calendar = java.util.Calendar.getInstance()
+        calendar.set(year, month - 1, day, hour, minute, second)
+        calendar.set(java.util.Calendar.MILLISECOND, 0)
+
+        return calendar.timeInMillis
+    }
+
+    fun calculateAverageAcceptanceTime(favors: List<Favor>, category: String): Long {
+        // Filtramos los favores de la categoría que tengan favor_time no nulo
+        val validFavors = favors.filter { it.category == category && it.favor_time != null }
+        if (validFavors.isEmpty()) return 0
+
+        val totalMinutes = validFavors.sumOf { favor ->
+            try {
+                // Convertimos las fechas 'created_at' y 'favor_time' a Longs representando los milisegundos desde la época (1970-01-01T00:00:00Z)
+                val created = convertDateToMillis(favor.created_at)
+                val accepted = convertDateToMillis(favor.favor_time!!)
+
+                // Calculamos la diferencia en minutos
+                (accepted - created) / 60000 // 60000 milisegundos en un minuto
+            } catch (e: Exception) {
+                // En caso de error, ignoramos este favor y seguimos con el siguiente
+                0L
+            }
+        }
+
+        // Si se omitieron todos los favores por error, devolvemos un valor por defecto según la categoría
+        return if (totalMinutes > 0) {
+            totalMinutes / validFavors.size
+        } else {
+            when (category) {
+                "Favor" -> 5L
+                "Compra" -> 10L
+                "Tutoría" -> 15L
+                else -> throw IllegalArgumentException("Categoría desconocida: $category")
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -109,7 +166,7 @@ fun CreateFavorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // "Descripción" y su caja de texto más grande
+            // "Descripción" y su caja de texto
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -160,12 +217,12 @@ fun CreateFavorScreen(
             ) {
                 Text(text = "Categoría:")
                 Row {
-                    val categories = listOf("Favor", "Compra", "Tutoria")
+                    val categories = listOf("Favor", "Compra", "Tutoría")
                     for (category in categories) {
                         val categoryColor = when (category) {
                             "Favor" -> FavorCategoryColor
                             "Compra" -> CompraCategoryColor
-                            "Tutoria" -> TutoriaCategoryColor
+                            "Tutoría" -> TutoriaCategoryColor
                             else -> Color.Black
                         }
                         val isSelected = (selectedCategory == category)
@@ -190,23 +247,28 @@ fun CreateFavorScreen(
                 }
             }
 
+            // Sección para mostrar el tiempo promedio de aceptación según la categoría seleccionada
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Tiempo promedio de aceptación de un $selectedCategory: ${calculateAverageAcceptanceTime(allFavors, selectedCategory)} minutos",
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botón "Publicar" que envía el favor a la base de datos mediante el ViewModel.
+            // Botón "Publicar" que envía el favor a la base de datos
             OutlinedButton(
                 onClick = {
                     scope.launch {
-                        val currentTime = System.now().toString()
-                        // Se obtiene el id del usuario actual del StateFlow
+                        val currentTime = kotlinx.datetime.Clock.System.now().toString()
                         val currentUserId = currentUser?.id ?: ""
                         Log.e("CurrentUserId", "El id: $currentUserId")
-                        // Se crea el objeto Favor con la información ingresada.
                         val newFavor = Favor(
                             title = title,
                             description = description,
                             category = selectedCategory,
                             reward = recompensa.toInt(),
-                            favor_time = currentTime,
+                            favor_time = null,
                             created_at = currentTime,
                             request_user_id = currentUserId,
                             accept_user_id = ""
@@ -231,7 +293,7 @@ fun CreateFavorScreen(
                 Text("Publicar")
             }
 
-            // Mensaje de advertencia si el usuario no está dentro del campus.
+            // Advertencia si el usuario no está dentro del campus
             if (!isInsideCampus) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
