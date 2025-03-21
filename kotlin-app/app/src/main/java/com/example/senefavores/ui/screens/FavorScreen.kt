@@ -48,6 +48,7 @@ fun FavorScreen(
         }
     }
 
+
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
         println("¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
@@ -176,7 +177,7 @@ fun FavorScreen(
                             .padding(end = 4.dp)
                     )
                     Text(
-                        text = favor.title,
+                        text = userName,
                         fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
