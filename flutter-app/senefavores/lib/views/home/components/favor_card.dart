@@ -49,9 +49,12 @@ class FavorCard extends StatelessWidget {
                       padding:
                           EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: favor.category == FilterButtonCategory.favor.name
+                        color: favor.category ==
+                                FilterButtonCategory.favor.name.capitalize()
                             ? AppColors.lightRed
-                            : favor.category == FilterButtonCategory.compra.name
+                            : favor.category ==
+                                    FilterButtonCategory.compra.name
+                                        .capitalize()
                                 ? AppColors.lightSkyBlue
                                 : AppColors.orangeWeb,
                         borderRadius: BorderRadius.circular(20),

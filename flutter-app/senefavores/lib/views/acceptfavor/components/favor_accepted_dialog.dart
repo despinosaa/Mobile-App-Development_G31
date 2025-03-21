@@ -49,11 +49,10 @@ Widget buildCustomDialog(
             ),
           ),
           onPressed: () {
-            Navigator.pushAndRemoveUntil(
+            Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => NavigationScreen(initialIndex: 2)),
-              (route) => false,
             );
           },
           child: const Text("Ir a Mis Favores"),
