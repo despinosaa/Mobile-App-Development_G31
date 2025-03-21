@@ -1,5 +1,6 @@
 package com.example.senefavores.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.senefavores.data.model.Favor
@@ -26,6 +27,7 @@ class FavorViewModel @Inject constructor(
     fun fetchFavors() {
         viewModelScope.launch {
             _favors.value = favorRepository.getFavors()
+            Log.d("DEBUG", "Favor time from API: $_favors")
         }
     }
 

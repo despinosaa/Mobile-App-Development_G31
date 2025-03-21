@@ -1,6 +1,8 @@
 package com.example.senefavores.ui.screens
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -36,16 +38,23 @@ import kotlinx.serialization.json.Json
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.viewmodel.FavorViewModel
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 // Modelo de datos para un Favor (serializable para pasar por navegación)
 
 
 // Función para convertir el formato de hora (HH:mm) a minutos desde la medianoche
-fun timeToMinutes(time: String): Int {
-    val parts = time.split(":")
-    val hours = parts[0].toInt()
-    val minutes = parts[1].toInt()
-    return hours * 60 + minutes
+@RequiresApi(Build.VERSION_CODES.O)
+fun timeToMinutes(favorTime: String): Int {
+    // Define the formatter for parsing
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+
+    // Parse the string into a LocalDateTime object
+    val dateTime = LocalDateTime.parse(favorTime, formatter)
+
+    // Extract hours and minutes
+    return dateTime.hour * 60 + dateTime.minute
 }
 
 // Función para ordenar por smart sort según el historial
