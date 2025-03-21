@@ -90,7 +90,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
         Log.d("UserInfo", "hasCompletedInfo: ${userViewModel.hasCompletedInfo.value}")
 
         if (user != null) {
-            if (user.name?.isNotEmpty() == false || user.phone?.isNotEmpty() == false) {
+            if (user.name?.isNotEmpty() == false || user.phone?.isNotEmpty() == false || user.name?.isNotEmpty() == null || user.phone?.isNotEmpty() == false) {
                 showDialog = true
                 hasUpdated = true
             }
@@ -289,6 +289,7 @@ fun ShowUserInfoDialog(
     }
 
     if (showDialog) {
+        Log.e("Dialog","Entre a func")
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("Información Incompleta") },
