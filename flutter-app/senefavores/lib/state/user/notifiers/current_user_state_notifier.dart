@@ -24,7 +24,7 @@ class CurrentUserStateNotifier extends StateNotifier<UserModel?> {
       }
 
       final Map<String, dynamic>? response = await supabase
-          .from('users')
+          .from('clients')
           .select()
           .eq('email', user.email!)
           .maybeSingle();

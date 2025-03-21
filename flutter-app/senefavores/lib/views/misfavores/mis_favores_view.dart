@@ -94,7 +94,7 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
     );
   }
 
-  Widget _buildSolicitadosList(int userId) {
+  Widget _buildSolicitadosList(String userId) {
     final favorsRequested = ref.watch(favorsRequestedByUserProvider(userId));
 
     return favorsRequested.when(
@@ -132,7 +132,7 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
     );
   }
 
-  Widget _buildAceptadosList(int userId) {
+  Widget _buildAceptadosList(String userId) {
     final favorsAccepted = ref.watch(favorsAcceptedByUserProvider(userId));
 
     return favorsAccepted.when(

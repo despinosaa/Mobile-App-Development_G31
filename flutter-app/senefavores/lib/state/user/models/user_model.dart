@@ -1,5 +1,5 @@
 class UserModel {
-  final int id;
+  final String id;
   final String? name;
   final String email;
   final String? phone;
@@ -17,7 +17,7 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as int,
+      id: json['id'] as String,
       name: json['name'] as String?,
       email: json['email'] as String,
       phone: json['phone'] as String?,
@@ -39,7 +39,7 @@ class UserModel {
 
   /// **✅ Corrected copyWith method**
   UserModel copyWith({
-    int? id,
+    String? id,
     String? name,
     String? email,
     String? phone,

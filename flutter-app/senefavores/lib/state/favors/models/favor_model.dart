@@ -1,13 +1,13 @@
 class FavorModel {
-  final int id;
+  final String id;
   final String title;
   final String description;
   final String category;
   final int reward;
   final DateTime? favorTime;
   final DateTime createdAt;
-  final int requestUserId;
-  final int? acceptUserId;
+  final String requestUserId;
+  final String? acceptUserId;
 
   FavorModel({
     required this.id,
@@ -23,7 +23,7 @@ class FavorModel {
 
   factory FavorModel.fromJson(Map<String, dynamic> json) {
     return FavorModel(
-      id: json['id'] as int,
+      id: json['id'] as String,
       title: json['title'] as String,
       description: json['description'] as String,
       category: json['category'] as String,
@@ -32,8 +32,8 @@ class FavorModel {
           ? DateTime.parse(json['favor_time'])
           : null,
       createdAt: DateTime.parse(json['created_at']),
-      requestUserId: json['request_user_id'] as int,
-      acceptUserId: json['accept_user_id'] as int?,
+      requestUserId: json['request_user_id'] as String,
+      acceptUserId: json['accept_user_id'] as String?,
     );
   }
 

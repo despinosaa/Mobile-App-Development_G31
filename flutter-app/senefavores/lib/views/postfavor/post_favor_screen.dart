@@ -159,7 +159,7 @@ class PostFavorScreen extends HookConsumerWidget {
                         .read(uploadFavorStateNotifierProvider.notifier)
                         .uploadFavor(
                           favor: FavorModel(
-                            id: 0,
+                            id: '0',
                             title: titleController.text,
                             description: descriptionController.text,
                             category: (selectedCategory.value ?? "favor")

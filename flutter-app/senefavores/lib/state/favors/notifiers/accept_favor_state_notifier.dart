@@ -4,7 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AcceptFavorNotifier extends StateNotifier<bool> {
   AcceptFavorNotifier() : super(false);
 
-  Future<bool> acceptFavor({required int favorId, required int userId}) async {
+  Future<bool> acceptFavor(
+      {required String favorId, required String userId}) async {
     final supabase = Supabase.instance.client;
 
     try {

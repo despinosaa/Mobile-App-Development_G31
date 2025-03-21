@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 
 final favorsRequestedByUserProvider =
-    StreamProvider.family.autoDispose<List<FavorModel>, int>((ref, userId) {
+    StreamProvider.family.autoDispose<List<FavorModel>, String>((ref, userId) {
   final supabase = Supabase.instance.client;
   return supabase
       .from('favors')
@@ -14,7 +14,7 @@ final favorsRequestedByUserProvider =
 });
 
 final favorsAcceptedByUserProvider =
-    StreamProvider.family.autoDispose<List<FavorModel>, int>((ref, userId) {
+    StreamProvider.family.autoDispose<List<FavorModel>, String>((ref, userId) {
   final supabase = Supabase.instance.client;
   return supabase
       .from('favors')

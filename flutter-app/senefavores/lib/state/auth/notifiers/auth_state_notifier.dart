@@ -35,16 +35,18 @@ class AuthStateNotifier extends StateNotifier<AuthStatus> {
       final user = session?.user;
 
       if (user != null) {
+        print(user);
         final userdomain = user.email!.split('@')[1];
         if (userdomain == 'uniandes.edu.co') {
           final Map<String, dynamic>? existingUser = await _supabase
-              .from('users')
+              .from('clients')
               .select()
               .eq('email', user.email!)
               .maybeSingle(); // Gets a single record or null
 
           if (existingUser == null) {
-            await _supabase.from('users').insert({
+            await _supabase.from('clients').insert({
+              'id': user.id,
               'email': user.email,
               'name': user.userMetadata?['full_name'],
             });

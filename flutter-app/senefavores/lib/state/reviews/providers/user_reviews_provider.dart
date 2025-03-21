@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:senefavores/state/reviews/models/review_model.dart';
 
 final userReviewsProvider =
-    FutureProvider.family<List<ReviewModel>, int>((ref, userId) async {
+    FutureProvider.family<List<ReviewModel>, String>((ref, userId) async {
   final supabase = Supabase.instance.client;
 
   final response = await supabase

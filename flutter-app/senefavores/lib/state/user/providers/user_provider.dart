@@ -2,11 +2,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/state/user/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-final userProvider = StreamProvider.family<UserModel, int>((ref, userId) {
+final userProvider = StreamProvider.family<UserModel, String>((ref, userId) {
   final supabase = Supabase.instance.client;
 
   return supabase
-      .from('users')
+      .from('clients')
       .stream(primaryKey: ['id'])
       .eq('id', userId)
       .map((data) {

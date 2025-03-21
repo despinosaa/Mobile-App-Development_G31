@@ -153,7 +153,7 @@ class ProfileScreen extends ConsumerWidget {
                                   try {
                                     final supabase = Supabase.instance.client;
                                     final List response = await supabase
-                                        .from('users')
+                                        .from('clients')
                                         .update({'phone': phone})
                                         .eq('id', currentUser.id)
                                         .select();
