@@ -12,6 +12,9 @@ import 'package:senefavores/views/components/loading_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/navigation/navigation_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
+import 'package:senefavores/utils/logger.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,11 +23,16 @@ void main() async {
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlYnVtemN4dHR5cXVvcmhpaWNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2NDM1MDQsImV4cCI6MjA1NzIxOTUwNH0.PiAnATAnWk_7Brz6XzZqQMkaCoGOItFGKhy1EZ8OnVg',
   );
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLogger.logCrash(screen: 'global', crashInfo: details.exceptionAsString());
+  };
+
+  runZonedGuarded(
+        () => runApp(const ProviderScope(child: MyApp())),
+        (error, stack) => AppLogger.logCrash(screen: 'global', crashInfo: error.toString()),
   );
+
 }
 
 class MyApp extends StatelessWidget {

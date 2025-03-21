@@ -6,6 +6,8 @@ import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
+import 'dart:async';
+import 'package:senefavores/utils/logger.dart';
 
 class MisFavoresView extends ConsumerStatefulWidget {
   const MisFavoresView({Key? key}) : super(key: key);
@@ -102,8 +104,16 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
           child: CircularProgressIndicator(
         color: Colors.black,
       )),
-      error: (error, stack) => Center(child: Text("Error: $error")),
+      error: (error, stack) {
+        AppLogger.logCrash(
+          screen: 'MisFavoresView',
+          crashInfo: error.toString(),
+        );
+        return Center(child: Text("Error: $error"));
+      },
+
       data: (favorsList) {
+
         if (favorsList.isEmpty) {
           return const Center(child: Text("No has solicitado favores"));
         }
@@ -141,8 +151,15 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
           color: Colors.black,
         ),
       ),
-      error: (error, stack) => Center(child: Text("Error: $error")),
+        error: (error, stack) {
+          AppLogger.logCrash(
+            screen: 'MisFavoresView',
+            crashInfo: error.toString(),
+          );
+          return Center(child: Text("Error: $error"));
+        },
       data: (favorsList) {
+
         if (favorsList.isEmpty) {
           return const Center(child: Text("No has aceptado favores"));
         }
