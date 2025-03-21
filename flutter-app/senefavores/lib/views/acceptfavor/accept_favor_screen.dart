@@ -11,6 +11,8 @@ import 'package:senefavores/views/acceptfavor/components/favor_accepted_dialog.d
 import 'package:senefavores/views/acceptfavor/components/favor_category_chip.dart';
 import 'package:senefavores/views/components/build_star_rating.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
+import 'dart:async';
+import 'package:senefavores/utils/logger.dart';
 
 class AcceptFavorScreen extends ConsumerWidget {
   final FavorModel favor;
@@ -98,6 +100,8 @@ class AcceptFavorScreen extends ConsumerWidget {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: () async {
+                    final start = DateTime.now();
+
                     try {
                       final requesterUser = requesterAsync.maybeWhen(
                         data: (reqUser) => reqUser,
@@ -106,24 +110,30 @@ class AcceptFavorScreen extends ConsumerWidget {
 
                       if (currentUser == null) {
                         ref.read(snackbarProvider).showSnackbar(
-                              "Error: No current user found",
-                              isError: true,
-                            );
+                          "Error: No current user found",
+                          isError: true,
+                        );
                         return;
                       }
 
                       final bool hasBeenUploaded = await ref
                           .read(acceptFavorProvider.notifier)
                           .acceptFavor(
-                            favorId: favor.id,
-                            userId: currentUser.id,
-                          );
+                        favorId: favor.id,
+                        userId: currentUser.id,
+                      );
+
+                      final duration = DateTime.now().difference(start).inMilliseconds;
+                      await AppLogger.logResponseTime(
+                        screen: 'AcceptFavorScreen',
+                        responseTimeMs: duration,
+                      );
 
                       if (!hasBeenUploaded) {
                         ref.read(snackbarProvider).showSnackbar(
-                              "No se aceptó el favor",
-                              isError: true,
-                            );
+                          "No se aceptó el favor",
+                          isError: true,
+                        );
                         return;
                       }
 
@@ -131,9 +141,9 @@ class AcceptFavorScreen extends ConsumerWidget {
 
                       if (requesterUser == null) {
                         ref.read(snackbarProvider).showSnackbar(
-                              "Error: Requester data not loaded",
-                              isError: true,
-                            );
+                          "Error: Requester data not loaded",
+                          isError: true,
+                        );
                         return;
                       }
 
@@ -146,11 +156,17 @@ class AcceptFavorScreen extends ConsumerWidget {
                       if (!context.mounted) return;
                       Navigator.pop(context);
                     } catch (e) {
+                      await AppLogger.logCrash(
+                        screen: 'AcceptFavorScreen',
+                        crashInfo: e.toString(),
+                      );
+
                       ref.read(snackbarProvider).showSnackbar(
-                            "Excepción: $e",
-                            isError: true,
-                          );
+                        "Excepción: $e",
+                        isError: true,
+                      );
                     }
+
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber,

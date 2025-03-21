@@ -9,6 +9,9 @@ import 'package:senefavores/state/location/providers/user_location_state_notifie
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
+import 'dart:async';
+import 'package:senefavores/utils/logger.dart';
+
 
 class PostFavorScreen extends HookConsumerWidget {
   const PostFavorScreen({super.key});
@@ -126,7 +129,8 @@ class PostFavorScreen extends HookConsumerWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                  // 1. Check if fields are filled
+                  final start = DateTime.now(); // ⏱️ Start timer
+
                   if (titleController.text.isEmpty ||
                       descriptionController.text.isEmpty ||
                       rewardController.text.isEmpty ||
@@ -137,7 +141,6 @@ class PostFavorScreen extends HookConsumerWidget {
                     return;
                   }
 
-                  // 2. For categories "Favor" and "Compra", check if user is near the location
                   if (selectedCategory.value == "Favor" ||
                       selectedCategory.value == "Compra") {
                     final isNear = await ref
@@ -146,29 +149,33 @@ class PostFavorScreen extends HookConsumerWidget {
 
                     if (!isNear) {
                       ref.read(snackbarProvider).showSnackbar(
-                            "Debes estar cerca de la Universidad de los Andes para publicar un favor de tipo Favor o Compra",
-                            isError: true,
-                          );
+                        "Debes estar cerca de la Universidad de los Andes para publicar un favor de tipo Favor o Compra",
+                        isError: true,
+                      );
                       return;
                     }
                   }
 
-                  // 3. Proceed with uploading the favor
                   try {
                     final success = await ref
                         .read(uploadFavorStateNotifierProvider.notifier)
                         .uploadFavor(
-                          favor: FavorModel(
-                            id: '0',
-                            title: titleController.text,
-                            description: descriptionController.text,
-                            category: (selectedCategory.value ?? "favor")
-                                .toLowerCase(),
-                            reward: int.tryParse(rewardController.text) ?? 0,
-                            createdAt: DateTime.now(),
-                            requestUserId: currentUser!.id,
-                          ),
-                        );
+                      favor: FavorModel(
+                        id: '0',
+                        title: titleController.text,
+                        description: descriptionController.text,
+                        category: (selectedCategory.value ?? "favor").toLowerCase(),
+                        reward: int.tryParse(rewardController.text) ?? 0,
+                        createdAt: DateTime.now(),
+                        requestUserId: currentUser!.id,
+                      ),
+                    );
+
+                    final duration = DateTime.now().difference(start).inMilliseconds; // ⏱️ End
+                    await AppLogger.logResponseTime(
+                      screen: 'PostFavorScreen',
+                      responseTimeMs: duration,
+                    );
 
                     if (success) {
                       titleController.clear();
@@ -183,10 +190,16 @@ class PostFavorScreen extends HookConsumerWidget {
                           "Error al publicar el favor",
                           isError: true);
                     }
-                  } catch (error) {
-                    ref
-                        .read(snackbarProvider)
-                        .showSnackbar("Error: $error", isError: true);
+                  } catch (e) {
+                    await AppLogger.logCrash(
+                      screen: 'PostFavorScreen',
+                      crashInfo: e.toString(),
+                    );
+
+                    ref.read(snackbarProvider).showSnackbar(
+                      "Error: $e",
+                      isError: true,
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(

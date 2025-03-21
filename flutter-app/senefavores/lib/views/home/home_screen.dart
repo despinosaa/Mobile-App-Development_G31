@@ -14,6 +14,8 @@ import 'package:senefavores/views/components/senefavores_image_and_title_and_pro
 import 'package:senefavores/views/home/components/category_filter_button.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
 import 'package:senefavores/core/constant.dart';
+import 'dart:async';
+import 'package:senefavores/utils/logger.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -110,6 +112,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: favors.when(
               data: (favorsList) {
+
                 if (favorsList.isEmpty) {
                   return Center(child: Text("No hay favores disponibles"));
                 }
@@ -156,16 +159,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: CircularProgressIndicator(
                 color: Colors.black,
               )),
-              error: (error, stack) {
-                if (error.toString() ==
-                    'Null check operator used on a null value') {
-                  return const Center(
-                      child: CircularProgressIndicator(
-                    color: Colors.black,
-                  ));
-                }
-                return Center(child: Text("Error loading favors: $error"));
-              },
+                error: (error, stack) {
+                  AppLogger.logCrash(
+                    screen: 'HomeScreen',
+                    crashInfo: error.toString(),
+                  );
+
+                  if (error.toString() == 'Null check operator used on a null value') {
+                    return const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.black,
+                        ));
+                  }
+                  return Center(child: Text("Error loading favors: $error"));
+                },
+
             ),
           ),
         ],
