@@ -11,7 +11,7 @@ import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
-
+import 'package:senefavores/state/favors/providers/favor_acceptance_rate_provider.dart'; // Import the provider
 
 class PostFavorScreen extends HookConsumerWidget {
   const PostFavorScreen({super.key});
@@ -27,6 +27,10 @@ class PostFavorScreen extends HookConsumerWidget {
 
     // For category selection
     final selectedCategory = useState<String?>(null);
+
+    // Consume the provider to get the acceptance rate for the selected category
+    final acceptanceRateAsync =
+        ref.watch(favorAcceptanceRateProvider(selectedCategory.value ?? ''));
 
     return SafeArea(
       child: Column(
@@ -44,14 +48,14 @@ class PostFavorScreen extends HookConsumerWidget {
             ),
           ),
 
-          // Form Fields
+          // Form Fields (for creating the favor)
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title Row
+                  // Title, Description, Reward Fields...
                   Row(
                     children: [
                       Text("Título:", style: AppTextStyles.oswaldSubtitle),
@@ -116,6 +120,24 @@ class PostFavorScreen extends HookConsumerWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+
+                  // Display the acceptance rate below the category buttons
+                  if (selectedCategory.value != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: acceptanceRateAsync.when(
+                        data: (rate) {
+                          return Text(
+                            "Tasa de aceptación: ${rate.toStringAsFixed(1)}%",
+                            style: AppTextStyles.oswaldSubtitle,
+                          );
+                        },
+                        loading: () => const CircularProgressIndicator(),
+                        error: (error, stackTrace) =>
+                            Text("Error al cargar tasa de aceptación"),
+                      ),
+                    ),
                   const SizedBox(height: 30),
                 ],
               ),
@@ -149,9 +171,9 @@ class PostFavorScreen extends HookConsumerWidget {
 
                     if (!isNear) {
                       ref.read(snackbarProvider).showSnackbar(
-                        "Debes estar cerca de la Universidad de los Andes para publicar un favor de tipo Favor o Compra",
-                        isError: true,
-                      );
+                            "Debes estar cerca de la Universidad de los Andes para publicar un favor de tipo Favor o Compra",
+                            isError: true,
+                          );
                       return;
                     }
                   }
@@ -160,18 +182,21 @@ class PostFavorScreen extends HookConsumerWidget {
                     final success = await ref
                         .read(uploadFavorStateNotifierProvider.notifier)
                         .uploadFavor(
-                      favor: FavorModel(
-                        id: '0',
-                        title: titleController.text,
-                        description: descriptionController.text,
-                        category: (selectedCategory.value ?? "favor").toLowerCase(),
-                        reward: int.tryParse(rewardController.text) ?? 0,
-                        createdAt: DateTime.now(),
-                        requestUserId: currentUser!.id,
-                      ),
-                    );
+                          favor: FavorModel(
+                            id: '0',
+                            title: titleController.text,
+                            description: descriptionController.text,
+                            category: (selectedCategory.value ?? "favor")
+                                .toLowerCase(),
+                            reward: int.tryParse(rewardController.text) ?? 0,
+                            createdAt: DateTime.now(),
+                            requestUserId: currentUser!.id,
+                          ),
+                        );
 
-                    final duration = DateTime.now().difference(start).inMilliseconds; // ⏱️ End
+                    final duration = DateTime.now()
+                        .difference(start)
+                        .inMilliseconds; // ⏱️ End
                     await AppLogger.logResponseTime(
                       screen: 'PostFavorScreen',
                       responseTimeMs: duration,
@@ -197,9 +222,9 @@ class PostFavorScreen extends HookConsumerWidget {
                     );
 
                     ref.read(snackbarProvider).showSnackbar(
-                      "Error: $e",
-                      isError: true,
-                    );
+                          "Error: $e",
+                          isError: true,
+                        );
                   }
                 },
                 style: ElevatedButton.styleFrom(
