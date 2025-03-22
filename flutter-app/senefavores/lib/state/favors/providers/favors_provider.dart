@@ -12,7 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:senefavores/utils/logger.dart';
 
 final favorsStreamProvider =
-StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
+    StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
   final supabase = Supabase.instance.client;
 
   final selectedCategory = ref.watch(selectedCategoryFilterButtonProvider);
@@ -51,16 +51,16 @@ StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
         .neq('request_user_id', currentUser.id)
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
         .map((data) {
-      final duration = DateTime.now().difference(start).inMilliseconds;
-      AppLogger.logResponseTime(
-        screen: 'HomeScreen',
-        responseTimeMs: duration,
-      );
-      return data
-          .map((favor) => FavorModel.fromJson(favor))
-          .where((favor) => favor.acceptUserId == null)
-          .toList();
-    });
+          final duration = DateTime.now().difference(start).inMilliseconds;
+          AppLogger.logResponseTime(
+            screen: 'HomeScreen',
+            responseTimeMs: duration,
+          );
+          return data
+              .map((favor) => FavorModel.fromJson(favor))
+              .where((favor) => favor.acceptUserId == null)
+              .toList();
+        });
 
     favorStream = favorStream.map((favors) {
       favors.sort((a, b) {
@@ -89,37 +89,42 @@ StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
         .neq('request_user_id', currentUser.id)
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
         .map((data) {
-      final duration = DateTime.now().difference(start).inMilliseconds;
-      AppLogger.logResponseTime(
-        screen: 'HomeScreen',
-        responseTimeMs: duration,
-      );
-      return data
-          .map((favor) => FavorModel.fromJson(favor))
-          .where((favor) => favor.acceptUserId == null)
-          .toList();
-    });
+          final duration = DateTime.now().difference(start).inMilliseconds;
+          AppLogger.logResponseTime(
+            screen: 'HomeScreen',
+            responseTimeMs: duration,
+          );
+          return data
+              .map((favor) => FavorModel.fromJson(favor))
+              .where((favor) => favor.acceptUserId == null)
+              .toList();
+        });
   } else {
     final start = DateTime.now();
+
+    String category = selectedCategory.toString().split('.').last.capitalize();
+
+    if (category == "Tutoria") {
+      category = "Tutoría";
+    }
 
     yield* supabase
         .from('favors')
         .stream(primaryKey: ['id'])
-        .eq('category',
-        selectedCategory.toString().split('.').last.capitalize())
+        .eq('category', category)
         .order('created_at', ascending: selectedSort == FilterButtonSort.asc)
         .map((data) {
-      final duration = DateTime.now().difference(start).inMilliseconds;
-      AppLogger.logResponseTime(
-        screen: 'HomeScreen',
-        responseTimeMs: duration,
-      );
-      return data
-          .map((favor) => FavorModel.fromJson(favor))
-          .where((favor) =>
-      favor.requestUserId != currentUser.id &&
-          favor.acceptUserId == null)
-          .toList();
-    });
+          final duration = DateTime.now().difference(start).inMilliseconds;
+          AppLogger.logResponseTime(
+            screen: 'HomeScreen',
+            responseTimeMs: duration,
+          );
+          return data
+              .map((favor) => FavorModel.fromJson(favor))
+              .where((favor) =>
+                  favor.requestUserId != currentUser.id &&
+                  favor.acceptUserId == null)
+              .toList();
+        });
   }
 });

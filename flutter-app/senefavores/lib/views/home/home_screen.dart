@@ -99,7 +99,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       CategoryFilterButton(
                         backgroundColor: AppColors.orangeWeb,
-                        text: "Tutoria",
+                        text: "Tutoría",
                         isSelected: false,
                         filterButtonCategory: FilterButtonCategory.tutoria,
                       ),
@@ -112,7 +112,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Expanded(
             child: favors.when(
               data: (favorsList) {
-
                 if (favorsList.isEmpty) {
                   return Center(child: Text("No hay favores disponibles"));
                 }
@@ -159,21 +158,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: CircularProgressIndicator(
                 color: Colors.black,
               )),
-                error: (error, stack) {
-                  AppLogger.logCrash(
-                    screen: 'HomeScreen',
-                    crashInfo: error.toString(),
-                  );
+              error: (error, stack) {
+                AppLogger.logCrash(
+                  screen: 'HomeScreen',
+                  crashInfo: error.toString(),
+                );
 
-                  if (error.toString() == 'Null check operator used on a null value') {
-                    return const Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.black,
-                        ));
-                  }
-                  return Center(child: Text("Error loading favors: $error"));
-                },
-
+                if (error.toString() ==
+                    'Null check operator used on a null value') {
+                  return const Center(
+                      child: CircularProgressIndicator(
+                    color: Colors.black,
+                  ));
+                }
+                return Center(child: Text("Error loading favors: $error"));
+              },
             ),
           ),
         ],

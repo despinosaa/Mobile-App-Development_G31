@@ -2,16 +2,15 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
 class UserLocationStateNotifier extends StateNotifier<bool> {
-  UserLocationStateNotifier() : super(false); // ✅ Initial state: not loading
+  UserLocationStateNotifier() : super(false);
 
-  /// **Checks if the user is near the target location**
   Future<bool> isUserNearLocation() async {
     try {
-      state = true; // ✅ Set loading state
+      state = true;
 
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        state = false; // ✅ Stop loading if location services are disabled
+        state = false;
         return false;
       }
 
@@ -33,7 +32,6 @@ class UserLocationStateNotifier extends StateNotifier<bool> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // ✅ Coordinates for Cl. 19A #1e-37, Bogotá
       const targetLat = 4.603087;
       const targetLng = -74.065643;
 

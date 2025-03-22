@@ -114,7 +114,7 @@ class PostFavorScreen extends HookConsumerWidget {
                       ),
                       const SizedBox(width: 10),
                       _categoryButton(
-                        "Tutoria",
+                        "Tutoría",
                         AppColors.orangeWeb,
                         selectedCategory,
                       ),

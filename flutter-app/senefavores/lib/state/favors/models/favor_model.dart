@@ -40,10 +40,16 @@ class FavorModel {
   }
 
   Map<String, dynamic> toJson() {
+    String category = this.category;
+    if (category == 'Tutoria') {
+      category = 'Tutoría';
+    } else {
+      category = category.capitalize();
+    }
     return {
       'title': title,
       'description': description,
-      'category': category.capitalize(),
+      'category': category,
       'reward': reward,
       'favor_time': favorTime?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
