@@ -11,7 +11,7 @@ import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
-import 'package:senefavores/state/favors/providers/favor_acceptance_rate_provider.dart'; // Import the provider
+import 'package:senefavores/state/favors/providers/favor_acceptance_rate_provider.dart';
 
 class PostFavorScreen extends HookConsumerWidget {
   const PostFavorScreen({super.key});
@@ -28,9 +28,9 @@ class PostFavorScreen extends HookConsumerWidget {
     // For category selection
     final selectedCategory = useState<String?>(null);
 
-    // Consume the provider to get the acceptance rate for the selected category
-    final acceptanceRateAsync =
-        ref.watch(favorAcceptanceRateProvider(selectedCategory.value ?? ''));
+    // Consume the provider to get the average acceptance time for the selected category
+    final averageAcceptanceTimeAsync = ref.watch(
+        favorAverageAcceptanceTimeProvider(selectedCategory.value ?? ''));
 
     return SafeArea(
       child: Column(
@@ -122,20 +122,20 @@ class PostFavorScreen extends HookConsumerWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // Display the acceptance rate below the category buttons
+                  // Display the average acceptance time below the category buttons
                   if (selectedCategory.value != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
-                      child: acceptanceRateAsync.when(
-                        data: (rate) {
+                      child: averageAcceptanceTimeAsync.when(
+                        data: (time) {
                           return Text(
-                            "Tasa de aceptación: ${rate.toStringAsFixed(1)}%",
+                            "Tiempo promedio de aceptación: ${time.toStringAsFixed(2)} minutos",
                             style: AppTextStyles.oswaldSubtitle,
                           );
                         },
                         loading: () => const CircularProgressIndicator(),
                         error: (error, stackTrace) =>
-                            Text("Error al cargar tasa de aceptación"),
+                            Text("Error al cargar el tiempo promedio"),
                       ),
                     ),
                   const SizedBox(height: 30),

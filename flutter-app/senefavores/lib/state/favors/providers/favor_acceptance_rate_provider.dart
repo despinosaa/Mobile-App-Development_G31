@@ -2,7 +2,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:senefavores/utils/logger.dart';
 
-final favorAcceptanceRateProvider =
+final favorAverageAcceptanceTimeProvider =
     StreamProvider.family.autoDispose<double, String>((ref, category) async* {
   final supabase = Supabase.instance.client;
 
@@ -33,20 +33,44 @@ final favorAcceptanceRateProvider =
           return data
               .where((favor) =>
                   favor['accept_user_id'] != null &&
-                  favor['category'] == category)
+                  favor['category'] == category &&
+                  favor['favor_time'] != null) // Ensure favor_time exists
               .toList();
         });
 
-    // Combine both streams and calculate acceptance rate
+    // Combine both streams and calculate the average acceptance time
     await for (final totalFavors in totalFavorsStream) {
       await for (final acceptedFavors in acceptedFavorsStream) {
-        // Check if total favors is 0 to prevent division by zero
-        if (totalFavors.isEmpty) {
-          yield 0.0; // If no favors exist in this category, the rate is 0%
+        // Check if there are any accepted favors to prevent division by zero
+        if (acceptedFavors.isEmpty) {
+          yield 0.0; // If no accepted favors exist in this category, the rate is 0%
         } else {
-          final acceptanceRate =
-              (acceptedFavors.length / totalFavors.length) * 100;
-          yield acceptanceRate;
+          // Calculate total time differences for accepted favors
+          int totalTime = 0;
+          int acceptedCount = 0;
+
+          for (var favor in acceptedFavors) {
+            final createdAt = favor['created_at'] as String;
+            final favorTime = favor['favor_time'] as String;
+
+            final createdAtDate = DateTime.parse(createdAt);
+            final favorTimeDate = DateTime.parse(favorTime);
+
+            // Calculate the time difference in seconds (you can also use other units)
+            final timeDiffInSeconds =
+                favorTimeDate.difference(createdAtDate).inSeconds;
+            totalTime += timeDiffInSeconds;
+            acceptedCount++;
+          }
+
+          // Calculate average acceptance time
+          final averageAcceptanceTime = totalTime / acceptedCount;
+
+          // Convert time to a more readable format (optional, here in seconds)
+          final averageAcceptanceTimeInMinutes = averageAcceptanceTime / 60.0;
+
+          // Yield the result
+          yield averageAcceptanceTimeInMinutes;
         }
       }
     }
@@ -54,6 +78,6 @@ final favorAcceptanceRateProvider =
     // Handle error case and log it
     print(
         'Error fetching favor data: $e'); // Replace this with your actual logger
-    yield 0.0; // Return 0% in case of an error
+    yield 0.0; // Return 0.0 in case of an error
   }
 });
