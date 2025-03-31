@@ -13,12 +13,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.example.senefavores.data.repository.FavorRepository
+import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.navigation.AppNavHost
 import com.example.senefavores.ui.theme.SenefavoresTheme
 import com.example.senefavores.util.LocationHelper
-import com.example.senefavores.data.remote.SupabaseManagement
+import com.example.senefavores.util.TelemetryLogger
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.auth.handleDeeplinks
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import androidx.lifecycle.lifecycleScope
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -27,14 +32,31 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var locationHelper: LocationHelper
 
-    private var hasLocationPermission by mutableStateOf(false)
+    @Inject
+    lateinit var telemetryLogger: TelemetryLogger
 
-    // Create only one instance of SupabaseClient
-    private val supabaseClient by lazy { SupabaseManagement() }
+    @Inject
+    lateinit var favorRepository: FavorRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
+
+    private var hasLocationPermission by mutableStateOf(false)
+    private var currentScreen by mutableStateOf("MainActivity")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Set up global uncaught exception handler
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val crashInfo = throwable.stackTraceToString()
+            runBlocking {
+                telemetryLogger.logCrash(currentScreen, crashInfo)
+            }
+            defaultHandler?.uncaughtException(thread, throwable)
+        }
 
         // Handle deep link for OAuth login
         intent?.data?.let { handleDeepLink(intent) }
@@ -65,7 +87,13 @@ class MainActivity : ComponentActivity() {
                     AppNavHost(
                         navController = navController,
                         locationHelper = locationHelper,
-                        hasLocationPermission = hasLocationPermission
+                        hasLocationPermission = hasLocationPermission,
+                        telemetryLogger = telemetryLogger,
+                        favorRepository = favorRepository,
+                        userRepository = userRepository,
+                        onScreenChange = { screenName ->
+                            currentScreen = screenName
+                        }
                     )
                 }
             }
@@ -81,7 +109,10 @@ class MainActivity : ComponentActivity() {
         val uri: Uri? = intent.data
         if (uri != null) {
             println("DEBUG: Deep link received: $uri")
-            supabaseClient.supabase.handleDeeplinks(intent)
+            lifecycleScope.launch {
+                val sessionExists = userRepository.checkUserSession()
+                println("DEBUG: Session exists after deep link: $sessionExists")
+            }
         } else {
             println("DEBUG: No deep link found in intent")
         }

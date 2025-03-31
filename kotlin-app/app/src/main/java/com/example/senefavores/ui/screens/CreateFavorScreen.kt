@@ -11,28 +11,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.senefavores.data.model.Favor
+import com.example.senefavores.data.repository.FavorRepository
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.SenefavoresHeader
-import com.example.senefavores.util.LocationHelper
-import kotlinx.coroutines.launch
-import kotlinx.datetime.Instant
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.senefavores.ui.viewmodel.FavorViewModel
-import com.example.senefavores.data.model.Favor
-import com.example.senefavores.ui.viewmodel.UserViewModel
-import kotlinx.datetime.Clock.System
-import com.example.senefavores.ui.theme.FavorCategoryColor // Importar colores
 import com.example.senefavores.ui.theme.CompraCategoryColor
+import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
-import java.time.format.DateTimeFormatter
+import com.example.senefavores.ui.viewmodel.FavorViewModel
+import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.util.TelemetryLogger
+import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 @Composable
 fun CreateFavorScreen(
     navController: NavController,
     locationHelper: LocationHelper,
-    hasLocationPermission: Boolean
+    hasLocationPermission: Boolean,
+    telemetryLogger: TelemetryLogger,
+    favorRepository: FavorRepository,
+    onScreenChange: (String) -> Unit
 ) {
-    var selectedItem by remember { mutableStateOf(1) } // Ítem seleccionado (1: Crear Favor)
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("CreateFavorScreen")
+    }
 
     // Inyección de ViewModels con Hilt
     val favorViewModel: FavorViewModel = hiltViewModel()
@@ -49,13 +58,19 @@ fun CreateFavorScreen(
     // Chequeo de ubicación
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
-        Log.e("Locacion", "¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
+        Log.i("Locacion", "¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
         result
     } else {
         false
     }
 
-    val scope = rememberCoroutineScope()
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("CreateFavorScreen", responseTime)
+        }
+    }
 
     // Función auxiliar para convertir la fecha de tipo String a milisegundos desde la época
     fun convertDateToMillis(date: String): Long {
@@ -111,6 +126,8 @@ fun CreateFavorScreen(
             }
         }
     }
+
+    var selectedItem by remember { mutableStateOf(1) } // Ítem seleccionado (1: Crear Favor)
 
     Scaffold(
         topBar = {
@@ -260,7 +277,7 @@ fun CreateFavorScreen(
             OutlinedButton(
                 onClick = {
                     scope.launch {
-                        val currentTime = kotlinx.datetime.Clock.System.now().toString()
+                        val currentTime = Clock.System.now().toString()
                         val currentUserId = currentUser?.id ?: ""
                         Log.e("CurrentUserId", "El id: $currentUserId")
                         val newFavor = Favor(

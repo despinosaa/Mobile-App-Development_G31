@@ -62,7 +62,7 @@ class LocationHelper @Inject constructor(@ApplicationContext private val context
                     fusedLocationClient.lastLocation
                 }.await()
                 currentLocation.value = location
-                Log.e("Location","Ubicación actualizada: $location")
+                Log.i("Location","Ubicación actualizada: $location")
             } catch (e: Exception) {
                 Log.e("Location","Error al obtener la ubicación: ${e.message}")
             }

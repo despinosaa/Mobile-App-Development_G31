@@ -1,27 +1,27 @@
 package com.example.senefavores.data.repository
 
+import android.util.Log
 import com.example.senefavores.data.model.User
-import com.example.senefavores.data.model.UserInfo
-import com.example.senefavores.data.remote.SupabaseManagement
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Azure
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.delay
-import android.util.Log
 
 @Singleton
-class UserRepository @Inject constructor(private val supabaseClient: SupabaseManagement) {
+class UserRepository @Inject constructor(
+    private val supabaseClient: SupabaseClient
+) {
 
     suspend fun getUsers(): List<User> {
         return withContext(Dispatchers.IO) {
             runCatching {
-                supabaseClient.supabase
+                supabaseClient
                     .from("users")
                     .select()
                     .decodeList<User>()
@@ -33,12 +33,12 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
     }
 
     suspend fun logout() {
-        supabaseClient.supabase.auth.signOut()
+        supabaseClient.auth.signOut()
     }
 
     suspend fun getClientById(userId: String): User? {
         return try {
-            val client = supabaseClient.supabase
+            val client = supabaseClient
                 .from("clients")
                 .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
                     filter {
@@ -55,19 +55,17 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
         }
     }
 
-
-
     suspend fun signInWithAzure(): Boolean {
         return runCatching {
             Log.d("AzureAuth", "Starting Azure sign-in...")
 
-            supabaseClient.supabase.auth.signInWith(Azure) {
+            supabaseClient.auth.signInWith(Azure) {
                 scopes.addAll(listOf("email", "phone"))
             }
 
             repeat(5) { attempt ->
                 delay(1000) // Wait 1 second before checking session
-                val session = supabaseClient.supabase.auth.currentSessionOrNull()
+                val session = supabaseClient.auth.currentSessionOrNull()
                 Log.d("AzureAuth", "Attempt $attempt: Session after login: $session")
 
                 session?.let {
@@ -92,23 +90,22 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
         }
     }
 
-
     private suspend fun ensureUserExists(userId: String, email: String) {
-        withContext(Dispatchers.IO) {  // Moves work to IO thread
+        withContext(Dispatchers.IO) {
             try {
                 Log.d("UserCheck", "Checking if user exists: $userId")
 
-                val existingUser = supabaseClient.supabase
+                val existingUser = supabaseClient
                     .from("clients")
                     .select(columns = Columns.list("id", "email")) {
-                        filter { User::id eq userId }
+                        filter { eq("id", userId) }
                     }
                     .decodeSingleOrNull<User>()
 
                 if (existingUser == null) {
                     Log.d("UserCheck", "User does not exist, inserting: $userId")
 
-                    supabaseClient.supabase.from("clients").insert(
+                    supabaseClient.from("clients").insert(
                         User(id = userId, email = email)
                     )
 
@@ -122,35 +119,30 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
         }
     }
 
-
-
-
-
-
     suspend fun getCurrentUser(): User? {
         return withContext(Dispatchers.IO) {
             runCatching {
-                val session = supabaseClient.supabase.auth.currentSessionOrNull()
+                val session = supabaseClient.auth.currentSessionOrNull()
                 val authUser = session?.user ?: return@runCatching null
 
                 // Fetch additional user data from "clients" table
-                val dbUser = supabaseClient.supabase
+                val dbUser = supabaseClient
                     .from("clients")
                     .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
                         filter {
                             eq("id", authUser.id)
                         }
                     }
-                    .decodeSingleOrNull<User>() // Assuming UserInfo matches DB structure
+                    .decodeSingleOrNull<User>()
 
                 dbUser?.let {
-                    authUser.email?.let { it1 ->
+                    authUser.email?.let { email ->
                         User(
                             id = authUser.id,
-                            name = it.name,  // Will be null if not present
-                            email = it1,  // Will be null if not present
-                            phone = it.phone,  // Will be null if not present
-                            profilePic = it.profilePic,  // Will be null if not present
+                            name = it.name,
+                            email = email,
+                            phone = it.phone,
+                            profilePic = it.profilePic,
                             stars = it.stars ?: 0.0f
                         )
                     }
@@ -162,21 +154,19 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
         }
     }
 
-
-
     suspend fun checkUserSession(): Boolean {
-        val session = supabaseClient.supabase.auth.currentSessionOrNull()
+        val session = supabaseClient.auth.currentSessionOrNull()
         println("Session after redirect: $session")
         return session != null
     }
 
     suspend fun updateClient(clientId: String, phone: String?, name: String?, profilePic: String?, stars: Float?) {
-        supabaseClient.supabase.from("clients").update(
+        supabaseClient.from("clients").update(
             {
                 name?.let { set("name", it) }
                 phone?.let { set("phone", it) }
                 profilePic?.let { set("profilePic", it) }
-                stars?.let {set("stars", it)}
+                stars?.let { set("stars", it) }
             }
         ) {
             filter {
@@ -184,5 +174,4 @@ class UserRepository @Inject constructor(private val supabaseClient: SupabaseMan
             }
         }
     }
-
 }
