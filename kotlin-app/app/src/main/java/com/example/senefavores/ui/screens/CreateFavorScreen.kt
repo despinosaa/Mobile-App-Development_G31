@@ -273,6 +273,12 @@ fun CreateFavorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            Log.e("Locacion", locationHelper.currentLocation.toString())
+            val currentLocation = locationHelper.currentLocation.value
+
+            val latitud = currentLocation?.latitude ?: 0.0
+            val longitud = currentLocation?.longitude ?: 0.0
+
             // Botón "Publicar" que envía el favor a la base de datos
             OutlinedButton(
                 onClick = {
@@ -288,7 +294,9 @@ fun CreateFavorScreen(
                             favor_time = null,
                             created_at = currentTime,
                             request_user_id = currentUserId,
-                            accept_user_id = ""
+                            accept_user_id = "",
+                            latitude = latitud,
+                            longitude = longitud
                         )
                         favorViewModel.addFavor(newFavor)
                         navController.navigate("home") { launchSingleTop = true }
