@@ -5,6 +5,7 @@ import com.example.senefavores.data.model.User
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Azure
+import io.github.jan.supabase.auth.providers.Github
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
@@ -59,15 +60,16 @@ class UserRepository @Inject constructor(
         return runCatching {
             Log.d("AzureAuth", "Starting Azure sign-in...")
 
-            supabaseClient.auth.signInWith(Azure) {
-                scopes.addAll(listOf("email", "phone"))
+            supabaseClient.auth.signInWith(Github){
+                scopes.add("email")
             }
 
+            supabaseClient.auth.awaitInitialization()
             repeat(5) { attempt ->
                 delay(1000) // Wait 1 second before checking session
+
                 val session = supabaseClient.auth.currentSessionOrNull()
                 Log.d("AzureAuth", "Attempt $attempt: Session after login: $session")
-
                 session?.let {
                     val userId = it.user?.id ?: return@let
                     val userEmail = it.user?.email ?: return@let
@@ -88,6 +90,37 @@ class UserRepository @Inject constructor(
             Log.e("AzureAuth", "Azure sign-in failed: ${it.localizedMessage}", it)
             false
         }
+    }
+
+    suspend fun waitForSessionAndEnsureUser(): Boolean {
+        supabaseClient.auth.awaitInitialization()
+        return runCatching {
+            repeat(5) { attempt ->
+                delay(1000)
+                val session = supabaseClient.auth.currentSessionOrNull()
+                Log.d("AzureAuth", "Attempt $attempt: Session after login: $session")
+                session?.let {
+                    val userId = it.user?.id ?: return@let
+                    val userEmail = it.user?.email ?: return@let
+                    Log.d("AzureAuth", "User ID: $userId, Email: $userEmail")
+                    ensureUserExists(userId, userEmail)
+                    Log.d("AzureAuth", "User existence ensured")
+                    return@runCatching true
+                }
+            }
+            Log.e("AzureAuth", "Session not found after 5 attempts.")
+            false
+        }.getOrElse {
+            Log.e("AzureAuth", "Session check failed: ${it.localizedMessage}", it)
+            false
+        }
+    }
+
+    suspend fun funkySignInWithAzure(): Boolean {
+        supabaseClient.auth.signInWith(Azure) {
+            scopes.addAll(listOf("email"))
+        }
+        return false
     }
 
     private suspend fun ensureUserExists(userId: String, email: String) {

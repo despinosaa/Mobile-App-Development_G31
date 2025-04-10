@@ -95,6 +95,31 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             val success = userRepository.signInWithAzure()
             _isAuthenticated.value = success
+            Toast.makeText(
+                context,
+                if (success) "Login successful!" else "Login failed.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+
+
+    fun funkysignInWithAzure(context: Context) {
+        viewModelScope.launch {
+            delay(6000)
+            val success = true
+            _isAuthenticated.value = success
+            Toast.makeText(context, if (success) "Login successful!" else "Login failed.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun extraFunkysignInWithAzure(context: Context) {
+        viewModelScope.launch {
+            val succ = userRepository.funkySignInWithAzure()
+            delay(3000)
+            val success = true
+            _isAuthenticated.value = success
             Toast.makeText(context, if (success) "Login successful!" else "Login failed.", Toast.LENGTH_SHORT).show()
         }
     }

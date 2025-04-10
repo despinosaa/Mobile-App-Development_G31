@@ -26,7 +26,7 @@ fun LogInScreen(
 ) {
     val context = LocalContext.current
     val isAuthenticated by userViewModel.isAuthenticated.collectAsStateWithLifecycle()
-    var isLoading by remember { mutableStateOf(false) } // For loading feedback
+    var isLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
@@ -40,7 +40,8 @@ fun LogInScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center // Center everything vertically
     ) {
         // Logo
         Image(
@@ -48,7 +49,7 @@ fun LogInScreen(
             contentDescription = "App Logo",
             modifier = Modifier
                 .size(300.dp)
-                .padding(top = 80.dp, bottom = 46.dp),
+                .padding(bottom = 80.dp),
             contentScale = ContentScale.Fit
         )
 
@@ -59,7 +60,9 @@ fun LogInScreen(
             text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Microsoft",
             onClick = {
                 isLoading = true
-                userViewModel.signInWithAzure(context)
+                //userViewModel.signInWithAzure(context)
+                //userViewModel.extraFunkysignInWithAzure(context)
+                userViewModel.funkysignInWithAzure(context)
             },
             backgroundColor = Color(0xFF0078D4),
             textColor = Color.White,
@@ -74,12 +77,14 @@ fun LogInScreen(
                 color = Color(0xFF0078D4)
             )
         }
-    }
 
-    // Show error messages if authentication fails
-    LaunchedEffect(userViewModel.isAuthenticated) {
-        if (!isAuthenticated) {
-            isLoading = false
+
+        // Reset loading state if auth fails
+        LaunchedEffect(userViewModel.isAuthenticated) {
+            if (!isAuthenticated) {
+                isLoading = false
+
+            }
         }
     }
 }
