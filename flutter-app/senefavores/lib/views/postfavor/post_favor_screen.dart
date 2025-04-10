@@ -151,7 +151,7 @@ class PostFavorScreen extends HookConsumerWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                  final start = DateTime.now(); // ⏱️ Start timer
+                  final start = DateTime.now();
 
                   if (titleController.text.isEmpty ||
                       descriptionController.text.isEmpty ||
@@ -179,11 +179,16 @@ class PostFavorScreen extends HookConsumerWidget {
                   }
 
                   try {
+                    // Retrieve the current GPS location.
+                    final locationData = await ref
+                        .read(userLocationProvider.notifier)
+                        .getCurrentLocation();
+
                     final success = await ref
                         .read(uploadFavorStateNotifierProvider.notifier)
                         .uploadFavor(
                           favor: FavorModel(
-                            id: '0',
+                            id: '', // Leave empty or remove if Supabase auto-generates the UUID.
                             title: titleController.text,
                             description: descriptionController.text,
                             category: (selectedCategory.value ?? "favor")
@@ -191,6 +196,10 @@ class PostFavorScreen extends HookConsumerWidget {
                             reward: int.tryParse(rewardController.text) ?? 0,
                             createdAt: DateTime.now(),
                             requestUserId: currentUser!.id,
+                            latitude:
+                                locationData?.latitude, // New: GPS latitude
+                            longitude:
+                                locationData?.longitude, // New: GPS longitude
                           ),
                         );
 

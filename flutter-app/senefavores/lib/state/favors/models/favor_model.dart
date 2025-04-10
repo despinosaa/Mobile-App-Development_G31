@@ -10,6 +10,8 @@ class FavorModel {
   final DateTime createdAt;
   final String requestUserId;
   final String? acceptUserId;
+  final double? latitude;
+  final double? longitude;
 
   FavorModel({
     required this.id,
@@ -21,6 +23,8 @@ class FavorModel {
     required this.createdAt,
     required this.requestUserId,
     this.acceptUserId,
+    this.latitude,
+    this.longitude,
   });
 
   factory FavorModel.fromJson(Map<String, dynamic> json) {
@@ -36,6 +40,12 @@ class FavorModel {
       createdAt: DateTime.parse(json['created_at']),
       requestUserId: json['request_user_id'] as String,
       acceptUserId: json['accept_user_id'] as String?,
+      latitude: json['latitude'] != null
+          ? (json['latitude'] as num).toDouble()
+          : null,
+      longitude: json['longitude'] != null
+          ? (json['longitude'] as num).toDouble()
+          : null,
     );
   }
 
@@ -55,6 +65,8 @@ class FavorModel {
       'created_at': createdAt.toIso8601String(),
       'request_user_id': requestUserId,
       'accept_user_id': acceptUserId,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }
