@@ -19,27 +19,23 @@ class PostFavorScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.read(currentUserNotifierProvider);
-
-    // Controllers for user inputs
     final titleController = useTextEditingController();
     final descriptionController = useTextEditingController();
     final rewardController = useTextEditingController();
-
-    // For category selection
     final selectedCategory = useState<String?>(null);
-
-    // Consume the provider to get the average acceptance time for the selected category
     final averageAcceptanceTimeAsync = ref.watch(
-        favorAverageAcceptanceTimeProvider(selectedCategory.value ?? ''));
+      favorAverageAcceptanceTimeProvider(selectedCategory.value ?? ''),
+    );
+
+    // Hooks to listen to text field changes.
+    final titleValue = useValueListenable(titleController);
+    final descriptionValue = useValueListenable(descriptionController);
 
     return SafeArea(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Top bar with logo and profile
           const SenefavoresImageAndTitleAndProfile(),
-
-          // "Crear Favor" title to match the mockup
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
@@ -47,15 +43,13 @@ class PostFavorScreen extends HookConsumerWidget {
               style: AppTextStyles.oswaldTitle,
             ),
           ),
-
-          // Form Fields (for creating the favor)
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title, Description, Reward Fields...
+                  // Title Field with a live counter and a 60 character limit.
                   Row(
                     children: [
                       Text("Título:", style: AppTextStyles.oswaldSubtitle),
@@ -63,24 +57,29 @@ class PostFavorScreen extends HookConsumerWidget {
                       Expanded(
                         child: TextField(
                           controller: titleController,
-                          decoration: customInputDecoration(),
+                          cursorColor: Colors.black,
+                          maxLength: 60,
+                          decoration: customInputDecoration(
+                            counterText: "${titleValue.text.length}/60",
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 15),
-
-                  // Description Field
                   Text("Descripción:", style: AppTextStyles.oswaldSubtitle),
                   const SizedBox(height: 5),
                   TextField(
                     controller: descriptionController,
+                    cursorColor: Colors.black,
                     maxLines: 4,
-                    decoration: customInputDecoration(),
+                    maxLength: 250,
+                    decoration: customInputDecoration(
+                      hintText: "Descripción (máx. 250 caracteres)",
+                      counterText: "${descriptionValue.text.length}/250",
+                    ),
                   ),
                   const SizedBox(height: 15),
-
-                  // Reward Field
                   Row(
                     children: [
                       Text("Recompensa:", style: AppTextStyles.oswaldSubtitle),
@@ -88,6 +87,7 @@ class PostFavorScreen extends HookConsumerWidget {
                       Expanded(
                         child: TextField(
                           controller: rewardController,
+                          cursorColor: Colors.black,
                           keyboardType: TextInputType.number,
                           decoration: customInputDecoration(),
                         ),
@@ -95,8 +95,6 @@ class PostFavorScreen extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 15),
-
-                  // Category Selection
                   Text("Categoría:", style: AppTextStyles.oswaldSubtitle),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
@@ -121,8 +119,6 @@ class PostFavorScreen extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-
-                  // Display the average acceptance time below the category buttons
                   if (selectedCategory.value != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
@@ -143,8 +139,7 @@ class PostFavorScreen extends HookConsumerWidget {
               ),
             ),
           ),
-
-          // Publish Button
+          // Publish Button.
           Padding(
             padding: const EdgeInsets.all(20),
             child: SizedBox(
@@ -153,13 +148,34 @@ class PostFavorScreen extends HookConsumerWidget {
                 onPressed: () async {
                   final start = DateTime.now();
 
-                  if (titleController.text.isEmpty ||
-                      descriptionController.text.isEmpty ||
-                      rewardController.text.isEmpty ||
+                  final title = titleController.text.trim();
+                  final description = descriptionController.text.trim();
+                  final rewardText = rewardController.text.trim();
+
+                  if (title.isEmpty ||
+                      description.isEmpty ||
+                      rewardText.isEmpty ||
                       selectedCategory.value == null) {
                     ref.read(snackbarProvider).showSnackbar(
-                        "Por favor llena todos los campos",
-                        isError: true);
+                          "Por favor llena todos los campos",
+                          isError: true,
+                        );
+                    return;
+                  }
+
+                  if (title.length > 60) {
+                    ref.read(snackbarProvider).showSnackbar(
+                          "El título no puede exceder 60 caracteres",
+                          isError: true,
+                        );
+                    return;
+                  }
+
+                  if (!RegExp(r'[A-Za-z0-9]').hasMatch(title)) {
+                    ref.read(snackbarProvider).showSnackbar(
+                          "El título debe contener al menos un carácter alfanumérico",
+                          isError: true,
+                        );
                     return;
                   }
 
@@ -179,7 +195,6 @@ class PostFavorScreen extends HookConsumerWidget {
                   }
 
                   try {
-                    // Retrieve the current GPS location.
                     final locationData = await ref
                         .read(userLocationProvider.notifier)
                         .getCurrentLocation();
@@ -188,24 +203,21 @@ class PostFavorScreen extends HookConsumerWidget {
                         .read(uploadFavorStateNotifierProvider.notifier)
                         .uploadFavor(
                           favor: FavorModel(
-                            id: '', // Leave empty or remove if Supabase auto-generates the UUID.
-                            title: titleController.text,
-                            description: descriptionController.text,
+                            id: '',
+                            title: title,
+                            description: description,
                             category: (selectedCategory.value ?? "favor")
                                 .toLowerCase(),
-                            reward: int.tryParse(rewardController.text) ?? 0,
+                            reward: int.tryParse(rewardText) ?? 0,
                             createdAt: DateTime.now(),
                             requestUserId: currentUser!.id,
-                            latitude:
-                                locationData?.latitude, // New: GPS latitude
-                            longitude:
-                                locationData?.longitude, // New: GPS longitude
+                            latitude: locationData?.latitude,
+                            longitude: locationData?.longitude,
                           ),
                         );
 
-                    final duration = DateTime.now()
-                        .difference(start)
-                        .inMilliseconds; // ⏱️ End
+                    final duration =
+                        DateTime.now().difference(start).inMilliseconds;
                     await AppLogger.logResponseTime(
                       screen: 'PostFavorScreen',
                       responseTimeMs: duration,
@@ -217,12 +229,14 @@ class PostFavorScreen extends HookConsumerWidget {
                       rewardController.clear();
                       selectedCategory.value = null;
                       ref.read(snackbarProvider).showSnackbar(
-                          "Favor publicado con éxito",
-                          isError: false);
+                            "Favor publicado con éxito",
+                            isError: false,
+                          );
                     } else {
                       ref.read(snackbarProvider).showSnackbar(
-                          "Error al publicar el favor",
-                          isError: true);
+                            "Error al publicar el favor",
+                            isError: true,
+                          );
                     }
                   } catch (e) {
                     await AppLogger.logCrash(
@@ -259,9 +273,11 @@ class PostFavorScreen extends HookConsumerWidget {
     );
   }
 
-  // A helper to style TextFields
-  InputDecoration customInputDecoration() {
+  InputDecoration customInputDecoration(
+      {String? hintText, String? counterText}) {
     return InputDecoration(
+      hintText: hintText,
+      counterText: counterText,
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
         borderSide: const BorderSide(
@@ -280,7 +296,6 @@ class PostFavorScreen extends HookConsumerWidget {
     );
   }
 
-  // Widget for category selection buttons
   Widget _categoryButton(
     String text,
     Color color,
