@@ -67,6 +67,7 @@ class PostFavorScreen extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 15),
+                  // Description Field with a live counter and a 250 character limit.
                   Text("Descripción:", style: AppTextStyles.oswaldSubtitle),
                   const SizedBox(height: 5),
                   TextField(
@@ -80,6 +81,7 @@ class PostFavorScreen extends HookConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 15),
+                  // Reward Field.
                   Row(
                     children: [
                       Text("Recompensa:", style: AppTextStyles.oswaldSubtitle),
@@ -89,12 +91,14 @@ class PostFavorScreen extends HookConsumerWidget {
                           controller: rewardController,
                           cursorColor: Colors.black,
                           keyboardType: TextInputType.number,
-                          decoration: customInputDecoration(),
+                          decoration: customInputDecoration(
+                              hintText: r"$100 - $1.000.000"),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 15),
+                  // Category Selection.
                   Text("Categoría:", style: AppTextStyles.oswaldSubtitle),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
@@ -179,6 +183,18 @@ class PostFavorScreen extends HookConsumerWidget {
                     return;
                   }
 
+                  // Parse and validate the reward value.
+                  final rewardValue = int.tryParse(rewardText);
+                  if (rewardValue == null ||
+                      rewardValue < 100 ||
+                      rewardValue > 1000000) {
+                    ref.read(snackbarProvider).showSnackbar(
+                          r"La recompensa debe estar entre $100 y $1.000.000",
+                          isError: true,
+                        );
+                    return;
+                  }
+
                   if (selectedCategory.value == "Favor" ||
                       selectedCategory.value == "Compra") {
                     final isNear = await ref
@@ -208,7 +224,7 @@ class PostFavorScreen extends HookConsumerWidget {
                             description: description,
                             category: (selectedCategory.value ?? "favor")
                                 .toLowerCase(),
-                            reward: int.tryParse(rewardText) ?? 0,
+                            reward: rewardValue,
                             createdAt: DateTime.now(),
                             requestUserId: currentUser!.id,
                             latitude: locationData?.latitude,
@@ -273,8 +289,10 @@ class PostFavorScreen extends HookConsumerWidget {
     );
   }
 
-  InputDecoration customInputDecoration(
-      {String? hintText, String? counterText}) {
+  InputDecoration customInputDecoration({
+    String? hintText,
+    String? counterText,
+  }) {
     return InputDecoration(
       hintText: hintText,
       counterText: counterText,
