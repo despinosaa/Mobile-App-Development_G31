@@ -29,12 +29,11 @@ import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.FavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
-import com.example.senefavores.ui.theme.FavorCategoryColor // Importar colores
+import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BackgroundColor
 import com.example.senefavores.ui.theme.BlackTextColor
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.example.senefavores.ui.viewmodel.UserViewModel
@@ -44,10 +43,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-// Modelo de datos para un Favor (serializable para pasar por navegación)
-
-
-// Función para convertir el formato de hora (HH:mm) a minutos desde la medianoche
 @RequiresApi(Build.VERSION_CODES.O)
 fun timeToMinutes(favorTime: String): Int {
     val possibleFormats = listOf(
@@ -67,11 +62,8 @@ fun timeToMinutes(favorTime: String): Int {
     throw IllegalArgumentException("Invalid date format: $favorTime")
 }
 
-// Función para ordenar por smart sort según el historial
 fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
-    // Contar la frecuencia de cada categoría en el historial
     val categoryFrequency = history.groupingBy { it }.eachCount()
-    // Ordenar por frecuencia (descendente) y, en caso de empate, por la última aparición en el historial
     return favors.sortedWith(compareByDescending<Favor> { categoryFrequency[it.category] ?: 0 }
         .thenByDescending { history.indexOfLast { cat -> cat == it.category } })
 }
@@ -80,53 +72,50 @@ fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
 @Composable
 fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel(), favorViewModel: FavorViewModel = hiltViewModel()) {
     val userInfo by userViewModel.user.collectAsState()
-    val allFavorsOr  by favorViewModel.favors.collectAsState()
+    val hasCompletedInfo by userViewModel.hasCompletedInfo.collectAsState()
+    val allFavorsOr by favorViewModel.favors.collectAsState()
     val allFavors = allFavorsOr.take(100)
 
     var showDialog by remember { mutableStateOf(false) }
-    var hasUpdated by remember { mutableStateOf(false) }
+    var hasChecked by remember { mutableStateOf(false) }
 
-    LaunchedEffect(userViewModel.hasCompletedInfo) {
-        Log.d("Dialog", "The dialog: $showDialog")
-        Log.d("UserInfo", "Loading user info...")
-        val user = userViewModel.loadUserClientInfo()
-        Log.d("UserInfo", "User loaded: $user")
-        Log.d("UserInfo", "hasCompletedInfo: ${userViewModel.hasCompletedInfo.value}")
+    LaunchedEffect(hasCompletedInfo, hasChecked) {
+        if (!hasChecked) {
+            Log.d("Dialog", "Checking user info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
+            Log.d("UserInfo", "Loading user info...")
+            val user = userViewModel.loadUserClientInfo()
+            Log.d("UserInfo", "User loaded: $user")
 
-        if (user != null) {
-            if (user.name?.isNotEmpty() == false || user.phone?.isNotEmpty() == false || user.name?.isNotEmpty() == null || user.phone?.isNotEmpty() == false) {
+            if (user != null) {
+                if (user.name?.isNotEmpty() != true || user.phone?.isNotEmpty() != true) {
+                    showDialog = true
+                    hasChecked = true
+                }
+            } else {
+                Log.d("UserInfo", "No client found, inserting new client")
+                userViewModel.insertUserInClients()
                 showDialog = true
-                hasUpdated = true
+                hasChecked = true
             }
+            Log.d("Dialog", "Updated showDialog: $showDialog")
         }
-        else {
-            Log.d("UserInfo", "No client found, inserting new client")
-            userViewModel.insertUserInClients()
-            showDialog = true
-            hasUpdated = true
-        }
-        Log.d("Dialog", "The dialog: $showDialog")
         favorViewModel.fetchFavors()
     }
 
     ShowUserInfoDialog(
         showDialog = showDialog,
         userInfo = userInfo,
-        userViewModel = userViewModel
-    ) { showDialog = false }
-
+        userViewModel = userViewModel,
+        onDismiss = { showDialog = false; hasChecked = false }
+    )
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
-    var selectedItem by remember { mutableStateOf(0) } // Estado para el ítem seleccionado
-    var isSortDescending by remember { mutableStateOf(true) } // Estado para el modo de ordenamiento
-    var isSmartSortActive by remember { mutableStateOf(false) } // Estado para activar/desactivar smart sort
+    var selectedItem by remember { mutableStateOf(0) }
+    var isSortDescending by remember { mutableStateOf(true) }
+    var isSmartSortActive by remember { mutableStateOf(false) }
 
-    // Historial fijo de categorías aceptadas (provisional para probar smart sort)
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
-
-
-    // Filtrar y ordenar los favores según el modo seleccionado
     val filteredFavors = if (selectedCategory == null) {
         Log.d("Favors", "$allFavors")
         allFavors
@@ -140,7 +129,6 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
         }
     }
 
-    // Aplicar smart sort si se selecciona
     val displayedFavors by remember(filteredFavors, isSmartSortActive) {
         mutableStateOf(
             if (isSmartSortActive) smartSortFavors(filteredFavors, acceptedFavorsHistory) else filteredFavors
@@ -172,7 +160,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(BackgroundColor) // Usar color estandarizado del tema
+                .background(BackgroundColor)
         ) {
             Row(
                 modifier = Modifier
@@ -180,10 +168,9 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
                     .padding(top = 4.dp, bottom = 0.dp, start = 8.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Botón de smart sort a la izquierda
                 IconButton(onClick = {
-                    isSmartSortActive = !isSmartSortActive // Alternar smart sort
-                    if (isSmartSortActive) isSortDescending = false // Desactivar sort normal al activar smart sort
+                    isSmartSortActive = !isSmartSortActive
+                    if (isSmartSortActive) isSortDescending = false
                 }) {
                     Image(
                         painter = painterResource(R.drawable.ic_smart_sort),
@@ -192,10 +179,9 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
                         contentScale = ContentScale.Fit
                     )
                 }
-                // Ícono de ordenamiento a la derecha del smart sort
                 IconButton(onClick = {
-                    isSortDescending = !isSortDescending // Alternar el modo de ordenamiento
-                    isSmartSortActive = false // Desactivar smart sort al usar sort normal
+                    isSortDescending = !isSortDescending
+                    isSmartSortActive = false
                 }) {
                     Image(
                         painter = painterResource(
@@ -206,7 +192,6 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
                         contentScale = ContentScale.Fit
                     )
                 }
-                // Botones de categoría distribuidos equitativamente
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -214,7 +199,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
                     CategoryButton(
                         category = "Favor",
                         isSelected = selectedCategory == "Favor",
-                        backgroundColor = FavorCategoryColor, // Usar color estandarizado
+                        backgroundColor = FavorCategoryColor,
                         onClick = { selectedCategory = if (selectedCategory == "Favor") null else "Favor" },
                         modifier = Modifier.weight(1f)
                     )
@@ -222,7 +207,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
                     CategoryButton(
                         category = "Compra",
                         isSelected = selectedCategory == "Compra",
-                        backgroundColor = CompraCategoryColor, // Usar color estandarizado
+                        backgroundColor = CompraCategoryColor,
                         onClick = { selectedCategory = if (selectedCategory == "Compra") null else "Compra" },
                         modifier = Modifier.weight(1f)
                     )
@@ -230,7 +215,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
                     CategoryButton(
                         category = "Tutoría",
                         isSelected = selectedCategory == "Tutoría",
-                        backgroundColor = TutoriaCategoryColor, // Usar color estandarizado
+                        backgroundColor = TutoriaCategoryColor,
                         onClick = { selectedCategory = if (selectedCategory == "Tutoría") null else "Tutoría" },
                         modifier = Modifier.weight(1f)
                     )
@@ -243,7 +228,6 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
             ) {
                 items(displayedFavors) { favor ->
                     FavorCard(favor = favor, onClick = {
-                        // Navegar a FavorScreen pasando el favor como argumento
                         val favorJson = Json.encodeToString(favor)
                         navController.navigate("favorScreen/$favorJson")
                     })
@@ -274,25 +258,24 @@ fun CategoryButton(
         Text(
             text = category,
             fontSize = 16.sp,
-            color = BlackTextColor, // Usar color estandarizado
+            color = BlackTextColor,
             maxLines = 1,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
     }
 }
+
 @Composable
 fun ShowUserInfoDialog(
     showDialog: Boolean,
-    userInfo: User?, // Pass userInfo directly
-    userViewModel: UserViewModel, // Pass the ViewModel
+    userInfo: User?,
+    userViewModel: UserViewModel,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(userInfo?.name ?: "") }
     var phone by remember { mutableStateOf(userInfo?.phone ?: "") }
     var isPhoneValid by remember { mutableStateOf(true) }
-
-    // Update fields when userInfo changes
 
     LaunchedEffect(userInfo) {
         name = userInfo?.name ?: ""
@@ -302,7 +285,7 @@ fun ShowUserInfoDialog(
     if (showDialog) {
         Log.e("Dialog", "Entered dialog function")
         AlertDialog(
-            onDismissRequest = onDismiss,
+            onDismissRequest = { /* Do nothing to prevent dismissal */ },
             title = { Text("Información Incompleta") },
             text = {
                 Column {
@@ -337,10 +320,8 @@ fun ShowUserInfoDialog(
                     onClick = {
                         Log.d("Dialog", "Save clicked: name=$name, phone=$phone, isPhoneValid=$isPhoneValid")
                         if (name.isNotBlank() && phone.isNotBlank() && isPhoneValid) {
-                            userViewModel.updateClientsUser(
-                                name = name,
-                                phone = phone
-                            )
+                            userViewModel.updateClientsUser(name = name, phone = phone)
+                            Log.d("Dialog", "Calling onDismiss after save")
                             onDismiss()
                         }
                     },
@@ -348,7 +329,8 @@ fun ShowUserInfoDialog(
                 ) {
                     Text("Guardar")
                 }
-            }
+            },
+            dismissButton = null
         )
     }
 }

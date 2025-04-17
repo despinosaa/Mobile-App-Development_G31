@@ -26,27 +26,27 @@ import androidx.navigation.NavController
 import com.example.senefavores.R
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import kotlinx.coroutines.launch
 
 @Composable
-fun SignInScreen(
+fun RegisterScreen(
     navController: NavController,
     userViewModel: UserViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val isAuthenticated by userViewModel.isAuthenticated.collectAsStateWithLifecycle()
-    var showPasswordResetDialog by remember { mutableStateOf(false) }
-    var resetEmail by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
+    var confirmPassword by remember { mutableStateOf("") }
 
-    // Navigate to home on successful authentication
+    // Navigate to signIn on successful authentication
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
-            Log.d("SignInScreen", "Auth successful, navigating to home")
-            navController.navigate("home") {
-                popUpTo("login") { inclusive = true }
+            Log.d("RegisterScreen", "Auth successful, navigating to signIn")
+            navController.navigate("signIn") {
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+                launchSingleTop = true
             }
         }
     }
@@ -93,89 +93,58 @@ fun SignInScreen(
             singleLine = true
         )
 
-        // Login Button
+        // Confirm Password TextField
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
+            label = { Text("Confirmar Contraseña") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            singleLine = true
+        )
+
+        // Register Button
         CustomButton(
-            text = "Iniciar Sesión",
+            text = "Registrarse",
             onClick = {
-                if (email.isNotBlank() && password.isNotBlank()) {
-                    userViewModel.signInWithEmail(email, password)
+                if (email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() && password == confirmPassword) {
+                    userViewModel.signUpWithEmail(email, password)
+                } else if (password != confirmPassword) {
+                    Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Por favor, ingrese correo y contraseña", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                 }
             },
             backgroundColor = Color(0xFF4CAF50), // Green for sign-in
             textColor = Color.White,
             hasBorder = false,
-            enabled = true
+            enabled = email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() && password == confirmPassword
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Register Link
         Text(
-            text = "¿No tienes una cuenta? Regístrate",
+            text = "Debes verificar tu cuenta con el enlace enviado a tu correo.",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        // Sign-In Link
+        Text(
+            text = "¿Si tienes una cuenta? Ingresa",
             fontSize = 16.sp,
             color = Color.Blue,
             style = TextStyle(textDecoration = TextDecoration.Underline),
             modifier = Modifier
-                .clickable {
-                    Log.d("SignInScreen", "Register link clicked, navigating to register")
-                    navController.navigate("register")
-                }
+                .clickable { navController.navigate("signIn") }
                 .padding(bottom = 8.dp)
         )
-
-        // Password Reset Link
-        Text(
-            text = "¿Olvidaste tu contraseña?",
-            fontSize = 16.sp,
-            color = Color.Blue,
-            style = TextStyle(textDecoration = TextDecoration.Underline),
-            modifier = Modifier
-                .clickable { showPasswordResetDialog = true }
-                .padding(bottom = 8.dp)
-        )
-
-        // Password Reset Dialog
-        if (showPasswordResetDialog) {
-            AlertDialog(
-                onDismissRequest = { showPasswordResetDialog = false },
-                title = { Text("Recuperar Contraseña") },
-                text = {
-                    Column {
-                        OutlinedTextField(
-                            value = resetEmail,
-                            onValueChange = { resetEmail = it },
-                            label = { Text("Correo Electrónico") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                if (userViewModel.resetPassword(resetEmail)) {
-                                    showPasswordResetDialog = false
-                                    Toast.makeText(context, "Correo de recuperación enviado", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(context, "Email no registrado", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("Enviar")
-                    }
-                },
-                dismissButton = {
-                    IconButton(onClick = { showPasswordResetDialog = false }) {
-                        Text("X", fontSize = 16.sp)
-                    }
-                }
-            )
-        }
     }
 }

@@ -3,6 +3,7 @@ package com.example.senefavores.data.repository
 import android.util.Log
 import com.example.senefavores.data.model.User
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Azure
 import io.github.jan.supabase.auth.providers.Github
@@ -332,6 +333,78 @@ class UserRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e("UserRepository", "Error updating clients table: ${e.localizedMessage}", e)
             throw e // Let ViewModel handle
+        }
+    }
+
+    suspend fun doesEmailExistInClients(email: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val dbUser = supabaseClient
+                    .from("clients")
+                    .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
+                        filter {
+                            eq("email", email)
+                        }
+                    }
+                    .decodeSingleOrNull<User>()
+                val exists = dbUser != null
+                Log.d("UserRepository", "Email $email exists in clients: $exists")
+                exists
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error checking email in clients: ${e.localizedMessage}", e)
+                false
+            }
+        }
+    }
+
+    suspend fun resetPassword(email: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Check if email exists in clients table
+                val userExists = doesEmailExistInClients(email)
+                if (!userExists) {
+                    Log.d("UserRepository", "Email not found in clients: $email")
+                    return@withContext false
+                }
+
+                // Send reset email
+                supabaseClient.auth.resetPasswordForEmail(email)
+                Log.d("UserRepository", "Password reset email sent for: $email")
+                true
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error in resetPassword: ${e.localizedMessage}", e)
+                false
+            }
+        }
+    }
+
+    suspend fun verifyRecoveryOtp(email: String, token: String) {
+        return withContext(Dispatchers.IO) {
+            try {
+                supabaseClient.auth.verifyEmailOtp(
+                    type = OtpType.Email.RECOVERY,
+                    email = email,
+                    token = token
+                )
+                Log.d("UserRepository", "Recovery OTP verified for email: $email")
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error verifying recovery OTP: ${e.localizedMessage}", e)
+                throw e
+            }
+        }
+    }
+
+    suspend fun updatePassword(newPassword: String) {
+        return withContext(Dispatchers.IO) {
+            try {
+                supabaseClient.auth.updateUser {
+                    password = newPassword
+                }
+                Log.d("UserRepository", "Password updated")
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error updating password: ${e.localizedMessage}", e)
+                throw e
+            }
         }
     }
 

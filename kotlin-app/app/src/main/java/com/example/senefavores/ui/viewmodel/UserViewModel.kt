@@ -190,6 +190,41 @@ class UserViewModel @Inject constructor(
         }
     }
 
+    suspend fun resetPassword(email: String): Boolean {
+        return try {
+            Log.d("UserViewModel", "Attempting password reset for email: $email")
+            val success = userRepository.resetPassword(email)
+            Log.d("UserViewModel", "Password reset result: $success")
+            success
+        } catch (e: Exception) {
+            Log.e("UserViewModel", "Error resetting password: ${e.localizedMessage}", e)
+            false
+        }
+    }
+
+    suspend fun verifyRecoveryOtp(email: String, token: String) {
+        try {
+            Log.d("UserViewModel", "Verifying recovery OTP for email: $email, token: $token")
+            userRepository.verifyRecoveryOtp(email, token)
+            _isAuthenticated.value = true
+            Log.d("UserViewModel", "Recovery OTP verified")
+        } catch (e: Exception) {
+            Log.e("UserViewModel", "Error verifying recovery OTP: ${e.localizedMessage}", e)
+            throw e
+        }
+    }
+
+    suspend fun updatePassword(newPassword: String) {
+        try {
+            Log.d("UserViewModel", "Updating password")
+            userRepository.updatePassword(newPassword)
+            Log.d("UserViewModel", "Password updated successfully")
+        } catch (e: Exception) {
+            Log.e("UserViewModel", "Error updating password: ${e.localizedMessage}", e)
+            throw e
+        }
+    }
+
     fun getCurrentUserId(): String? {
         return _user.value?.id
     }

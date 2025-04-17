@@ -59,7 +59,7 @@ fun LogInScreen(
             text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Microsoft",
             onClick = {
                 isLoading = true
-                userViewModel.signInWithAzure()
+                //userViewModel.signInWithAzure(context)
                 //userViewModel.extraFunkysignInWithAzure(context)
                 //userViewModel.funkysignInWithAzure(context)
             },

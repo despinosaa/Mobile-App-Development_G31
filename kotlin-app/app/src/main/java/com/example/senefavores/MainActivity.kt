@@ -3,11 +3,14 @@ package com.example.senefavores
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
@@ -20,11 +23,8 @@ import com.example.senefavores.ui.theme.SenefavoresTheme
 import com.example.senefavores.util.LocationHelper
 import com.example.senefavores.util.TelemetryLogger
 import dagger.hilt.android.AndroidEntryPoint
-import io.github.jan.supabase.auth.handleDeeplinks
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import androidx.lifecycle.lifecycleScope
 import io.github.jan.supabase.SupabaseClient
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
     private var hasLocationPermission by mutableStateOf(false)
     private var currentScreen by mutableStateOf("MainActivity")
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -62,17 +63,13 @@ class MainActivity : ComponentActivity() {
             defaultHandler?.uncaughtException(thread, throwable)
         }
 
-        // Handle deep link for OAuth login
-        intent?.data?.let { handleDeepLink(intent) }
-
         // Request location permissions
         val permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                     permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-
-            println("DEBUG: Location permissions granted: $hasLocationPermission")
+            Log.d("MainActivity", "Location permissions granted: $hasLocationPermission")
             if (hasLocationPermission) {
                 locationHelper.getLastLocation()
             }
@@ -88,6 +85,8 @@ class MainActivity : ComponentActivity() {
             SenefavoresTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
+                    // Handle deep link with NavController availability
+                    HandleDeepLink(intent, navController)
                     AppNavHost(
                         navController = navController,
                         locationHelper = locationHelper,
@@ -106,19 +105,50 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleDeepLink(intent)
+        setIntent(intent) // Update the intent
+        handleDeepLink(intent, null)
     }
 
-    private fun handleDeepLink(intent: Intent) {
+    @Composable
+    private fun HandleDeepLink(intent: Intent?, navController: androidx.navigation.NavController) {
+        LaunchedEffect(navController) {
+            intent?.let { handleDeepLink(it, navController) }
+        }
+    }
+
+    private fun handleDeepLink(intent: Intent, navController: androidx.navigation.NavController?) {
         val uri: Uri? = intent.data
-        if (uri != null) {
-            println("DEBUG: Deep link received: $uri")
-            lifecycleScope.launch {
-                val sessionExists = userRepository.checkUserSession()
-                println("DEBUG: Session exists after deep link: $sessionExists")
+        Log.d("AmongUs", "Deep link received: $uri")
+        if (navController == null) {
+            Log.w("AmongUs", "NavController is null, cannot navigate")
+            return
+        }
+
+        if (uri != null && uri.scheme == "senefavores" && uri.host == "com.example.senefavores") {
+            val type = uri.getQueryParameter("type")
+            when (type) {
+                "recovery" -> {
+                    val accessToken = uri.getQueryParameter("access_token") ?: ""
+                    Log.d("AmongUs", "Password reset deep link detected, access_token=$accessToken")
+                    navController.navigate("resetPassword/$accessToken") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+                else -> {
+                    Log.d("AmongUs", "Navigating to signIn for deep link type=$type")
+                    navController.navigate("signIn") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             }
         } else {
-            println("DEBUG: No deep link found in intent")
+            Log.d("AmongUs", "Invalid or no deep link, no navigation")
         }
     }
 }
