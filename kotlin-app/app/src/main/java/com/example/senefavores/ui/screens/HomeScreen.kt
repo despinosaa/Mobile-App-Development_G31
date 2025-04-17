@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -78,14 +80,16 @@ fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
 @Composable
 fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel(), favorViewModel: FavorViewModel = hiltViewModel()) {
     val userInfo by userViewModel.user.collectAsState()
-    val allFavors  by favorViewModel.favors.collectAsState()
+    val allFavorsOr  by favorViewModel.favors.collectAsState()
+    val allFavors = allFavorsOr.take(100)
+
     var showDialog by remember { mutableStateOf(false) }
     var hasUpdated by remember { mutableStateOf(false) }
 
     LaunchedEffect(userViewModel.hasCompletedInfo) {
         Log.d("Dialog", "The dialog: $showDialog")
         Log.d("UserInfo", "Loading user info...")
-        val user = userViewModel.loadUserInfo()
+        val user = userViewModel.loadUserClientInfo()
         Log.d("UserInfo", "User loaded: $user")
         Log.d("UserInfo", "hasCompletedInfo: ${userViewModel.hasCompletedInfo.value}")
 
@@ -94,6 +98,12 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
                 showDialog = true
                 hasUpdated = true
             }
+        }
+        else {
+            Log.d("UserInfo", "No client found, inserting new client")
+            userViewModel.insertUserInClients()
+            showDialog = true
+            hasUpdated = true
         }
         Log.d("Dialog", "The dialog: $showDialog")
         favorViewModel.fetchFavors()
@@ -283,13 +293,14 @@ fun ShowUserInfoDialog(
     var isPhoneValid by remember { mutableStateOf(true) }
 
     // Update fields when userInfo changes
+
     LaunchedEffect(userInfo) {
         name = userInfo?.name ?: ""
         phone = userInfo?.phone ?: ""
     }
 
     if (showDialog) {
-        Log.e("Dialog","Entre a func")
+        Log.e("Dialog", "Entered dialog function")
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("Información Incompleta") },
@@ -308,35 +319,32 @@ fun ShowUserInfoDialog(
                         value = phone,
                         onValueChange = {
                             phone = it
-                            isPhoneValid = it.matches(Regex("^\\+?[0-9]{7,15}$")) // Basic phone validation
+                            isPhoneValid = it.isNotBlank() && it.matches(Regex("^\\+?[0-9]{7,15}$"))
                         },
                         label = { Text("Teléfono") },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         isError = !isPhoneValid
                     )
 
                     if (!isPhoneValid) {
-                        Text("Número de teléfono no válido", color = Color.Red, fontSize = 12.sp)
+                        Text("Número de teléfono no válido o vacío", color = Color.Red, fontSize = 12.sp)
                     }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (name.isNotBlank() && isPhoneValid) {
-                            userInfo?.id?.let { clientId ->
-                                userViewModel.updateUserInfo(
-                                    clientId = clientId,
-                                    phone = phone.takeIf { it.isNotBlank() }, // Only pass if not blank
-                                    name = name.takeIf { it.isNotBlank() }, // Only pass if not blank
-                                    profilePic = null, // Not updating profilePic
-                                    stars = null // Not updating stars
-                                )
-                                onDismiss()
-                            }
+                        Log.d("Dialog", "Save clicked: name=$name, phone=$phone, isPhoneValid=$isPhoneValid")
+                        if (name.isNotBlank() && phone.isNotBlank() && isPhoneValid) {
+                            userViewModel.updateClientsUser(
+                                name = name,
+                                phone = phone
+                            )
+                            onDismiss()
                         }
                     },
-                    enabled = name.isNotBlank() && isPhoneValid
+                    enabled = name.isNotBlank() && phone.isNotBlank() && isPhoneValid
                 ) {
                     Text("Guardar")
                 }

@@ -16,6 +16,7 @@ import com.example.senefavores.ui.screens.HistoryScreen
 import com.example.senefavores.ui.screens.HomeScreen
 import com.example.senefavores.ui.screens.LogInScreen
 import com.example.senefavores.ui.screens.FavorScreen
+import com.example.senefavores.ui.screens.SignInScreen
 import com.example.senefavores.util.LocationHelper
 import kotlinx.serialization.json.Json
 import com.example.senefavores.util.TelemetryLogger
@@ -30,8 +31,9 @@ fun AppNavHost(
     userRepository: UserRepository,
     onScreenChange: (String) -> Unit // Callback to update current screen
 ) {
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = "signIn") {
         composable("login") { LogInScreen(navController) }
+        composable("signIn") { SignInScreen(navController) }
         composable("forgot") { ForgotPasswordScreen(navController) }
         composable("home") { HomeScreen(navController) }
         composable("history") { HistoryScreen(navController) }

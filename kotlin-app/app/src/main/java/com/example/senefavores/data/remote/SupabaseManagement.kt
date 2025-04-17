@@ -3,6 +3,7 @@ package com.example.senefavores.data.remote
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.ExternalAuthAction
+import io.github.jan.supabase.auth.FlowType
 import io.github.jan.supabase.auth.status.SessionSource.Storage
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.createSupabaseClient
@@ -22,9 +23,12 @@ class SupabaseManagement @Inject constructor() {
         ) {
 
             install(Auth) {
+                flowType = FlowType.PKCE
                 host = "com.example.senefavores"
                 scheme = "senefavores"
-                defaultExternalAuthAction = ExternalAuthAction.CustomTabs()
+                //defaultExternalAuthAction = ExternalAuthAction.CustomTabs()
+                autoLoadFromStorage = true
+                autoSaveToStorage = true
             }
             install(Postgrest)
 

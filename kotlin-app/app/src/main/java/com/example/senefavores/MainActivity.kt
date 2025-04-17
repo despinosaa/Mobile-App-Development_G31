@@ -24,10 +24,14 @@ import io.github.jan.supabase.auth.handleDeeplinks
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import androidx.lifecycle.lifecycleScope
+import io.github.jan.supabase.SupabaseClient
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
 
     @Inject
     lateinit var locationHelper: LocationHelper
