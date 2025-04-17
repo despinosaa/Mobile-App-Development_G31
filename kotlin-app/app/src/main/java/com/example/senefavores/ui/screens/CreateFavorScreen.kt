@@ -49,7 +49,7 @@ fun CreateFavorScreen(
 
     // Cargamos la información del usuario y los favores desde la base de datos
     LaunchedEffect(Unit) {
-        userViewModel.loadUserInfo()
+        userViewModel.loadUserClientInfo()
         favorViewModel.fetchFavors()
     }
     val currentUser by userViewModel.user.collectAsState(initial = null)

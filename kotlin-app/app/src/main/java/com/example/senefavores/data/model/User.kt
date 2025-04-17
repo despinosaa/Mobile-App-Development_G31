@@ -9,5 +9,5 @@ data class User(
     val email: String,
     val phone: String? = "",
     val profilePic: String? = "",
-    val stars: Float? = 5.0f
+    val stars: Float = 2.5f
 )

@@ -1,6 +1,5 @@
 package com.example.senefavores.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -60,13 +59,13 @@ fun LogInScreen(
             text = if (isLoading) "Iniciando sesión..." else "Iniciar sesión con Microsoft",
             onClick = {
                 isLoading = true
-                //userViewModel.signInWithAzure(context)
+                userViewModel.signInWithAzure()
                 //userViewModel.extraFunkysignInWithAzure(context)
-                userViewModel.funkysignInWithAzure(context)
+                //userViewModel.funkysignInWithAzure(context)
             },
             backgroundColor = Color(0xFF0078D4),
             textColor = Color.White,
-            hasBorder = false
+            enabled = !isLoading
         )
 
         if (isLoading) {

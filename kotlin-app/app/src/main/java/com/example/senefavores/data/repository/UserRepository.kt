@@ -6,11 +6,16 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Azure
 import io.github.jan.supabase.auth.providers.Github
+import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -92,6 +97,32 @@ class UserRepository @Inject constructor(
         }
     }
 
+    suspend fun signInWithEmail(emailS: String, passwordS: String): Boolean {
+        return try {
+            supabaseClient.auth.signInWith(Email) {
+                email = emailS
+                password = passwordS
+            }
+            supabaseClient.auth.currentSessionOrNull() != null
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun signUpWithEmail(email: String, password: String): Boolean {
+        return try {
+            supabaseClient.auth.signUpWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            true // Supabase sign-up succeeds if no exception
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+
+
     suspend fun waitForSessionAndEnsureUser(): Boolean {
         supabaseClient.auth.awaitInitialization()
         return runCatching {
@@ -153,58 +184,163 @@ class UserRepository @Inject constructor(
     }
 
     suspend fun getCurrentUser(): User? {
-        return withContext(Dispatchers.IO) {
-            runCatching {
-                val session = supabaseClient.auth.currentSessionOrNull()
-                val authUser = session?.user ?: return@runCatching null
+        try {
+            // Get user from Supabase DB
+            val authUser = supabaseClient.auth.retrieveUserForCurrentSession(updateSession = true)
+            Log.d("UserFetch", "Auth user: id=${authUser?.id ?: "none"}, email=${authUser?.email ?: "none"}, metadata=${authUser?.userMetadata ?: "none"}")
 
-                // Fetch additional user data from "clients" table
-                val dbUser = supabaseClient
-                    .from("clients")
-                    .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
-                        filter {
-                            eq("id", authUser.id)
-                        }
-                    }
-                    .decodeSingleOrNull<User>()
+            if (authUser == null || authUser.email == null) {
+                Log.d("UserFetch", "No auth user or email found")
+                return null
+            }
 
-                dbUser?.let {
-                    authUser.email?.let { email ->
-                        User(
-                            id = authUser.id,
-                            name = it.name,
-                            email = email,
-                            phone = it.phone,
-                            profilePic = it.profilePic,
-                            stars = it.stars ?: 0.0f
-                        )
+            // Fetch from clients table
+            val dbUser = supabaseClient
+                .from("clients")
+                .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
+                    filter {
+                        eq("id", authUser.id)
                     }
                 }
-            }.getOrElse {
-                Log.e("UserFetch", "Error retrieving user: ${it.localizedMessage}", it)
-                null
+                .decodeSingleOrNull<User>()
+
+            Log.d("UserFetch", "DB user: ${dbUser?.toString() ?: "none"}")
+
+            // Create User object
+            val user = User(
+                id = authUser.id,
+                name = dbUser?.name ?: authUser.email!!.substringBefore("@"), // Fallback to email prefix
+                email = authUser.email!!,
+                phone = dbUser?.phone ?: "",
+                profilePic = dbUser?.profilePic ?: "",
+                stars = dbUser?.stars ?: 0.0f
+            )
+            Log.d("UserFetch", "Extracted User: id=${user.id}, name=${user.name}, email=${user.email}, phone=${user.phone}, profilePic=${user.profilePic}, stars=${user.stars}")
+            return user
+        } catch (e: Exception) {
+            Log.e("UserFetch", "Error retrieving user: ${e.localizedMessage}", e)
+            return null
+        }
+    }
+
+    suspend fun getCurrentClient(): User? {
+        try {
+            // Get current session's user
+            val authUser = supabaseClient.auth.retrieveUserForCurrentSession(updateSession = true)
+            Log.d("ClientFetch", "Session user: id=${authUser?.id ?: "none"}, email=${authUser?.email ?: "none"}")
+
+            if (authUser == null) {
+                Log.d("ClientFetch", "No auth user found")
+                return null
             }
+
+            // Query clients table
+            val client = supabaseClient
+                .from("clients")
+                .select(columns = Columns.list("id", "name", "email", "phone", "profilePic", "stars")) {
+                    filter {
+                        eq("id", authUser.id)
+                    }
+                }
+                .decodeSingleOrNull<User>()
+
+            Log.d("ClientFetch", "Client from DB: ${client?.toString() ?: "none"}")
+            return client
+        } catch (e: Exception) {
+            Log.e("ClientFetch", "Error fetching client: ${e.localizedMessage}", e)
+            return null
+        }
+    }
+
+    suspend fun insertUserInClients() {
+        try {
+            val authUser = supabaseClient.auth.retrieveUserForCurrentSession(updateSession = true)
+            Log.d("ClientInsert", "Session user: id=${authUser?.id ?: "none"}, email=${authUser?.email ?: "none"}")
+
+            if (authUser == null || authUser.email == null) {
+                Log.d("ClientInsert", "No auth user or email found")
+                return
+            }
+
+            val client = User(
+                id = authUser.id,
+                name = "",
+                email = authUser.email!!,
+                phone = "",
+                profilePic = "",
+                stars = 0.0f
+            )
+
+            supabaseClient.from("clients").insert(client)
+            Log.d("ClientInsert", "Inserted client: id=${authUser.id}, email=${authUser.email}")
+        } catch (e: Exception) {
+            Log.e("ClientInsert", "Error inserting client: ${e.localizedMessage}", e)
+            throw e
         }
     }
 
     suspend fun checkUserSession(): Boolean {
         val session = supabaseClient.auth.currentSessionOrNull()
-        println("Session after redirect: $session")
+        Log.e("UserInfo","Session after redirect: $session")
+        val user = supabaseClient.auth.retrieveUserForCurrentSession(updateSession = true)
+        Log.e("UserInfo","User after redirect: $user")
         return session != null
     }
 
-    suspend fun updateClient(clientId: String, phone: String?, name: String?, profilePic: String?, stars: Float?) {
-        supabaseClient.from("clients").update(
-            {
-                name?.let { set("name", it) }
-                phone?.let { set("phone", it) }
-                profilePic?.let { set("profilePic", it) }
-                stars?.let { set("stars", it) }
+    suspend fun updateAuthUser(name: String, phone: String) {
+        try {
+            Log.d("UserRepository", "Updating user metadata: name=$name, phone=$phone")
+            val metadata = buildJsonObject {
+                put("name", name)
+                put("phone", phone)
             }
-        ) {
-            filter {
-                eq("id", clientId)
+            Log.d("UserRepository", "Metadata JsonObject: $metadata")
+            val user = supabaseClient.auth.updateUser {
+                data { metadata }
             }
+            Log.d("UserRepository", "User metadata updated successfully")
+            Log.d("UserRepository", "$user")
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error updating user metadata: ${e.localizedMessage}", e)
+            throw e // Let ViewModel handle
+        }
+    }
+
+    suspend fun updateClientsUser(name: String, phone: String) {
+        try {
+            Log.d("UserRepository", "Updating clients table: name=$name, phone=$phone")
+            val authUser = supabaseClient.auth.retrieveUserForCurrentSession(updateSession = true)
+            Log.d("UserRepository", "Session user: id=${authUser?.id ?: "none"}")
+
+            if (authUser == null) {
+                Log.d("UserRepository", "No auth user found")
+                throw Exception("No authenticated user")
+            }
+
+            supabaseClient.from("clients").update(
+                {
+                    set("name", name)
+                    set("phone", phone)
+                }
+            ) {
+                filter {
+                    eq("id", authUser.id)
+                }
+            }
+
+            Log.d("UserRepository", "Clients table updated successfully: id=${authUser.id}, name=$name, phone=$phone")
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error updating clients table: ${e.localizedMessage}", e)
+            throw e // Let ViewModel handle
+        }
+    }
+
+    suspend fun signInHELP(): Boolean {
+        return try {
+            supabaseClient.auth.signInWith(Github)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 }
