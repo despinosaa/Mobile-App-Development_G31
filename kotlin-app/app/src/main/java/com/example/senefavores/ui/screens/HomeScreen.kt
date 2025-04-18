@@ -74,7 +74,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
     val userInfo by userViewModel.user.collectAsState()
     val hasCompletedInfo by userViewModel.hasCompletedInfo.collectAsState()
     val allFavorsOr by favorViewModel.favors.collectAsState()
-    val allFavors = allFavorsOr.take(15)
+    val allFavors = allFavorsOr.take(25)
 
     var showDialog by remember { mutableStateOf(false) }
     var hasChecked by remember { mutableStateOf(false) }
