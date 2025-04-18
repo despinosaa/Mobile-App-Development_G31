@@ -1,7 +1,9 @@
 package com.example.senefavores.data.repository
 
+import android.provider.SyncStateContract.Columns
 import android.util.Log
 import com.example.senefavores.data.model.Favor
+import com.example.senefavores.data.model.Review
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +70,33 @@ class FavorRepository @Inject constructor(
             }.onFailure {
                 Log.e("FavorRepository", "Error updating favor $favorId: ${it.localizedMessage}", it)
                 throw it // Propagate error to ViewModel
+            }
+        }
+    }
+
+    suspend fun getReviews(): List<Review> {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                Log.d("FavorRepository", "Fetching all reviews")
+                val reviews = supabaseClient.from("reviews").select().decodeList<Review>()
+                Log.d("FavorRepository", "Fetched ${reviews.size} reviews")
+                reviews
+            }.getOrElse {
+                Log.e("FavorRepository", "Error fetching reviews: ${it.localizedMessage}", it)
+                emptyList()
+            }
+        }
+    }
+
+    suspend fun addReview(review: Review) {
+        withContext(Dispatchers.IO) {
+            runCatching {
+                Log.d("FavorRepository", "Adding review: id=${review.id}, title=${review.title}, reviewer_id=${review.reviewer_id}, reviewed_id=${review.reviewed_id}")
+                supabaseClient.from("reviews").insert(review)
+                Log.d("FavorRepository", "Review added successfully")
+            }.onFailure {
+                Log.e("FavorRepository", "Error adding review: ${it.localizedMessage}, cause: ${it.cause}", it)
+                throw it
             }
         }
     }

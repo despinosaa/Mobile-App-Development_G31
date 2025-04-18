@@ -7,8 +7,8 @@ data class Review(
     val id: String,
     val title: String,
     val description: String,
-    val stars: String,
-    val reviewer_id: Int,
-    val reviewed_id: String? = "",
-    val created_at: String = "",
+    val stars: Int,
+    val reviewer_id: String,
+    val reviewed_id: String,
+    val created_at: String = ""
 )

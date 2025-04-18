@@ -19,6 +19,7 @@ import com.example.senefavores.ui.screens.ForgotPasswordScreen
 import com.example.senefavores.ui.screens.HistoryScreen
 import com.example.senefavores.ui.screens.HomeScreen
 import com.example.senefavores.ui.screens.FavorScreen
+import com.example.senefavores.ui.screens.ReviewScreen
 import com.example.senefavores.ui.screens.SignInScreen
 import com.example.senefavores.ui.screens.RegisterScreen
 import com.example.senefavores.ui.screens.ResetPasswordScreen
@@ -103,6 +104,31 @@ fun AppNavHost(
             } else {
                 Text("Error al cargar el favor")
                 Log.e("AppNavHost", "Failed to decode favorJson: $favorJson")
+            }
+        }
+        composable(
+            route = "review/{favorId}/{requestUserId}/{acceptUserId}",
+            arguments = listOf(
+                navArgument("favorId") { type = NavType.StringType },
+                navArgument("requestUserId") { type = NavType.StringType },
+                navArgument("acceptUserId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val favorId = backStackEntry.arguments?.getString("favorId") ?: ""
+            val requestUserId = backStackEntry.arguments?.getString("requestUserId") ?: ""
+            val acceptUserId = backStackEntry.arguments?.getString("acceptUserId") ?: ""
+            if (favorId.isEmpty() || requestUserId.isEmpty() || acceptUserId.isEmpty()) {
+                Text("Error: IDs inválidos")
+                Log.e("AppNavHost", "Invalid arguments: favorId=$favorId, requestUserId=$requestUserId, acceptUserId=$acceptUserId")
+            } else {
+                ReviewScreen(
+                    navController = navController,
+                    favorId = favorId,
+                    requestUserId = requestUserId,
+                    acceptUserId = acceptUserId
+                )
+                onScreenChange("review")
+                Log.d("AppNavHost", "Navigated to review with favorId=$favorId, requestUserId=$requestUserId, acceptUserId=$acceptUserId")
             }
         }
     }

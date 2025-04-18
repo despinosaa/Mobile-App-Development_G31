@@ -4,10 +4,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,12 +19,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
+import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -54,7 +53,13 @@ fun formatTime2(favorTime: String): String {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HistoryFavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel()) {
+fun HistoryFavorCard(
+    favor: Favor,
+    isSolicitados: Boolean,
+    hasReview: Boolean,
+    navController: NavController,
+    userViewModel: UserViewModel = hiltViewModel()
+) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
 
@@ -131,6 +136,27 @@ fun HistoryFavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(
                 Text(text = userName, fontSize = 14.sp)
                 Spacer(modifier = Modifier.width(8.dp))
                 RatingStars(rating = userRating)
+            }
+
+            // Review button for Solicitados, accepted, and not reviewed
+            if (isSolicitados && favor.accept_user_id != null && !hasReview) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        if (favor.accept_user_id.isNotEmpty()) {
+                            navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MikadoYellow,
+                        contentColor = BlackTextColor
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                ) {
+                    Text(text = "Hacer Reseña", fontSize = 14.sp)
+                }
             }
         }
     }

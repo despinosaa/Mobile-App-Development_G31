@@ -100,6 +100,7 @@ fun HistoryScreen(
     var selectedItem by remember { mutableStateOf(2) } // 2 corresponds to History
     val userInfo by userViewModel.user.collectAsState()
     val allFavors by favorViewModel.allFavors.collectAsState()
+    val reviews by favorViewModel.reviews.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Load user if not loaded
@@ -110,10 +111,11 @@ fun HistoryScreen(
         }
     }
 
-    // Fetch all favors
+    // Fetch all favors and reviews
     LaunchedEffect(Unit) {
-        Log.d("HistoryScreen", "Fetching all favors")
+        Log.d("HistoryScreen", "Fetching all favors and reviews")
         favorViewModel.fetchAllFavors()
+        favorViewModel.fetchReviews()
     }
 
     // Filter and sort favors
@@ -188,7 +190,13 @@ fun HistoryScreen(
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(filteredFavors) { favor ->
-                        HistoryFavorCard(favor = favor)
+                        val hasReview = reviews.any { it.id == favor.id }
+                        HistoryFavorCard(
+                            favor = favor,
+                            isSolicitados = selectedTab == Tab.SOLICITADOS,
+                            hasReview = hasReview,
+                            navController = navController
+                        )
                     }
                 }
             }
