@@ -31,7 +31,7 @@ fun ReviewScreen(
     val userInfo by userViewModel.user.collectAsState()
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var stars: Int by remember { mutableStateOf<Int>(0) }
+    var stars by remember { mutableStateOf(0) }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val starsOptions = listOf(1, 2, 3, 4, 5)
@@ -90,7 +90,7 @@ fun ReviewScreen(
 
             Box {
                 OutlinedTextField(
-                    value = stars?.toString() ?: "",
+                    value = if (stars == 0) "" else stars.toString(),
                     onValueChange = { /* Read-only */ },
                     label = { Text("Estrellas") },
                     modifier = Modifier.fillMaxWidth(),
@@ -135,7 +135,7 @@ fun ReviewScreen(
                         }
                         return@Button
                     }
-                    if (title.isBlank() || description.isBlank() || stars == null) {
+                    if (title.isBlank() || description.isBlank() || stars == 0) {
                         Log.d("ReviewScreen", "Submit failed: Empty fields (title=$title, description=$description, stars=$stars)")
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Por favor, completa todos los campos")

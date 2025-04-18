@@ -66,12 +66,11 @@ class FavorViewModel @Inject constructor(
     fun fetchReviews() {
         viewModelScope.launch {
             try {
-                Log.d("FavorViewModel", "Fetching all reviews")
-                _reviews.value = favorRepository.getReviews()
-                Log.d("FavorViewModel", "Fetched reviews: ${reviews.value.size} items")
+                val reviews = favorRepository.getReviews()
+                _reviews.value = reviews
+                Log.d("FavorViewModel", "Fetched ${reviews.size} reviews")
             } catch (e: Exception) {
-                Log.e("FavorViewModel", "Error fetching reviews: ${e.localizedMessage}", e)
-                _reviews.value = emptyList()
+                Log.e("FavorViewModel", "Error fetching reviews: ${e.message}", e)
             }
         }
     }
@@ -79,13 +78,25 @@ class FavorViewModel @Inject constructor(
     fun addReview(review: Review) {
         viewModelScope.launch {
             try {
-                Log.d("FavorViewModel", "Adding review: id=${review.id}, title=${review.title}")
+                // Insert the review
                 favorRepository.addReview(review)
-                Log.d("FavorViewModel", "Review added successfully")
-                fetchReviews() // Refresh reviews
+                Log.d("FavorViewModel", "Review added: $review")
+
+                // Update client stars
+                val reviews = favorRepository.getReviewsByReviewedId(review.reviewed_id)
+                val averageStars = if (reviews.isNotEmpty()) {
+                    reviews.map { it.stars }.average().toFloat()
+                } else {
+                    0.0f
+                }
+                favorRepository.updateClientStars(review.reviewed_id, averageStars)
+                Log.d("FavorViewModel", "Updated client stars for ${review.reviewed_id}: $averageStars")
+
+                // Refresh reviews to keep UI in sync
+                fetchReviews()
             } catch (e: Exception) {
-                Log.e("FavorViewModel", "Error adding review: ${e.localizedMessage}", e)
-                throw e
+                Log.e("FavorViewModel", "Error adding review or updating stars: ${e.localizedMessage}", e)
+                throw e // Propagate to ReviewScreen for Snackbar
             }
         }
     }

@@ -6,8 +6,10 @@ import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
 import java.util.Objects.isNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -98,6 +100,38 @@ class FavorRepository @Inject constructor(
                 Log.e("FavorRepository", "Error adding review: ${it.localizedMessage}, cause: ${it.cause}", it)
                 throw it
             }
+        }
+    }
+    suspend fun getReviewsByReviewedId(reviewedId: String): List<Review> = withContext(Dispatchers.IO) {
+        try {
+            val reviews = supabaseClient.postgrest["reviews"].select {
+                filter {
+                    eq("reviewed_id", reviewedId)
+                }
+            }.decodeList<Review>()
+            Log.d("FavorRepository", "Fetched ${reviews.size} reviews for reviewed_id=$reviewedId")
+            reviews
+        } catch (e: Exception) {
+            Log.e("FavorRepository", "Error fetching reviews for reviewed_id=$reviewedId: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    suspend fun updateClientStars(clientId: String, stars: Float) = withContext(Dispatchers.IO) {
+        try {
+            supabaseClient.from("clients").update(
+                {
+                    set("stars", stars)
+                }
+            ) {
+                filter {
+                    eq("id", clientId)
+                }
+            }
+            Log.d("FavorRepository", "Updated client stars: id=$clientId, stars=$stars")
+        } catch (e: Exception) {
+            Log.e("FavorRepository", "Error updating client stars for id=$clientId: ${e.message}", e)
+            throw e
         }
     }
 }
