@@ -8,6 +8,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Azure
 import io.github.jan.supabase.auth.providers.Github
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.Dispatchers
@@ -378,6 +379,8 @@ class UserRepository @Inject constructor(
         }
     }
 
+
+
     suspend fun verifyRecoveryOtp(email: String, token: String) {
         return withContext(Dispatchers.IO) {
             try {
@@ -405,6 +408,32 @@ class UserRepository @Inject constructor(
                 Log.e("UserRepository", "Error updating password: ${e.localizedMessage}", e)
                 throw e
             }
+        }
+    }
+
+    suspend fun resetPasswordFinal(newPassword: String) {
+        supabaseClient.auth.updateUser {
+            password = newPassword
+        }
+    }
+    suspend fun verifyEmailOtp(email: String, token: String) {
+        supabaseClient.auth.verifyEmailOtp(
+            type = OtpType.Email.RECOVERY,
+            email = email,
+            token = token
+        )
+    }
+
+    suspend fun sendPasswordResetEmail(email2: String) {
+        supabaseClient.auth.signInWith(OTP) {
+            email = email2
+        }
+    }
+
+    suspend fun exchangeCodeForSession(code: String) {
+        withContext(Dispatchers.IO) {
+            supabaseClient.auth.exchangeCodeForSession(code)
+            Log.d("UserRepository", "Session exchanged for code=$code")
         }
     }
 

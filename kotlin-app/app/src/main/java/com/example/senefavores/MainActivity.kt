@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
     private var hasLocationPermission by mutableStateOf(false)
     private var currentScreen by mutableStateOf("MainActivity")
+    private var lastProcessedUri by mutableStateOf<String?>(null)
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,44 +112,83 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun HandleDeepLink(intent: Intent?, navController: androidx.navigation.NavController) {
-        LaunchedEffect(navController) {
+        LaunchedEffect(intent?.data?.toString()) {
             intent?.let { handleDeepLink(it, navController) }
         }
     }
 
     private fun handleDeepLink(intent: Intent, navController: androidx.navigation.NavController?) {
         val uri: Uri? = intent.data
+        val uriString = uri?.toString()
         Log.d("AmongUs", "Deep link received: $uri")
+
+        // Prevent processing the same URI twice
+        if (uriString == lastProcessedUri) {
+            Log.d("AmongUs", "Duplicate deep link ignored: $uri")
+            return
+        }
+        lastProcessedUri = uriString
+
         if (navController == null) {
             Log.w("AmongUs", "NavController is null, cannot navigate")
             return
         }
 
         if (uri != null && uri.scheme == "senefavores" && uri.host == "com.example.senefavores") {
-            val type = uri.getQueryParameter("type")
-            when (type) {
-                "recovery" -> {
-                    val accessToken = uri.getQueryParameter("access_token") ?: ""
-                    Log.d("AmongUs", "Password reset deep link detected, access_token=$accessToken")
-                    navController.navigate("resetPassword/$accessToken") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
+            val error = uri.getQueryParameter("error")
+            if (error != null) {
+                Log.d("AmongUs", "Error deep link: error=$error, error_code=${uri.getQueryParameter("error_code")}")
+                navController.navigate("signIn") {
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+                return
+            }
+
+            val code = uri.getQueryParameter("code")
+            if (code != null) {
+                Log.d("AmongUs", "Deep link detected, code=$code")
+                // Exchange code for session
+                runBlocking {
+                    try {
+                        userRepository.exchangeCodeForSession(code)
+                        Log.d("AmongUs", "Session exchanged for code=$code")
+                        navController.navigate("home") {
+                            popUpTo("home") {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
-                        launchSingleTop = true
+                    } catch (e: Exception) {
+                        Log.e("AmongUs", "Failed to exchange session: ${e.message}")
+                        navController.navigate("signIn") {
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
                     }
                 }
-                else -> {
-                    Log.d("AmongUs", "Navigating to signIn for deep link type=$type")
-                    navController.navigate("signIn") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
+
+            } else {
+                Log.d("AmongUs", "No code in deep link, navigating to signIn")
+                navController.navigate("signIn") {
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = true
                     }
+                    launchSingleTop = true
                 }
             }
         } else {
-            Log.d("AmongUs", "Invalid or no deep link, no navigation")
+            Log.d("AmongUs", "Invalid or no deep link, navigating to signIn")
+            navController.navigate("signIn") {
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
         }
     }
 }

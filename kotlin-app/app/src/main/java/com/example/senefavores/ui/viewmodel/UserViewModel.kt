@@ -17,6 +17,7 @@ import javax.inject.Inject
 import com.example.senefavores.data.remote.SupabaseManagement
 import com.example.senefavores.data.repository.UserRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 
@@ -92,7 +93,7 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             val resp = userRepository.signInHELP()
             Log.d("AzureAuth", "hasCompletedInfo: ${resp}")
-            checkUserSession()
+            //checkUserSession()
             Log.d("AzureAuth", "hasData: ${_isAuthenticated}")
         }
     }
@@ -172,9 +173,41 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    private fun checkUserSession() {
+    fun checkUserSession(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            _isAuthenticated.value = userRepository.checkUserSession()
+            try {
+                val hasSession = userRepository.checkUserSession()
+                if (hasSession) {
+                    _isAuthenticated.value = true
+                    loadUserClientInfo()
+                    Log.d("UserViewModel", "Session check successful")
+                } else {
+                    Log.e("UserViewModel", "No active session found")
+                }
+                onResult(hasSession)
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Session check error: ${e.message}")
+                onResult(false)
+            }
+        }
+    }
+
+    fun checkAuthSession(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val hasSession = userRepository.checkUserSession()
+                if (hasSession) {
+                    _isAuthenticated.value = true
+                    loadUserClientInfo()
+                    Log.d("UserViewModel", "Session check successful")
+                } else {
+                    Log.e("UserViewModel", "No active session found")
+                }
+                onResult(hasSession)
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Session check error: ${e.message}")
+                onResult(false)
+            }
         }
     }
 
@@ -224,6 +257,65 @@ class UserViewModel @Inject constructor(
             throw e
         }
     }
+
+    fun resetPasswordFinal(newPassword: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                userRepository.resetPasswordFinal(newPassword)
+                Log.d("UserViewModel", "Password reset successful")
+                onResult(true)
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Password reset error: ${e.message}")
+                onResult(false)
+            }
+        }
+    }
+
+    fun verifyEmailOtp(email: String, token: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                userRepository.verifyEmailOtp(email, token)
+                _isAuthenticated.value = true
+                loadUserClientInfo()
+                Log.d("UserViewModel", "Email verification successful for $email")
+                onResult(true)
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Email verification error: ${e.message}")
+                onResult(false)
+            }
+        }
+    }
+
+    fun sendPasswordResetEmail(email: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                userRepository.sendPasswordResetEmail(email)
+                Log.d("UserViewModel", "Password reset email sent to $email")
+                onResult(true)
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Error sending password reset email: ${e.message}")
+                onResult(false)
+            }
+        }
+    }
+
+    fun exchangeCodeForSession(code: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                userRepository.exchangeCodeForSession(code)
+                _isAuthenticated.value = true
+                loadUserClientInfo()
+                Log.d("UserViewModel", "Session exchanged successfully for code=$code")
+                onResult(true)
+            } catch (e: Exception) {
+                Log.e("UserViewModel", "Error exchanging code for session: ${e.message}")
+                _isAuthenticated.value = false
+                onResult(false)
+            }
+        }
+    }
+
+
 
     fun getCurrentUserId(): String? {
         return _user.value?.id

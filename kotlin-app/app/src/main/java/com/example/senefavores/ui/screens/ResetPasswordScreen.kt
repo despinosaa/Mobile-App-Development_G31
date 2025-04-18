@@ -1,8 +1,6 @@
 package com.example.senefavores.ui.screens
 
-import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -14,36 +12,48 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun ResetPasswordScreen(
     navController: NavController,
     token: String,
-    type: String,
     userViewModel: UserViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var showEmailDialog by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(true) }
+    var showChoiceDialog by remember { mutableStateOf(false) }
 
-    // Log screen entry
-    LaunchedEffect(Unit) {
-        Log.d("ResetPasswordScreen", "Reached ResetPasswordScreen with token=$token, type=$type")
-        if (type == "recovery" && token.isNotEmpty()) {
-            showEmailDialog = true
+    // Check session on load
+    LaunchedEffect(token) {
+        if (token.isNotBlank()) {
+            userViewModel.exchangeCodeForSession(token) { success ->
+                isLoading = false
+                if (success) {
+                    navController.navigate("home") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                } else {
+                    Toast.makeText(context, "Enlace inválido o expirado", Toast.LENGTH_LONG).show()
+                    navController.navigate("signIn") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            }
         } else {
-            Log.w("ResetPasswordScreen", "Invalid deep link: token=$token, type=$type")
-            Toast.makeText(context, "Enlace inválido", Toast.LENGTH_LONG).show()
+            isLoading = false
+            Toast.makeText(context, "Código de autenticación inválido", Toast.LENGTH_LONG).show()
             navController.navigate("signIn") {
                 popUpTo(navController.graph.startDestinationId) {
                     inclusive = true
@@ -53,95 +63,42 @@ fun ResetPasswordScreen(
         }
     }
 
-    // Handle system back press
-    BackHandler {
-        Log.d("ResetPasswordScreen", "Back pressed, navigating to signIn")
-        navController.navigate("signIn") {
-            popUpTo(navController.graph.startDestinationId) {
-                inclusive = true
-            }
-            launchSingleTop = true
-        }
-    }
-
-    // Email Input Dialog
-    if (showEmailDialog) {
+    // Choice Dialog (Reset Password or Log In)
+    if (showChoiceDialog) {
         AlertDialog(
-            onDismissRequest = {
-                showEmailDialog = false
-                Log.d("ResetPasswordScreen", "Email dialog dismissed, navigating to signIn")
-                navController.navigate("signIn") {
-                    popUpTo(navController.graph.startDestinationId) {
-                        inclusive = true
-                    }
-                    launchSingleTop = true
-                }
-            },
-            title = { Text("Verificar Correo") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Correo Electrónico") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
+            onDismissRequest = { /* Non-dismissable */ },
+            title = { Text("Verificación Exitosa") },
+            text = { Text("¿Deseas restablecer tu contraseña o iniciar sesión directamente?") },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (email.isNotBlank()) {
-                            coroutineScope.launch {
-                                isLoading = true
-                                try {
-                                    userViewModel.verifyRecoveryOtp(email, token)
-                                    Log.d("ResetPasswordScreen", "OTP verified successfully for email: $email")
-                                    showEmailDialog = false
-                                } catch (e: Exception) {
-                                    Log.e("ResetPasswordScreen", "Error verifying OTP: ${e.localizedMessage}")
-                                    Toast.makeText(context, "Enlace inválido o expirado", Toast.LENGTH_LONG).show()
-                                    navController.navigate("signIn") {
-                                        popUpTo(navController.graph.startDestinationId) {
-                                            inclusive = true
-                                        }
-                                        launchSingleTop = true
-                                    }
-                                } finally {
-                                    isLoading = false
-                                }
-                            }
-                        } else {
-                            Toast.makeText(context, "Por favor, ingrese su correo", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier.padding(end = 8.dp),
-                    enabled = !isLoading
+                        showChoiceDialog = false
+                        // Stay on ResetPasswordScreen for password reset
+                    }
                 ) {
-                    Text("Verificar")
+                    Text("Restablecer Contraseña")
                 }
             },
             dismissButton = {
-                IconButton(onClick = {
-                    showEmailDialog = false
-                    Log.d("ResetPasswordScreen", "Email dialog cancelled, navigating to signIn")
-                    navController.navigate("signIn") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
+                Button(
+                    onClick = {
+                        showChoiceDialog = false
+                        navController.navigate("home") {
+                            popUpTo(navController.graph.startDestinationId) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
                         }
-                        launchSingleTop = true
                     }
-                }) {
-                    Text("X", fontSize = 16.sp)
+                ) {
+                    Text("Iniciar Sesión")
                 }
             }
         )
     }
 
     // Main Password Reset UI
-    if (!showEmailDialog) {
+    if (!showChoiceDialog) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -149,66 +106,84 @@ fun ResetPasswordScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Restablecer Contraseña", style = MaterialTheme.typography.headlineMedium)
+            Text(
+                text = "Restablecer Contraseña",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // New Password TextField
             OutlinedTextField(
                 value = newPassword,
                 onValueChange = { newPassword = it },
                 label = { Text("Nueva Contraseña") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Confirm Password TextField
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
                 label = { Text("Confirmar Contraseña") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Reset Password Button
             CustomButton(
-                text = if (isLoading) "Actualizando..." else "Actualizar Contraseña",
+                text = if (isLoading) "Restableciendo..." else "Restablecer",
                 onClick = {
-                    if (newPassword.isNotBlank() && newPassword == confirmPassword) {
-                        coroutineScope.launch {
-                            isLoading = true
-                            try {
-                                userViewModel.updatePassword(newPassword)
-                                Toast.makeText(context, "Contraseña actualizada", Toast.LENGTH_SHORT).show()
-                                Log.d("ResetPasswordScreen", "Password updated, navigating to signIn")
+                    if (newPassword.isNotBlank() && confirmPassword.isNotBlank() && newPassword == confirmPassword) {
+                        isLoading = true
+                        userViewModel.resetPasswordFinal(newPassword) { success ->
+                            isLoading = false
+                            if (success) {
+                                Toast.makeText(context, "Contraseña restablecida. Inicia sesión.", Toast.LENGTH_LONG).show()
                                 navController.navigate("signIn") {
                                     popUpTo(navController.graph.startDestinationId) {
                                         inclusive = true
                                     }
                                     launchSingleTop = true
                                 }
-                            } catch (e: Exception) {
-                                Log.e("ResetPasswordScreen", "Error updating password: ${e.localizedMessage}")
-                                Toast.makeText(context, "Error al actualizar contraseña", Toast.LENGTH_LONG).show()
-                            } finally {
-                                isLoading = false
+                            } else {
+                                Toast.makeText(context, "Error al restablecer la contraseña.", Toast.LENGTH_SHORT).show()
                             }
                         }
+                    } else if (newPassword != confirmPassword) {
+                        Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Las contraseñas no coinciden o están vacías", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                     }
                 },
-                backgroundColor = Color(0xFF4CAF50), // Green for sign-in
+                backgroundColor = Color(0xFF4CAF50), // Green
                 textColor = Color.White,
                 hasBorder = false,
-                enabled = !isLoading
+                enabled = !isLoading && newPassword.isNotBlank() && confirmPassword.isNotBlank()
             )
+
+            // Back to SignIn Button
+            TextButton(
+                onClick = {
+                    navController.navigate("signIn") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                Text("Volver al Inicio de Sesión", color = Color.Blue)
+            }
         }
     }
 }

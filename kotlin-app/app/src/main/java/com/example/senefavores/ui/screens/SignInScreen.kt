@@ -26,7 +26,6 @@ import androidx.navigation.NavController
 import com.example.senefavores.R
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun SignInScreen(
@@ -39,14 +38,14 @@ fun SignInScreen(
     var resetEmail by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
 
     // Navigate to home on successful authentication
     LaunchedEffect(isAuthenticated) {
         if (isAuthenticated) {
             Log.d("SignInScreen", "Auth successful, navigating to home")
             navController.navigate("home") {
-                popUpTo("login") { inclusive = true }
+                popUpTo("signIn") { inclusive = true }
             }
         }
     }
@@ -95,9 +94,10 @@ fun SignInScreen(
 
         // Login Button
         CustomButton(
-            text = "Iniciar Sesión",
+            text = if (isLoading) "Iniciando..." else "Iniciar Sesión",
             onClick = {
                 if (email.isNotBlank() && password.isNotBlank()) {
+                    isLoading = true
                     userViewModel.signInWithEmail(email, password)
                 } else {
                     Toast.makeText(context, "Por favor, ingrese correo y contraseña", Toast.LENGTH_SHORT).show()
@@ -106,7 +106,7 @@ fun SignInScreen(
             backgroundColor = Color(0xFF4CAF50), // Green for sign-in
             textColor = Color.White,
             hasBorder = false,
-            enabled = true
+            enabled = !isLoading
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -156,23 +156,30 @@ fun SignInScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            coroutineScope.launch {
-                                if (userViewModel.resetPassword(resetEmail)) {
-                                    showPasswordResetDialog = false
-                                    Toast.makeText(context, "Correo de recuperación enviado", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(context, "Email no registrado", Toast.LENGTH_SHORT).show()
+                            if (resetEmail.isNotBlank()) {
+                                isLoading = true
+                                userViewModel.sendPasswordResetEmail(resetEmail) { success ->
+                                    isLoading = false
+                                    if (success) {
+                                        showPasswordResetDialog = false
+                                        Toast.makeText(context, "Correo de recuperación enviado", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Email no registrado", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
+                            } else {
+                                Toast.makeText(context, "Por favor, ingresa un correo", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = 8.dp),
+                        enabled = !isLoading
                     ) {
-                        Text("Enviar")
+                        Text(if (isLoading) "Enviando..." else "Enviar")
                     }
                 },
                 dismissButton = {
-                    IconButton(onClick = { showPasswordResetDialog = false }) {
-                        Text("X", fontSize = 16.sp)
+                    TextButton(onClick = { showPasswordResetDialog = false }) {
+                        Text("Cancelar")
                     }
                 }
             )
