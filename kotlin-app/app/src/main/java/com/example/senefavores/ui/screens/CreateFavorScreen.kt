@@ -36,26 +36,22 @@ fun CreateFavorScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val startTime = remember { System.currentTimeMillis() }
 
-    // Notify the parent of the current screen for crash reporting
     LaunchedEffect(Unit) {
         onScreenChange("CreateFavorScreen")
     }
 
-    // Inyección de ViewModels con Hilt
     val favorViewModel: FavorViewModel = hiltViewModel()
     val userViewModel: UserViewModel = hiltViewModel()
 
-    // Cargamos la información del usuario y los favores desde la base de datos
     LaunchedEffect(Unit) {
         userViewModel.loadUserClientInfo()
-        favorViewModel.fetchFavors()
+        favorViewModel.fetchAllFavors()
     }
     val currentUser by userViewModel.user.collectAsState(initial = null)
-    val allFavors by favorViewModel.favors.collectAsState(initial = emptyList())
+    val allFavors by favorViewModel.allFavors.collectAsState(initial = emptyList())
 
-    // Chequeo de ubicación
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
         Log.i("Locacion", "¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
@@ -64,7 +60,6 @@ fun CreateFavorScreen(
         false
     }
 
-    // Log response time after the screen is composed
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -72,9 +67,7 @@ fun CreateFavorScreen(
         }
     }
 
-    // Función auxiliar para convertir la fecha de tipo String a milisegundos desde la época
     fun convertDateToMillis(date: String): Long {
-        // La fecha viene en formato "yyyy-MM-dd'T'HH:mm:ss" o "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
         val dateParts = date.split("T")
         val dateComponents = dateParts[0].split("-")
         val timeComponents = dateParts[1].split(":")
@@ -87,7 +80,6 @@ fun CreateFavorScreen(
         val minute = timeComponents[1].toInt()
         val second = timeComponents[2].split(".")[0].toInt()
 
-        // Aquí asumimos que las fechas son locales y estamos calculando un timestamp simple
         val calendar = java.util.Calendar.getInstance()
         calendar.set(year, month - 1, day, hour, minute, second)
         calendar.set(java.util.Calendar.MILLISECOND, 0)
@@ -96,25 +88,19 @@ fun CreateFavorScreen(
     }
 
     fun calculateAverageAcceptanceTime(favors: List<Favor>, category: String): Long {
-        // Filtramos los favores de la categoría que tengan favor_time no nulo
         val validFavors = favors.filter { it.category == category && it.favor_time != null }
         if (validFavors.isEmpty()) return 0
 
         val totalMinutes = validFavors.sumOf { favor ->
             try {
-                // Convertimos las fechas 'created_at' y 'favor_time' a Longs representando los milisegundos desde la época (1970-01-01T00:00:00Z)
                 val created = convertDateToMillis(favor.created_at)
                 val accepted = convertDateToMillis(favor.favor_time!!)
-
-                // Calculamos la diferencia en minutos
-                (accepted - created) / 60000 // 60000 milisegundos en un minuto
+                (accepted - created) / 60000
             } catch (e: Exception) {
-                // En caso de error, ignoramos este favor y seguimos con el siguiente
                 0L
             }
         }
 
-        // Si se omitieron todos los favores por error, devolvemos un valor por defecto según la categoría
         return if (totalMinutes > 0) {
             totalMinutes / validFavors.size
         } else {
@@ -127,7 +113,7 @@ fun CreateFavorScreen(
         }
     }
 
-    var selectedItem by remember { mutableStateOf(1) } // Ítem seleccionado (1: Crear Favor)
+    var selectedItem by remember { mutableStateOf(1) }
 
     Scaffold(
         topBar = {
@@ -150,7 +136,6 @@ fun CreateFavorScreen(
             )
         }
     ) { padding ->
-        // Variables de estado para la información del favor
         var selectedCategory by remember { mutableStateOf("Favor") }
         var title by remember { mutableStateOf("") }
         var description by remember { mutableStateOf("") }
@@ -165,7 +150,6 @@ fun CreateFavorScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Fila para "Título" y su TextField
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -183,7 +167,6 @@ fun CreateFavorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // "Descripción" y su caja de texto
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -206,7 +189,6 @@ fun CreateFavorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Fila para "Recompensa" y su TextField
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -224,7 +206,6 @@ fun CreateFavorScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Fila para "Categoría" y botones de selección
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -264,7 +245,6 @@ fun CreateFavorScreen(
                 }
             }
 
-            // Sección para mostrar el tiempo promedio de aceptación según la categoría seleccionada
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Tiempo promedio de aceptación de un $selectedCategory: ${calculateAverageAcceptanceTime(allFavors, selectedCategory)} minutos",
@@ -279,7 +259,6 @@ fun CreateFavorScreen(
             val latitud = currentLocation?.latitude ?: 0.0
             val longitud = currentLocation?.longitude ?: 0.0
 
-            // Botón "Publicar" que envía el favor a la base de datos
             OutlinedButton(
                 onClick = {
                     scope.launch {
@@ -287,6 +266,7 @@ fun CreateFavorScreen(
                         val currentUserId = currentUser?.id ?: ""
                         Log.e("CurrentUserId", "El id: $currentUserId")
                         val newFavor = Favor(
+                            id = null,
                             title = title,
                             description = description,
                             category = selectedCategory,
@@ -318,7 +298,6 @@ fun CreateFavorScreen(
                 Text("Publicar")
             }
 
-            // Advertencia si el usuario no está dentro del campus
             if (!isInsideCampus) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

@@ -8,6 +8,7 @@ import com.example.senefavores.data.repository.FavorRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,23 +18,42 @@ class FavorViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _favors = MutableStateFlow<List<Favor>>(emptyList())
-    val favors: StateFlow<List<Favor>> = _favors
+    val favors: StateFlow<List<Favor>> = _favors.asStateFlow()
 
-    init {
-        fetchFavors() // Fetch favors as soon as ViewModel is created
+    private val _allFavors = MutableStateFlow<List<Favor>>(emptyList())
+    val allFavors: StateFlow<List<Favor>> = _allFavors.asStateFlow()
+
+    fun fetchFavors(userId: String?) {
+        viewModelScope.launch {
+            _favors.value = favorRepository.getFavors(userId)
+            Log.d("DEBUG", "Favor time from API: ${_favors.value}")
+        }
     }
 
-
-    fun fetchFavors() {
+    fun fetchAllFavors() {
         viewModelScope.launch {
-            _favors.value = favorRepository.getFavors()
-            Log.d("DEBUG", "Favor time from API: $_favors")
+            _allFavors.value = favorRepository.getAllFavors()
+            Log.d("DEBUG", "All favors from API: ${_allFavors.value}")
         }
     }
 
     fun addFavor(favor: Favor) {
         viewModelScope.launch {
             favorRepository.addFavor(favor)
+        }
+    }
+
+    fun acceptFavor(favorId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                favorRepository.updateFavorAcceptUserId(favorId, userId)
+                Log.d("FavorViewModel", "Favor $favorId accepted by user $userId")
+
+                fetchFavors(userId)
+            } catch (e: Exception) {
+                Log.e("FavorViewModel", "Error accepting favor $favorId: ${e.localizedMessage}", e)
+                throw e
+            }
         }
     }
 }

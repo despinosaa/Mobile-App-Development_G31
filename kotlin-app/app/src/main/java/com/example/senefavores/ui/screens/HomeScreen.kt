@@ -74,12 +74,12 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
     val userInfo by userViewModel.user.collectAsState()
     val hasCompletedInfo by userViewModel.hasCompletedInfo.collectAsState()
     val allFavorsOr by favorViewModel.favors.collectAsState()
-    val allFavors = allFavorsOr.take(100)
+    val allFavors = allFavorsOr.take(15)
 
     var showDialog by remember { mutableStateOf(false) }
     var hasChecked by remember { mutableStateOf(false) }
 
-    LaunchedEffect(hasCompletedInfo, hasChecked) {
+    LaunchedEffect(hasCompletedInfo, hasChecked, userInfo) {
         if (!hasChecked) {
             Log.d("Dialog", "Checking user info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
             Log.d("UserInfo", "Loading user info...")
@@ -99,7 +99,8 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
             }
             Log.d("Dialog", "Updated showDialog: $showDialog")
         }
-        favorViewModel.fetchFavors()
+        // Fetch favors with user ID (null if user not loaded)
+        favorViewModel.fetchFavors(userInfo?.id)
     }
 
     ShowUserInfoDialog(
@@ -116,9 +117,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
 
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
-    val filteredFavors = allFavors.filter { favor ->
-        userInfo?.id?.let { userId -> favor.request_user_id != userInfo!!.id } ?: true
-    }.let { favors ->
+    val filteredFavors = allFavors.let { favors ->
         if (selectedCategory == null) {
             Log.d("Favors", "$favors")
             favors

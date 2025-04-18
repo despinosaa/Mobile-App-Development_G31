@@ -1,5 +1,6 @@
 package com.example.senefavores.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -25,8 +26,10 @@ import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.theme.WhiteTextColor
+import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.LocationHelper
+import kotlinx.coroutines.launch
 
 @Composable
 fun FavorScreen(
@@ -34,30 +37,47 @@ fun FavorScreen(
     favor: Favor,
     locationHelper: LocationHelper,
     hasLocationPermission: Boolean,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    favorViewModel: FavorViewModel = hiltViewModel()
 ) {
     var selectedItem by remember { mutableStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
     var userStars by remember { mutableStateOf(0f) }
-    var userName by remember { mutableStateOf("") }  // Store user's name
+    var userName by remember { mutableStateOf("") }
+    var userPhone by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+    val userInfo by userViewModel.user.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-// Fetch user details from ViewModel
+    // Fetch requester's details
     LaunchedEffect(favor.request_user_id) {
-        favor.request_user_id?.takeIf { it.isNotEmpty() }?.let { userId ->
+        favor.request_user_id.takeIf { it.isNotEmpty() }?.let { userId ->
+            Log.d("FavorScreen", "Fetching requester: userId=$userId")
             val user = userViewModel.getClientById(userId)
             user?.let {
                 userStars = it.stars ?: 0f
-                userName = it.name ?: "Unknown"  // Assuming `name` exists in the user object
-            }
+                userName = it.name ?: "Unknown"
+                userPhone = it.phone ?: "No phone provided"
+                Log.d("FavorScreen", "Requester loaded: name=$userName, phone=$userPhone, stars=$userStars")
+            } ?: Log.e("FavorScreen", "Failed to load requester for userId=$userId")
         }
     }
 
+    // Load user if not loaded
+    LaunchedEffect(userInfo) {
+        if (userInfo == null) {
+            Log.d("FavorScreen", "UserInfo is null, attempting to load user")
+            userViewModel.loadUserClientInfo()
+        }
+    }
 
     val isInsideCampus = if (hasLocationPermission) {
-        val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
-        println("¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
+        val location = locationHelper.currentLocation.value
+        val result = locationHelper.isInsideCampus(location)
+        Log.d("FavorScreen", "Inside campus: $result, Location: $location, HasPermission: $hasLocationPermission")
         result
     } else {
+        Log.d("FavorScreen", "No location permission")
         false
     }
 
@@ -65,6 +85,11 @@ fun FavorScreen(
         "Favor", "Compra" -> isInsideCampus
         "Tutoría" -> true
         else -> true
+    }
+
+    // Log button state
+    LaunchedEffect(isAcceptEnabled, userInfo?.id, hasLocationPermission) {
+        Log.d("FavorScreen", "Button state - isAcceptEnabled: $isAcceptEnabled, userInfo.id: ${userInfo?.id}, favor.id: ${favor.id}, category: ${favor.category}, hasLocationPermission: $hasLocationPermission")
     }
 
     val categoryColor = when (favor.category) {
@@ -93,7 +118,8 @@ fun FavorScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -210,8 +236,33 @@ fun FavorScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { if (isAcceptEnabled) showDialog = true },
-                enabled = isAcceptEnabled,
+                onClick = {
+                    if (isAcceptEnabled && userInfo?.id != null) {
+                        coroutineScope.launch {
+                            try {
+                                Log.d("FavorScreen", "Attempting to accept favor: favorId=${favor.id}, userId=${userInfo!!.id}")
+                                favorViewModel.acceptFavor(favor.id.toString(), userInfo!!.id)
+                                Log.d("FavorScreen", "Favor accepted successfully")
+                                showDialog = true
+                            } catch (e: Exception) {
+                                Log.e("FavorScreen", "Error accepting favor: ${e.localizedMessage}", e)
+                                snackbarHostState.showSnackbar("No se pudo aceptar el favor: ${e.localizedMessage}")
+                            }
+                        }
+                    } else {
+                        val reason = when {
+                            userInfo?.id == null -> "Usuario no autenticado"
+                            !isAcceptEnabled && !hasLocationPermission -> "Permisos de ubicación no concedidos"
+                            !isAcceptEnabled -> "No estás dentro del campus"
+                            else -> "Condiciones no cumplidas"
+                        }
+                        Log.w("FavorScreen", "Cannot accept favor: $reason")
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(reason)
+                        }
+                    }
+                },
+                enabled = isAcceptEnabled && userInfo?.id != null,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MikadoYellow,
                     disabledContainerColor = MikadoYellow.copy(alpha = 0.5f)
@@ -226,12 +277,53 @@ fun FavorScreen(
                     color = BlackTextColor
                 )
             }
+
+            // Dialog for accepting favor
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text("Favor Accepted!") },
+                    text = {
+                        Column {
+                            Text("You have accepted the favor: ${favor.title}")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Requested by: $userName")
+                            Text("Phone: $userPhone")
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showDialog = false
+                                navController.navigate("history") { launchSingleTop = true }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MikadoYellow,
+                                contentColor = BlackTextColor
+                            )
+                        ) {
+                            Text("Ready")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showDialog = false },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = BlackTextColor
+                            )
+                        ) {
+                            Text("Cancel")
+                        }
+                    },
+                    containerColor = Color.White,
+                    titleContentColor = BlackTextColor,
+                    textContentColor = BlackTextColor
+                )
+            }
         }
     }
 }
 
-
-// Componente reutilizable para las estrellas
 @Composable
 fun RatingStars(rating: Float) {
     Row {
