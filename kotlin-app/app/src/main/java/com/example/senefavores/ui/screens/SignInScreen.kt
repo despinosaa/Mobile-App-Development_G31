@@ -17,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +40,7 @@ fun SignInScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var isPasswordVisible by remember { mutableStateOf(false) }
 
     // Navigate to home on successful authentication
     LaunchedEffect(isAuthenticated) {
@@ -79,7 +81,7 @@ fun SignInScreen(
             singleLine = true
         )
 
-        // Password TextField
+        // Password TextField with Eye Icon
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -87,9 +89,19 @@ fun SignInScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true
+            singleLine = true,
+            trailingIcon = {
+                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    Icon(
+                        painter = painterResource(
+                            if (isPasswordVisible) R.drawable.ic_eye_off else R.drawable.ic_eye_on
+                        ),
+                        contentDescription = if (isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                    )
+                }
+            }
         )
 
         // Login Button
@@ -98,7 +110,14 @@ fun SignInScreen(
             onClick = {
                 if (email.isNotBlank() && password.isNotBlank()) {
                     isLoading = true
-                    userViewModel.signInWithEmail(email, password)
+                    userViewModel.signInWithEmail(email, password) { success, errorMessage ->
+                        isLoading = false
+                        if (success) {
+                            Log.d("SignInScreen", "Sign-in successful")
+                        } else {
+                            Toast.makeText(context, errorMessage ?: "Credenciales inválidas", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 } else {
                     Toast.makeText(context, "Por favor, ingrese correo y contraseña", Toast.LENGTH_SHORT).show()
                 }

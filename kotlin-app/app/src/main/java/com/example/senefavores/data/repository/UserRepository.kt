@@ -99,15 +99,18 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun signInWithEmail(emailS: String, passwordS: String): Boolean {
-        return try {
-            supabaseClient.auth.signInWith(Email) {
-                email = emailS
-                password = passwordS
+    suspend fun signInWithEmail(emailS: String, passwordS: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                supabaseClient.auth.signInWith(Email) {
+                    email = emailS
+                    password = passwordS
+                }
+                Log.d("UserRepository", "Sign-in successful for email: $emailS")
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Sign-in error for email $passwordS: ${e.message}")
+                throw e // Rethrow to handle in ViewModel
             }
-            supabaseClient.auth.currentSessionOrNull() != null
-        } catch (e: Exception) {
-            false
         }
     }
 

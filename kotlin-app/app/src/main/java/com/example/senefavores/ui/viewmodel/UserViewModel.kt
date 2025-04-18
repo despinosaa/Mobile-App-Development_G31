@@ -98,22 +98,24 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    fun signInWithEmail(email: String, password: String) {
+    fun signInWithEmail(email: String, password: String, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
         Log.d("AzureAuth", "Starting email sign-in: $email")
         viewModelScope.launch {
             try {
-                val success = userRepository.signInWithEmail(email, password)
-                _isAuthenticated.value = success
-                Log.d("AzureAuth", "Email sign-in result: $success")
-                //checkUserSession()
-                if (_isAuthenticated.value) {
-                    Log.d("AzureAuth", "Email sign-in successful")
-                } else {
-                    Log.e("AzureAuth", "Email sign-in failed: Invalid credentials")
-                }
+                userRepository.signInWithEmail(email, password)
+                _isAuthenticated.value = true
+                loadUserClientInfo()
+                Log.d("AzureAuth", "Email sign-in successful")
+                onResult(true, null)
             } catch (e: Exception) {
-                Log.e("AzureAuth", "Email sign-in error")
+                Log.e("AzureAuth", "Email sign-in error: ${e.message}")
                 _isAuthenticated.value = false
+                val errorMessage = if (e.message?.contains("Invalid login credentials", ignoreCase = true) == true) {
+                    "Credenciales inválidas"
+                } else {
+                    "Error al iniciar sesión: ${e.message}"
+                }
+                onResult(false, errorMessage)
             }
         }
     }

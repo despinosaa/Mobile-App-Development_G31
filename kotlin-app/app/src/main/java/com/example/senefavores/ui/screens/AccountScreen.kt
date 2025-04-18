@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.ui.platform.LocalContext
+import com.example.senefavores.ui.components.RatingStars
 import kotlin.math.floor
 
 @Composable
@@ -105,35 +106,7 @@ fun AccountScreen(
                 )
 
                 // Stars
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    val fullStars = floor(user.stars).toInt()
-                    val emptyStars = 5 - fullStars
-
-                    repeat(fullStars) {
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = "Filled Star",
-                            tint = Color(0xFFFFD700), // Gold
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    repeat(emptyStars) {
-                        Icon(
-                            imageVector = Icons.Outlined.Star,
-                            contentDescription = "Empty Star",
-                            tint = Color(0xFFFFD700),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = String.format("%.1f", user.stars),
-                        fontSize = 16.sp
-                    )
-                }
+                RatingStars(rating = user.stars)
 
                 // Email
                 Text(
@@ -179,10 +152,12 @@ fun AccountScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Button(
-                    onClick = {}, // Edit button, no action yet
+                    onClick = {
+                        navController.navigate("resetPassword")
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Editar")
+                    Text("Cambiar contraseña")
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Button(

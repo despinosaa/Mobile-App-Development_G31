@@ -21,6 +21,7 @@ import com.example.senefavores.ui.screens.HomeScreen
 import com.example.senefavores.ui.screens.FavorScreen
 import com.example.senefavores.ui.screens.SignInScreen
 import com.example.senefavores.ui.screens.RegisterScreen
+import com.example.senefavores.ui.screens.ResetPasswordScreen
 import com.example.senefavores.util.LocationHelper
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.serialization.json.Json
@@ -66,6 +67,11 @@ fun AppNavHost(
             AccountScreen(navController)
             onScreenChange("account")
             Log.d("AppNavHost", "Navigated to account")
+        }
+        composable("resetPassword") {
+            ResetPasswordScreen(navController)
+            onScreenChange("resetPassword")
+            Log.d("AppNavHost", "Navigated to resetPassword")
         }
         composable("createFavor") {
             CreateFavorScreen(
