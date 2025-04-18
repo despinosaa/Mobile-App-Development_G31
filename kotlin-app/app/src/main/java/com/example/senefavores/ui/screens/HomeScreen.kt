@@ -116,11 +116,15 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
 
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
-    val filteredFavors = if (selectedCategory == null) {
-        Log.d("Favors", "$allFavors")
-        allFavors
-    } else {
-        allFavors.filter { it.category == selectedCategory }
+    val filteredFavors = allFavors.filter { favor ->
+        userInfo?.id?.let { userId -> favor.request_user_id != userInfo!!.id } ?: true
+    }.let { favors ->
+        if (selectedCategory == null) {
+            Log.d("Favors", "$favors")
+            favors
+        } else {
+            favors.filter { it.category == selectedCategory }
+        }
     }.let { favors ->
         if (isSortDescending) {
             favors.sortedBy { timeToMinutes(it.created_at) }.reversed()
@@ -302,7 +306,7 @@ fun ShowUserInfoDialog(
                         value = phone,
                         onValueChange = {
                             phone = it
-                            isPhoneValid = it.isNotBlank() && it.matches(Regex("^\\+?[0-9]{7,15}$"))
+                            isPhoneValid = it.isNotBlank() && it.matches(Regex("^[0-9]{10}$"))
                         },
                         label = { Text("Teléfono") },
                         singleLine = true,
@@ -311,7 +315,11 @@ fun ShowUserInfoDialog(
                     )
 
                     if (!isPhoneValid) {
-                        Text("Número de teléfono no válido o vacío", color = Color.Red, fontSize = 12.sp)
+                        Text(
+                            text = "El número de teléfono debe tener exactamente 10 dígitos",
+                            color = Color.Red,
+                            fontSize = 12.sp
+                        )
                     }
                 }
             },

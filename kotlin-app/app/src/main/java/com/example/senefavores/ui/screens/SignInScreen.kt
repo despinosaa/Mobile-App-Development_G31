@@ -159,7 +159,7 @@ fun SignInScreen(
         if (showPasswordResetDialog) {
             AlertDialog(
                 onDismissRequest = { showPasswordResetDialog = false },
-                title = { Text("Recuperar Contraseña") },
+                title = { Text("Login con link en correo") },
                 text = {
                     Column {
                         OutlinedTextField(
@@ -181,7 +181,7 @@ fun SignInScreen(
                                     isLoading = false
                                     if (success) {
                                         showPasswordResetDialog = false
-                                        Toast.makeText(context, "Correo de recuperación enviado", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Correo de login alternativo enviado", Toast.LENGTH_SHORT).show()
                                     } else {
                                         Toast.makeText(context, "Email no registrado", Toast.LENGTH_SHORT).show()
                                     }
