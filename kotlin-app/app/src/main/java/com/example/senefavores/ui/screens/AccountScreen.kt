@@ -3,6 +3,7 @@ package com.example.senefavores.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,26 +19,31 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.senefavores.R
 import com.example.senefavores.ui.components.BottomNavigationBar
+import com.example.senefavores.ui.components.ReviewCard
 import com.example.senefavores.ui.components.SenefavoresHeader
+import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.ui.platform.LocalContext
 import com.example.senefavores.ui.components.RatingStars
-import kotlin.math.floor
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AccountScreen(
     navController: NavController,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    favorViewModel: FavorViewModel = hiltViewModel()
 ) {
     val user by userViewModel.user.collectAsState()
+    val error by userViewModel.error.collectAsState()
+    val reviews by favorViewModel.userReviews.collectAsState()
     val context = LocalContext.current
     var selectedItem by remember { mutableStateOf(3) } // Account is index 3
 
+    // Load user and reviews
     LaunchedEffect(Unit) {
         userViewModel.loadUserClientInfo()
+    }
+    LaunchedEffect(user) {
+        user?.let { favorViewModel.fetchUserReviews(it.id) }
     }
 
     Scaffold(
@@ -60,6 +66,15 @@ fun AccountScreen(
                     }
                 }
             )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = remember { SnackbarHostState() }) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -96,38 +111,44 @@ fun AccountScreen(
             }
 
             // User Info
-            user?.let { user ->
-                // Name
-                Text(
-                    text = user.name?.takeIf { it.isNotEmpty() } ?: "Sin nombre",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+            when {
+                error != null -> {
+                    Text(
+                        text = error ?: "Error desconocido",
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+                    )
+                }
+                user != null -> {
+                    Text(
+                        text = user!!.name?.takeIf { it.isNotEmpty() } ?: "Sin nombre",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    RatingStars(rating = user!!.stars)
+                    Text(
+                        text = user!!.email,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = user!!.phone?.takeIf { it.isNotEmpty() } ?: "Sin teléfono",
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+                else -> {
+                    Text(
+                        text = "Cargando información del usuario...",
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+                    )
+                }
+            }
 
-                // Stars
-                RatingStars(rating = user.stars)
-
-                // Email
-                Text(
-                    text = user.email,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                // Phone
-                Text(
-                    text = user.phone?.takeIf { it.isNotEmpty() } ?: "Sin teléfono",
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            } ?: Text(
-                text = "Cargando información del usuario...",
-                fontSize = 16.sp,
-                modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
-            )
-
-            // Scrollable List Box
+            // Scrollable List of Reviews
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -135,12 +156,42 @@ fun AccountScreen(
                     .padding(top = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                item {
-                    Text(
-                        text = "Lista vacía",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
+                when {
+                    error != null -> {
+                        item {
+                            Text(
+                                text = "Error al cargar reseñas",
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                    user == null -> {
+                        item {
+                            Text(
+                                text = "Cargando reseñas...",
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                    reviews.isEmpty() -> {
+                        item {
+                            Text(
+                                text = "No hay reseñas",
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                    else -> {
+                        items(reviews) { review ->
+                            ReviewCard(review = review)
+                        }
+                    }
                 }
             }
 

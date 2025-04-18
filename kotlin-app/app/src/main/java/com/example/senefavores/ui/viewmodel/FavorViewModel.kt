@@ -25,6 +25,8 @@ class FavorViewModel @Inject constructor(
     private val _allFavors = MutableStateFlow<List<Favor>>(emptyList())
     val allFavors: StateFlow<List<Favor>> = _allFavors.asStateFlow()
 
+    private val _userReviews = MutableStateFlow<List<Review>>(emptyList())
+    val userReviews: StateFlow<List<Review>> = _userReviews
 
     private val _reviews= MutableStateFlow<List<Review>>(emptyList())
     val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
@@ -59,6 +61,18 @@ class FavorViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("FavorViewModel", "Error accepting favor $favorId: ${e.localizedMessage}", e)
                 throw e
+            }
+        }
+    }
+
+    fun fetchUserReviews(reviewedId: String) {
+        viewModelScope.launch {
+            try {
+                val reviews = favorRepository.getReviewsByReviewedId(reviewedId)
+                _userReviews.value = reviews
+                Log.d("FavorViewModel", "Fetched ${reviews.size} reviews for reviewed_id=$reviewedId")
+            } catch (e: Exception) {
+                Log.e("FavorViewModel", "Error fetching user reviews for reviewed_id=$reviewedId: ${e.message}", e)
             }
         }
     }
