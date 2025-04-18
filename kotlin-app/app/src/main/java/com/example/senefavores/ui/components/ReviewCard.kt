@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.sp
 import com.example.senefavores.data.model.Review
 
 @Composable
-fun ReviewCard(review: Review) {
+fun ReviewCard(review: Review, reviewerName: String?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -45,9 +45,9 @@ fun ReviewCard(review: Review) {
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Reviewer ID (optional, can be replaced with reviewer name if available)
+            // Reviewer Name
             Text(
-                text = "Por: ${review.reviewer_id}",
+                text = "Por: ${reviewerName?.takeIf { it.isNotEmpty() } ?: "Anónimo"}",
                 fontSize = 14.sp,
                 color = Color.Gray
             )

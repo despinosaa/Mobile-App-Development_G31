@@ -25,6 +25,7 @@ import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.ui.components.RatingStars
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountScreen(
@@ -37,6 +38,10 @@ fun AccountScreen(
     val reviews by favorViewModel.userReviews.collectAsState()
     val context = LocalContext.current
     var selectedItem by remember { mutableStateOf(3) } // Account is index 3
+    val coroutineScope = rememberCoroutineScope()
+
+    // Map of reviewer_id to name
+    val reviewerNames = remember { mutableStateMapOf<String, String?>() }
 
     // Load user and reviews
     LaunchedEffect(Unit) {
@@ -44,6 +49,18 @@ fun AccountScreen(
     }
     LaunchedEffect(user) {
         user?.let { favorViewModel.fetchUserReviews(it.id) }
+    }
+
+    // Fetch reviewer names for each review
+    LaunchedEffect(reviews) {
+        reviews.forEach { review ->
+            if (!reviewerNames.containsKey(review.reviewer_id)) {
+                coroutineScope.launch {
+                    val client = userViewModel.getClientById(review.reviewer_id)
+                    reviewerNames[review.reviewer_id] = client?.name
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -189,7 +206,10 @@ fun AccountScreen(
                     }
                     else -> {
                         items(reviews) { review ->
-                            ReviewCard(review = review)
+                            ReviewCard(
+                                review = review,
+                                reviewerName = reviewerNames[review.reviewer_id]
+                            )
                         }
                     }
                 }
