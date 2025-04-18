@@ -37,6 +37,7 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     // Navigate to signIn on successful authentication
     LaunchedEffect(isAuthenticated) {
@@ -108,12 +109,25 @@ fun RegisterScreen(
 
         // Register Button
         CustomButton(
-            text = "Registrarse",
+            text = if (isLoading) "Registrando..." else "Registrarse",
             onClick = {
-                if (email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() && password == confirmPassword) {
-                    userViewModel.signUpWithEmail(email, password)
-                } else if (password != confirmPassword) {
-                    Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                if (email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank()) {
+                    if (password != confirmPassword) {
+                        Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                    } else if (!email.endsWith("@uniandes.edu.co")) {
+                        Toast.makeText(context, "Correo debe terminar en @uniandes.edu.co", Toast.LENGTH_SHORT).show()
+                    } else {
+                        isLoading = true
+                        userViewModel.signUpWithEmail(email, password) { success, errorMessage ->
+                            isLoading = false
+                            if (success) {
+                                Log.d("RegisterScreen", "Sign-up successful")
+                                Toast.makeText(context, "Registro exitoso. Verifica tu correo.", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, errorMessage ?: "Error al registrarse", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                 } else {
                     Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                 }
@@ -121,7 +135,7 @@ fun RegisterScreen(
             backgroundColor = Color(0xFF4CAF50), // Green for sign-in
             textColor = Color.White,
             hasBorder = false,
-            enabled = email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank() && password == confirmPassword
+            enabled = !isLoading
         )
 
         Spacer(modifier = Modifier.height(16.dp))

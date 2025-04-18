@@ -120,22 +120,28 @@ class UserViewModel @Inject constructor(
         }
     }
 
-    fun signUpWithEmail(email: String, password: String) {
-        Log.d("AzureAuth", "Starting email sign-in: $email")
+    fun signUpWithEmail(email: String, password: String, onResult: (Boolean, String?) -> Unit = { _, _ -> }) {
+        Log.d("AzureAuth", "Starting email sign-up: $email")
         viewModelScope.launch {
             try {
-                val success = userRepository.signUpWithEmail(email, password)
-                Log.d("AzureAuth", "Email sign-in result: $success")
-                //checkUserSession()
-                _isAuthenticated.value = success
-                if (_isAuthenticated.value) {
-                    Log.d("AzureAuth", "Email sign-in successful")
-                } else {
-                    Log.e("AzureAuth", "Email sign-in failed: Invalid credentials")
-                }
+                userRepository.signUpWithEmail(email, password)
+                Log.d("AzureAuth", "Email sign-up successful")
+                onResult(true, null)
             } catch (e: Exception) {
-                Log.e("AzureAuth", "Email sign-in error")
+                Log.e("AzureAuth", "Email sign-up error: ${e.message}")
                 _isAuthenticated.value = false
+                val errorMessage = when {
+                    e.message?.contains("already registered", ignoreCase = true) == true -> {
+                        "El correo ya está registrado"
+                    }
+                    e.message?.contains("invalid", ignoreCase = true) == true -> {
+                        "Correo o contraseña inválidos"
+                    }
+                    else -> {
+                        "Error al registrarse: ${e.message}"
+                    }
+                }
+                onResult(false, errorMessage)
             }
         }
     }
