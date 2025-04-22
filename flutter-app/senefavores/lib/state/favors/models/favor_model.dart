@@ -1,3 +1,5 @@
+// lib/state/favors/models/favor_model.dart
+
 import 'package:senefavores/core/extension.dart';
 
 class FavorModel {
@@ -50,23 +52,26 @@ class FavorModel {
   }
 
   Map<String, dynamic> toJson() {
-    String category = this.category;
-    if (category == 'Tutoria') {
-      category = 'Tutoría';
-    } else {
-      category = category.capitalize();
-    }
-    return {
+    // Build only the fields we want to send.
+    final data = <String, dynamic>{
       'title': title,
       'description': description,
-      'category': category,
+      'category': _normalizeCategory(category),
       'reward': reward,
       'favor_time': favorTime?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
       'request_user_id': requestUserId,
       'accept_user_id': acceptUserId,
       'latitude': latitude,
       'longitude': longitude,
     };
+
+    // Remove any nulls so Postgres will use defaults (e.g. DEFAULT now() for created_at)
+    data.removeWhere((_, v) => v == null);
+    return data;
+  }
+
+  String _normalizeCategory(String cat) {
+    if (cat.toLowerCase() == 'tutoria') return 'Tutoría';
+    return cat.capitalize();
   }
 }
