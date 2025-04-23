@@ -25,7 +25,7 @@ class FavorRepository @Inject constructor(
                 val query = supabaseClient.from("favors").select(
                     ) {
                     filter {
-                        exact("accept_user_id", null)
+                        eq("status", "pending")
                         if (userId != null) {
                             neq("request_user_id", userId)
                         }
@@ -65,7 +65,8 @@ class FavorRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             runCatching {
                 supabaseClient.from("favors").update(
-                    { set("accept_user_id", userId) }
+                    { set("accept_user_id", userId)
+                        set("status", "accepted")}
                 ) {
                     filter { eq("id", favorId) }
                 }
