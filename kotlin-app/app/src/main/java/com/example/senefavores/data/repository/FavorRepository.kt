@@ -77,6 +77,24 @@ class FavorRepository @Inject constructor(
         }
     }
 
+    suspend fun updateFavorStatus(favorId: String, status: String) {
+        try {
+            supabaseClient.from("favors").update(
+                {
+                    set("status", status)
+                }
+            ) {
+                filter {
+                    eq("id", favorId)
+                }
+            }
+            Log.d("FavorRepository", "Updated favor $favorId to status=$status")
+        } catch (e: Exception) {
+            Log.e("FavorRepository", "Error updating favor $favorId status: ${e.message}", e)
+            throw e
+        }
+    }
+
     suspend fun getReviews(): List<Review> {
         return withContext(Dispatchers.IO) {
             runCatching {

@@ -15,6 +15,6 @@ data class Favor(
     val accept_user_id: String? = "",
     val latitude: Double?,
     val longitude: Double?,
-    val status: String = "pending"
+    val status: String? = "pending"
 )
 

@@ -65,6 +65,20 @@ class FavorViewModel @Inject constructor(
         }
     }
 
+    fun updateFavorStatus(favorId: String, status: String) {
+        viewModelScope.launch {
+            try {
+                favorRepository.updateFavorStatus(favorId, status)
+                Log.d("FavorViewModel", "Updated favor $favorId to status=$status")
+                // Refresh favors to reflect the update
+                val userId = _favors.value.firstOrNull { it.id == favorId }?.request_user_id
+                fetchFavors(userId)
+            } catch (e: Exception) {
+                Log.e("FavorViewModel", "Error updating favor $favorId status: ${e.message}", e)
+            }
+        }
+    }
+
     fun fetchUserReviews(reviewedId: String) {
         viewModelScope.launch {
             try {
