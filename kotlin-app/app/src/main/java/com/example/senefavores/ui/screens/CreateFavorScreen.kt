@@ -288,7 +288,6 @@ fun CreateFavorScreen(
                     scope.launch {
                         val currentTime = Clock.System.now().toString()
                         val newFavor = Favor(
-                            id = null,
                             title = title,
                             description = description,
                             category = selectedCategory,
@@ -370,6 +369,5 @@ fun calculateAverageAcceptanceTime(favors: List<Favor>, category: String): Long 
             0L
         }
     }
-
     return totalMinutes / validFavors.size
 }
