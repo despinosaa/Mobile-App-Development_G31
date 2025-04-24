@@ -78,7 +78,6 @@ class MyApp extends StatelessWidget {
             final authState = ref.watch(authStateProvider);
 
             if (authState.result == AuthResult.loggedIn) {
-              ref.read(currentUserNotifierProvider.notifier).refreshUser();
               return const NavigationScreen();
             } else {
               return const LoginView();
