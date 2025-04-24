@@ -14,7 +14,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
 
-
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -86,7 +85,7 @@ class ProfileScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          currentUser!.name ??
+                          currentUser.name ??
                               currentUser.email.split('@').first,
                           style: GoogleFonts.oswald(
                             fontSize: 20,
@@ -147,13 +146,14 @@ class ProfileScreen extends ConsumerWidget {
 
                                   if (phone.length != 10) {
                                     ref.read(snackbarProvider).showSnackbar(
-                                      "El número de teléfono debe tener 10 dígitos",
-                                      isError: true,
-                                    );
+                                          "El número de teléfono debe tener 10 dígitos",
+                                          isError: true,
+                                        );
                                     return;
                                   }
 
-                                  final start = DateTime.now(); // ⏱️ Start timing
+                                  final start =
+                                      DateTime.now(); // ⏱️ Start timing
 
                                   try {
                                     final supabase = Supabase.instance.client;
@@ -163,7 +163,9 @@ class ProfileScreen extends ConsumerWidget {
                                         .eq('id', currentUser.id)
                                         .select();
 
-                                    final duration = DateTime.now().difference(start).inMilliseconds;
+                                    final duration = DateTime.now()
+                                        .difference(start)
+                                        .inMilliseconds;
 
                                     await AppLogger.logResponseTime(
                                       screen: 'ProfileScreen',
@@ -172,15 +174,18 @@ class ProfileScreen extends ConsumerWidget {
 
                                     if (response.isEmpty) {
                                       ref.read(snackbarProvider).showSnackbar(
-                                        "Error: No se pudo actualizar el teléfono",
-                                        isError: true,
-                                      );
+                                            "Error: No se pudo actualizar el teléfono",
+                                            isError: true,
+                                          );
                                     } else {
-                                      ref.read(currentUserNotifierProvider.notifier).updatePhone(phone);
+                                      ref
+                                          .read(currentUserNotifierProvider
+                                              .notifier)
+                                          .updatePhone(phone);
                                       ref.read(snackbarProvider).showSnackbar(
-                                        "Número de teléfono actualizado",
-                                        isError: false,
-                                      );
+                                            "Número de teléfono actualizado",
+                                            isError: false,
+                                          );
                                       Navigator.pop(context);
                                     }
                                   } catch (e) {
@@ -190,12 +195,11 @@ class ProfileScreen extends ConsumerWidget {
                                     );
 
                                     ref.read(snackbarProvider).showSnackbar(
-                                      "Excepción al actualizar: $e",
-                                      isError: true,
-                                    );
+                                          "Excepción al actualizar: $e",
+                                          isError: true,
+                                        );
                                   }
-                                }
-                                ,
+                                },
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.black,
                                 ),

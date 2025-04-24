@@ -13,7 +13,10 @@ class AcceptFavorNotifier extends StateNotifier<bool> {
 
       final List response = await supabase
           .from('favors')
-          .update({'accept_user_id': userId, 'favor_time': 'now()'})
+          .update({
+            'accept_user_id': userId,
+            'status': 'accepted',
+          })
           .eq('id', favorId)
           .select();
 
@@ -22,7 +25,7 @@ class AcceptFavorNotifier extends StateNotifier<bool> {
       return response.isNotEmpty;
     } catch (e) {
       state = false;
-      print("❌ Error accepting favor: $e");
+      print("Error accepting favor: $e");
       return false;
     }
   }

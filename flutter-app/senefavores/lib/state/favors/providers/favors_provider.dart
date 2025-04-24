@@ -21,7 +21,7 @@ final favorsStreamProvider =
   final smartSorting = ref.watch(smartSortingStateNotifierProvider);
 
   if (currentUser == null) {
-    yield []; // Handle case where user is not logged in
+    yield [];
     return;
   }
 

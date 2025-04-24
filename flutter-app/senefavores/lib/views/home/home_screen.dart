@@ -14,7 +14,6 @@ import 'package:senefavores/views/components/senefavores_image_and_title_and_pro
 import 'package:senefavores/views/home/components/category_filter_button.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
 import 'package:senefavores/core/constant.dart';
-import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {

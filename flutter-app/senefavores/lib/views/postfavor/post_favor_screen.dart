@@ -9,7 +9,6 @@ import 'package:senefavores/state/location/providers/user_location_state_notifie
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
-import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
 import 'package:senefavores/state/favors/providers/favor_acceptance_rate_provider.dart';
 
@@ -229,6 +228,7 @@ class PostFavorScreen extends HookConsumerWidget {
                             requestUserId: currentUser!.id,
                             latitude: locationData?.latitude,
                             longitude: locationData?.longitude,
+                            status: 'pending',
                           ),
                         );
 

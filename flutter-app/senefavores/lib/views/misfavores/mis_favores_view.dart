@@ -111,9 +111,7 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
         );
         return Center(child: Text("Error: $error"));
       },
-
       data: (favorsList) {
-
         if (favorsList.isEmpty) {
           return const Center(child: Text("No has solicitado favores"));
         }
@@ -151,15 +149,14 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
           color: Colors.black,
         ),
       ),
-        error: (error, stack) {
-          AppLogger.logCrash(
-            screen: 'MisFavoresView',
-            crashInfo: error.toString(),
-          );
-          return Center(child: Text("Error: $error"));
-        },
+      error: (error, stack) {
+        AppLogger.logCrash(
+          screen: 'MisFavoresView',
+          crashInfo: error.toString(),
+        );
+        return Center(child: Text("Error: $error"));
+      },
       data: (favorsList) {
-
         if (favorsList.isEmpty) {
           return const Center(child: Text("No has aceptado favores"));
         }

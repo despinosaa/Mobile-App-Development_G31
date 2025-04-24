@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
-import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
 
 class LoginView extends ConsumerWidget {
@@ -57,9 +56,12 @@ class LoginView extends ConsumerWidget {
                   final start = DateTime.now();
 
                   try {
-                    await ref.read(authStateProvider.notifier).signInWithMicrosoft();
+                    await ref
+                        .read(authStateProvider.notifier)
+                        .signInWithMicrosoft();
 
-                    final duration = DateTime.now().difference(start).inMilliseconds;
+                    final duration =
+                        DateTime.now().difference(start).inMilliseconds;
                     await AppLogger.logResponseTime(
                       screen: 'LoginView',
                       responseTimeMs: duration,
@@ -72,7 +74,6 @@ class LoginView extends ConsumerWidget {
                     rethrow; // Let it continue if needed
                   }
                 },
-
               ),
             ),
           ],

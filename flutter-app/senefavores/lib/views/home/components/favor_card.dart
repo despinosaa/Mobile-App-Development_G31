@@ -19,10 +19,67 @@ class FavorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine badge color based on status
+    Color statusColor;
+    switch (favor.status.toLowerCase()) {
+      case 'pending':
+        statusColor = Colors.orange;
+        break;
+      case 'accepted':
+        statusColor = Colors.green;
+        break;
+      case 'done':
+      case 'completed':
+        statusColor = Colors.grey;
+        break;
+      case 'cancelled':
+        statusColor = Colors.red;
+        break;
+      default:
+        statusColor = AppColors.mikadoYellow;
+    }
+
+    // Status badge widget
+    final statusBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: statusColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        favor.status.capitalize(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+
+    // Category badge widget
+    final categoryBadge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: favor.category == FilterButtonCategory.favor.name.capitalize()
+            ? AppColors.lightRed
+            : favor.category == FilterButtonCategory.compra.name.capitalize()
+                ? AppColors.lightSkyBlue
+                : AppColors.orangeWeb,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        favor.category.capitalize(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Container(
-        padding: EdgeInsets.all(12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -39,53 +96,36 @@ class FavorCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(formatFavorTime(favor.createdAt),
-                    style: TextStyle(fontSize: 14, color: Colors.black54)),
-                Row(
-                  children: [
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: favor.category ==
-                                FilterButtonCategory.favor.name.capitalize()
-                            ? AppColors.lightRed
-                            : favor.category ==
-                                    FilterButtonCategory.compra.name
-                                        .capitalize()
-                                ? AppColors.lightSkyBlue
-                                : AppColors.orangeWeb,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        favor.category.capitalize(),
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      formatCurrency(favor.reward),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                Text(
+                  formatFavorTime(favor.createdAt),
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+                const SizedBox(width: 8),
+                statusBadge,
+                const Spacer(),
+                categoryBadge,
+                const SizedBox(width: 10),
+                Text(
+                  formatCurrency(favor.reward),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 8),
-            Text(favor.title,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 4),
+            const SizedBox(height: 8),
+            Text(
+              favor.title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
             Text(
               favor.description,
-              style: TextStyle(fontSize: 14, color: Colors.black87),
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -104,18 +144,17 @@ class FavorCard extends StatelessWidget {
                                 fit: BoxFit.cover,
                               ),
                             )
-                          : CircleAvatar(
+                          : const CircleAvatar(
                               radius: 15,
                               backgroundColor: Colors.white,
                               child: Icon(Icons.person, color: Colors.black),
                             ),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                        user.name != null
-                            ? truncateText(user.name!)
-                            : 'Anônimo',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                      user.name != null ? truncateText(user.name!) : 'Anónimo',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
                 buildStarRating(user.stars ?? 0.0),

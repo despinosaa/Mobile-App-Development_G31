@@ -1,5 +1,3 @@
-// lib/state/favors/models/favor_model.dart
-
 import 'package:senefavores/core/extension.dart';
 
 class FavorModel {
@@ -14,6 +12,7 @@ class FavorModel {
   final String? acceptUserId;
   final double? latitude;
   final double? longitude;
+  final String status;
 
   FavorModel({
     required this.id,
@@ -27,6 +26,7 @@ class FavorModel {
     this.acceptUserId,
     this.latitude,
     this.longitude,
+    required this.status,
   });
 
   factory FavorModel.fromJson(Map<String, dynamic> json) {
@@ -39,7 +39,7 @@ class FavorModel {
       favorTime: json['favor_time'] != null
           ? DateTime.parse(json['favor_time'])
           : null,
-      createdAt: DateTime.parse(json['created_at']),
+      createdAt: DateTime.parse(json['created_at'] ?? json['createdAt']),
       requestUserId: json['request_user_id'] as String,
       acceptUserId: json['accept_user_id'] as String?,
       latitude: json['latitude'] != null
@@ -48,24 +48,25 @@ class FavorModel {
       longitude: json['longitude'] != null
           ? (json['longitude'] as num).toDouble()
           : null,
+      status: (json['status'] as String?) ?? 'pending',
     );
   }
 
   Map<String, dynamic> toJson() {
-    // Build only the fields we want to send.
     final data = <String, dynamic>{
       'title': title,
       'description': description,
       'category': _normalizeCategory(category),
       'reward': reward,
       'favor_time': favorTime?.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
       'request_user_id': requestUserId,
       'accept_user_id': acceptUserId,
       'latitude': latitude,
       'longitude': longitude,
+      'status': status,
     };
 
-    // Remove any nulls so Postgres will use defaults (e.g. DEFAULT now() for created_at)
     data.removeWhere((_, v) => v == null);
     return data;
   }
