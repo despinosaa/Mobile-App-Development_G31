@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
+import 'package:senefavores/state/home/models/smart_sorting.dart';
 import 'package:senefavores/state/home/providers/selected_category_filter_button_provider.dart';
+import 'package:senefavores/state/home/providers/smart_sorting_state_notifier_provider.dart';
 
 class CategoryFilterButton extends ConsumerWidget {
   final Color textColor;
@@ -26,6 +29,9 @@ class CategoryFilterButton extends ConsumerWidget {
 
     return InkWell(
       onTap: () {
+        ref
+            .read(smartSortingStateNotifierProvider.notifier)
+            .setSorting(SmartSorting.disabled);
         if (selectedFilterButtonCategory == filterButtonCategory) {
           ref
               .read(selectedCategoryFilterButtonProvider.notifier)
@@ -48,7 +54,7 @@ class CategoryFilterButton extends ConsumerWidget {
                 : backgroundColor.withOpacity(0.4),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Text(text),
+          child: Text(text, style: AppTextStyles.oswaldBody),
         ),
       ),
     );

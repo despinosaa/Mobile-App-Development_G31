@@ -1,0 +1,4 @@
+enum FilterButtonSort {
+  asc,
+  desc,
+}
