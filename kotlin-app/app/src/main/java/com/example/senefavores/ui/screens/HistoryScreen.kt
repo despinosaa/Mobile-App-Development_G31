@@ -103,18 +103,16 @@ fun HistoryScreen(
     val reviews by favorViewModel.reviews.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Load user if not loaded
-    LaunchedEffect(userInfo) {
+    // Refresh key to trigger fetchAllFavors on status updates
+    var refreshKey by remember { mutableStateOf(0) }
+
+    // Load user and fetch data
+    LaunchedEffect(userInfo, refreshKey) {
         if (userInfo == null) {
             Log.d("HistoryScreen", "UserInfo is null, attempting to load user")
             userViewModel.loadUserClientInfo()
         }
-        favorViewModel.fetchFavors(userInfo?.id)
-    }
-
-    // Fetch all favors and reviews
-    LaunchedEffect(Unit) {
-        Log.d("HistoryScreen", "Fetching all favors and reviews")
+        Log.d("HistoryScreen", "Fetching all favors (refreshKey=$refreshKey)")
         favorViewModel.fetchAllFavors()
         favorViewModel.fetchReviews()
     }
@@ -160,7 +158,7 @@ fun HistoryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -190,13 +188,16 @@ fun HistoryScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    items(filteredFavors) { favor ->
+                    items(filteredFavors, key = { it.id.toString() }) { favor ->
                         val hasReview = reviews.any { it.id == favor.id }
                         HistoryFavorCard(
                             favor = favor,
                             isSolicitados = selectedTab == Tab.SOLICITADOS,
                             hasReview = hasReview,
-                            navController = navController
+                            navController = navController,
+                            userViewModel = userViewModel,
+                            favorViewModel = favorViewModel,
+                            onStatusUpdate = { refreshKey++ }
                         )
                     }
                 }

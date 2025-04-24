@@ -61,11 +61,13 @@ fun HistoryFavorCard(
     hasReview: Boolean,
     navController: NavController,
     userViewModel: UserViewModel = hiltViewModel(),
-    favorViewModel: FavorViewModel = hiltViewModel()
+    favorViewModel: FavorViewModel = hiltViewModel(),
+    onStatusUpdate: () -> Unit = {} // Callback for status updates
 ) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
     val userInfo by userViewModel.user.collectAsState()
+    var localStatus by remember(favor.id) { mutableStateOf(favor.status) }
 
     LaunchedEffect(favor.request_user_id) {
         userViewModel.getClientById(favor.request_user_id.toString())?.let { user ->
@@ -74,13 +76,16 @@ fun HistoryFavorCard(
         }
     }
 
+    LaunchedEffect(favor.status) {
+        localStatus = favor.status
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Fila superior con hora y categoría/remuneración
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -142,18 +147,16 @@ fun HistoryFavorCard(
                 RatingStars(rating = userRating)
             }
 
-            // Button logic for Solicitados
             if (isSolicitados) {
                 Spacer(modifier = Modifier.height(8.dp))
-                when (favor.status) {
+                when (localStatus) {
                     "pending" -> {
                         Button(
                             onClick = {
-                                favor.id?.let { favorViewModel.updateFavorStatus(it, "cancelled") }
-                                favorViewModel.fetchFavors(userInfo?.id)
-                                      },
-
-
+                                localStatus = "cancelled"
+                                favorViewModel.updateFavorStatus(favor.id.toString(), "cancelled")
+                                onStatusUpdate()
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.Red,
                                 contentColor = Color.White
@@ -171,9 +174,11 @@ fun HistoryFavorCard(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Button(
-                                onClick = { favor.id?.let { favorViewModel.updateFavorStatus(it, "cancelled") }
-                                            navController.navigate("home"){ launchSingleTop = true }
-                                          },
+                                onClick = {
+                                    localStatus = "cancelled"
+                                    favorViewModel.updateFavorStatus(favor.id.toString(), "cancelled")
+                                    onStatusUpdate()
+                                },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.Red,
                                     contentColor = Color.White
@@ -186,7 +191,11 @@ fun HistoryFavorCard(
                                 Text(text = "Cancelar", fontSize = 14.sp)
                             }
                             Button(
-                                onClick = { favor.id?.let { favorViewModel.updateFavorStatus(it, "done") } },
+                                onClick = {
+                                    localStatus = "done"
+                                    favorViewModel.updateFavorStatus(favor.id.toString(), "done")
+                                    onStatusUpdate()
+                                },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MikadoYellow,
                                     contentColor = BlackTextColor
@@ -213,7 +222,7 @@ fun HistoryFavorCard(
                         }
                     }
                     "done", "cancelled" -> {
-                        if (favor.status == "done" || (favor.status == "cancelled" && favor.accept_user_id != null)) {
+                        if (localStatus == "done" || (localStatus == "cancelled" && favor.accept_user_id != null)) {
                             Button(
                                 onClick = {
                                     if (favor.accept_user_id?.isNotEmpty() == true) {
@@ -234,26 +243,25 @@ fun HistoryFavorCard(
                     }
                 }
             } else {
-                // Existing logic for non-Solicitados
-                                if (isSolicitados && favor.accept_user_id != null && !hasReview) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Button(
-                                                    onClick = {
-                                                            if (favor.accept_user_id.isNotEmpty()) {
-                                                                navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
-                                                            }
-                                                        },
-                                            colors = ButtonDefaults.buttonColors(
-                                                        containerColor = MikadoYellow,
-                                                contentColor = BlackTextColor
-                                                    ),
-                                            modifier = Modifier
-                                                        .fillMaxWidth()
-                                                .height(40.dp)
-                                        ) {
-                                                Text(text = "Hacer Reseña", fontSize = 14.sp)
-                                            }
-                                    }
+                if (isSolicitados && favor.accept_user_id != null && !hasReview) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            if (favor.accept_user_id.isNotEmpty()) {
+                                navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MikadoYellow,
+                            contentColor = BlackTextColor
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                    ) {
+                        Text(text = "Hacer Reseña", fontSize = 14.sp)
+                    }
+                }
             }
         }
     }
