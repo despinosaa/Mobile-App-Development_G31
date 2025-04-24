@@ -24,14 +24,36 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.senefavores.R
+import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.TelemetryLogger
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    telemetryLogger: TelemetryLogger,
+    userRepository: UserRepository,
+    onScreenChange: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("RegisterScreen")
+    }
+
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("RegisterScreen", responseTime)
+        }
+    }
+
     val context = LocalContext.current
     val isAuthenticated by userViewModel.isAuthenticated.collectAsStateWithLifecycle()
     var email by remember { mutableStateOf("") }

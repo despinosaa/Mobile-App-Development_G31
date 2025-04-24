@@ -25,6 +25,7 @@ import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.formatTime2
 import com.example.senefavores.util.truncateText
 import kotlinx.coroutines.launch
@@ -37,8 +38,26 @@ fun ReviewScreen(
     requestUserId: String,
     acceptUserId: String,
     userViewModel: UserViewModel = hiltViewModel(),
-    favorViewModel: FavorViewModel = hiltViewModel()
+    favorViewModel: FavorViewModel = hiltViewModel(),
+    telemetryLogger: TelemetryLogger,
+    onScreenChange: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("ReviewScreen")
+    }
+
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("ReviewScreen", responseTime)
+        }
+    }
+
     val userInfo by userViewModel.user.collectAsState()
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -303,6 +322,26 @@ fun ReviewScreen(
                     modifier = Modifier.height(50.dp)
                 ) {
                     Text(text = "Enviar Reseña", fontSize = 16.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(
+                    onClick = {
+                        navController.navigate("history") { launchSingleTop = true }
+                    },
+                    modifier = Modifier.height(50.dp)
+                ) {
+                    Text(
+                        text = "Volver a Historial",
+                        fontSize = 16.sp,
+                        color = Color.Black
+                    )
                 }
             }
         }

@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -40,38 +41,66 @@ fun AppNavHost(
 ) {
     NavHost(navController = navController, startDestination = "signIn") {
         composable("signIn") {
-            SignInScreen(navController)
-            onScreenChange("signIn")
+            SignInScreen(
+                navController = navController,
+                userRepository = userRepository,
+                telemetryLogger = telemetryLogger,
+                onScreenChange = onScreenChange
+            )
             Log.d("AppNavHost", "Navigated to signIn")
         }
         composable("register") {
-            RegisterScreen(navController)
-            onScreenChange("register")
+            RegisterScreen(
+                navController = navController,
+                userRepository = userRepository,
+                telemetryLogger = telemetryLogger,
+                onScreenChange = onScreenChange
+            )
             Log.d("AppNavHost", "Navigated to register")
         }
         composable("forgot") {
-            ForgotPasswordScreen(navController)
-            onScreenChange("forgot")
+            ForgotPasswordScreen(
+                navController = navController,
+                userRepository = userRepository,
+                telemetryLogger = telemetryLogger,
+                onScreenChange = onScreenChange
+            )
             Log.d("AppNavHost", "Navigated to forgot")
         }
         composable("home") {
-            HomeScreen(navController)
-            onScreenChange("home")
-            Log.d("AppNavHost", "Navigated to home")
+            HomeScreen(
+                navController = navController,
+                userViewModel = hiltViewModel(),
+                favorViewModel = hiltViewModel(),
+                telemetryLogger = telemetryLogger,
+                onScreenChange = onScreenChange
+            )
         }
         composable("history") {
-            HistoryScreen(navController)
-            onScreenChange("history")
+            HistoryScreen(
+                navController = navController,
+                telemetryLogger = telemetryLogger,
+                favorRepository = favorRepository,
+                onScreenChange = onScreenChange
+            )
             Log.d("AppNavHost", "Navigated to history")
         }
         composable("account") {
-            AccountScreen(navController)
-            onScreenChange("account")
+            AccountScreen(
+                navController = navController,
+                userRepository = userRepository,
+                telemetryLogger = telemetryLogger,
+                onScreenChange = onScreenChange
+            )
             Log.d("AppNavHost", "Navigated to account")
         }
         composable("resetPassword") {
-            ResetPasswordScreen(navController)
-            onScreenChange("resetPassword")
+            ResetPasswordScreen(
+                navController = navController,
+                userRepository = userRepository,
+                telemetryLogger = telemetryLogger,
+                onScreenChange = onScreenChange
+            )
             Log.d("AppNavHost", "Navigated to resetPassword")
         }
         composable("createFavor") {
@@ -97,9 +126,10 @@ fun AppNavHost(
                     navController = navController,
                     favor = favor,
                     locationHelper = locationHelper,
-                    hasLocationPermission = hasLocationPermission
+                    hasLocationPermission = hasLocationPermission,
+                    telemetryLogger = telemetryLogger,
+                    onScreenChange = onScreenChange
                 )
-                onScreenChange("favorScreen")
                 Log.d("AppNavHost", "Navigated to favorScreen with favor=$favor")
             } else {
                 Text("Error al cargar el favor")
@@ -125,9 +155,10 @@ fun AppNavHost(
                     navController = navController,
                     favorId = favorId,
                     requestUserId = requestUserId,
-                    acceptUserId = acceptUserId
+                    acceptUserId = acceptUserId,
+                    telemetryLogger = telemetryLogger,
+                    onScreenChange = onScreenChange
                 )
-                onScreenChange("review")
                 Log.d("AppNavHost", "Navigated to review with favorId=$favorId, requestUserId=$requestUserId, acceptUserId=$acceptUserId")
             }
         }
