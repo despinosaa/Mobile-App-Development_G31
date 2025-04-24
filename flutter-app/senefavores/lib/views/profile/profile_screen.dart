@@ -11,7 +11,6 @@ import 'package:senefavores/views/components/build_star_rating.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title.dart';
 import 'package:senefavores/views/profile/components/review_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -131,8 +130,22 @@ class ProfileScreen extends ConsumerWidget {
                               controller: phoneController,
                               keyboardType: TextInputType.number,
                               maxLength: 10,
-                              decoration: const InputDecoration(
+                              cursorColor: Colors.black, // Set cursor color
+                              decoration: InputDecoration(
                                 labelText: "Ej: 310 123 4567",
+                                labelStyle: TextStyle(
+                                    color: Colors
+                                        .grey), // Label color when not focused
+                                focusedBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors
+                                          .black), // Underline color when focused
+                                ),
+                                enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors
+                                          .grey), // Underline color when not focused
+                                ),
                               ),
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,

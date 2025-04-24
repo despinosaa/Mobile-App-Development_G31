@@ -143,10 +143,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: Center(child: CircularProgressIndicator()),
                       ),
                       error: (error, stack) {
-                        return Padding(
+                        /*return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           child:
                               Center(child: Text("Error loading user: $error")),
+                        );*/
+                        return const SizedBox(
+                          height: 0,
                         );
                       },
                     );
@@ -162,15 +165,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   screen: 'HomeScreen',
                   crashInfo: error.toString(),
                 );
-
-                if (error.toString() ==
-                    'Null check operator used on a null value') {
+                return const SizedBox(
+                  height: 0,
+                );
+                /*if (error.toString() ==
+                    'Null check operator used on a null value') { 
                   return const Center(
                       child: CircularProgressIndicator(
                     color: Colors.black,
                   ));
                 }
-                return Center(child: Text("Error loading favors: $error"));
+                return Center(child: Text("Error loading favors: $error"));*/
               },
             ),
           ),

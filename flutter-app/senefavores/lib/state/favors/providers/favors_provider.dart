@@ -58,7 +58,8 @@ final favorsStreamProvider =
           );
           return data
               .map((favor) => FavorModel.fromJson(favor))
-              .where((favor) => favor.acceptUserId == null)
+              .where((favor) =>
+                  favor.acceptUserId == null && favor.status == "pending")
               .toList();
         });
 
@@ -96,7 +97,8 @@ final favorsStreamProvider =
           );
           return data
               .map((favor) => FavorModel.fromJson(favor))
-              .where((favor) => favor.acceptUserId == null)
+              .where((favor) =>
+                  favor.acceptUserId == null && favor.status == "pending")
               .toList();
         });
   } else {
@@ -123,7 +125,8 @@ final favorsStreamProvider =
               .map((favor) => FavorModel.fromJson(favor))
               .where((favor) =>
                   favor.requestUserId != currentUser.id &&
-                  favor.acceptUserId == null)
+                  favor.acceptUserId == null &&
+                  favor.status == "pending")
               .toList();
         });
   }

@@ -184,9 +184,14 @@ class PostFavorScreen extends HookConsumerWidget {
 
                   // Parse and validate the reward value.
                   final rewardValue = int.tryParse(rewardText);
-                  if (rewardValue == null ||
-                      rewardValue < 100 ||
-                      rewardValue > 1000000) {
+                  if (rewardValue == null) {
+                    ref.read(snackbarProvider).showSnackbar(
+                          "La recompensa debe ser un número válido",
+                          isError: true,
+                        );
+                    return;
+                  }
+                  if (rewardValue < 100 || rewardValue > 1000000) {
                     ref.read(snackbarProvider).showSnackbar(
                           r"La recompensa debe estar entre $100 y $1.000.000",
                           isError: true,

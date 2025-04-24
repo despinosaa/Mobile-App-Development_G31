@@ -15,24 +15,31 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
 
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(
-    url: 'https://kebumzcxttyquorhiicf.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlYnVtemN4dHR5cXVvcmhpaWNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2NDM1MDQsImV4cCI6MjA1NzIxOTUwNH0.PiAnATAnWk_7Brz6XzZqQMkaCoGOItFGKhy1EZ8OnVg',
-  );
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    AppLogger.logCrash(screen: 'global', crashInfo: details.exceptionAsString());
-  };
+    await Supabase.initialize(
+      url: 'https://kebumzcxttyquorhiicf.supabase.co',
+      anonKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlYnVtemN4dHR5cXVvcmhpaWNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2NDM1MDQsImV4cCI6MjA1NzIxOTUwNH0.PiAnATAnWk_7Brz6XzZqQMkaCoGOItFGKhy1EZ8OnVg',
+    );
 
-  runZonedGuarded(
-        () => runApp(const ProviderScope(child: MyApp())),
-        (error, stack) => AppLogger.logCrash(screen: 'global', crashInfo: error.toString()),
-  );
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      AppLogger.logCrash(
+        screen: 'global',
+        crashInfo: details.exceptionAsString(),
+      );
+    };
 
+    runApp(const ProviderScope(child: MyApp()));
+  }, (error, stack) {
+    AppLogger.logCrash(
+      screen: 'global',
+      crashInfo: error.toString(),
+    );
+  });
 }
 
 class MyApp extends StatelessWidget {

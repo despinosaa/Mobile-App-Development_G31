@@ -6,11 +6,10 @@ import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
-import 'dart:async';
 import 'package:senefavores/utils/logger.dart';
 
 class MisFavoresView extends ConsumerStatefulWidget {
-  const MisFavoresView({Key? key}) : super(key: key);
+  const MisFavoresView({super.key});
 
   @override
   ConsumerState<MisFavoresView> createState() => _MisFavoresViewState();
@@ -109,7 +108,10 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
           screen: 'MisFavoresView',
           crashInfo: error.toString(),
         );
-        return Center(child: Text("Error: $error"));
+        //return Center(child: Text("Error: $error"));
+        return const SizedBox(
+          height: 0,
+        );
       },
       data: (favorsList) {
         if (favorsList.isEmpty) {
@@ -128,10 +130,15 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
                   color: Colors.black,
                 )),
               ),
-              error: (error, stack) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Center(child: Text("Error loading user: $error")),
-              ),
+              error: (error, stack) {
+                /*return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Center(child: Text("Error loading user: $error")),
+                );*/
+                return const SizedBox(
+                  height: 0,
+                );
+              },
               data: (reqUser) => FavorCard(favor: favor, user: reqUser),
             );
           },
@@ -154,7 +161,10 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
           screen: 'MisFavoresView',
           crashInfo: error.toString(),
         );
-        return Center(child: Text("Error: $error"));
+        //return Center(child: Text("Error: $error"));
+        return const SizedBox(
+          height: 0,
+        );
       },
       data: (favorsList) {
         if (favorsList.isEmpty) {
@@ -170,10 +180,15 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (error, stack) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Center(child: Text("Error loading user: $error")),
-              ),
+              error: (error, stack) {
+                /*return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Center(child: Text("Error loading user: $error")),
+                );*/
+                return const SizedBox(
+                  height: 0,
+                );
+              },
               data: (reqUser) => FavorCard(favor: favor, user: reqUser),
             );
           },
