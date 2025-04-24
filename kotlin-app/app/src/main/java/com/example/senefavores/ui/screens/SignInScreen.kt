@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.senefavores.ui.theme.BlackButtons
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -25,14 +26,36 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.senefavores.R
+import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.TelemetryLogger
+import kotlinx.coroutines.launch
 
 @Composable
 fun SignInScreen(
     navController: NavController,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    telemetryLogger: TelemetryLogger,
+    userRepository: UserRepository,
+    onScreenChange: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("SignInScreen")
+    }
+
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("SignInScreen", responseTime)
+        }
+    }
+
     val context = LocalContext.current
     val isAuthenticated by userViewModel.isAuthenticated.collectAsStateWithLifecycle()
     var showPasswordResetDialog by remember { mutableStateOf(false) }
@@ -75,10 +98,10 @@ fun SignInScreen(
             onValueChange = { if (it.length <= 50) email = it },
             label = { Text("Correo Electrónico") },
             modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-        singleLine = true
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            singleLine = true
         )
 
         // Password TextField with Eye Icon
@@ -104,7 +127,6 @@ fun SignInScreen(
             }
         )
 
-
         // Login Button
         CustomButton(
             text = if (isLoading) "Iniciando..." else "Iniciar Sesión",
@@ -123,7 +145,7 @@ fun SignInScreen(
                     Toast.makeText(context, "Por favor, ingrese correo y contraseña", Toast.LENGTH_SHORT).show()
                 }
             },
-            backgroundColor = Color(0xFF4CAF50), // Green for sign-in
+            backgroundColor = BlackButtons, // Green for sign-in
             textColor = Color.White,
             hasBorder = false,
             enabled = !isLoading

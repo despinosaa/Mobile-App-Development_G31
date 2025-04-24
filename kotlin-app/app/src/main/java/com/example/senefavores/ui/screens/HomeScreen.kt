@@ -35,12 +35,14 @@ import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BackgroundColor
 import com.example.senefavores.ui.theme.BlackTextColor
+import com.example.senefavores.util.TelemetryLogger
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -72,7 +74,29 @@ fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hiltViewModel(), favorViewModel: FavorViewModel = hiltViewModel()) {
+fun HomeScreen(
+    navController: NavController,
+    userViewModel: UserViewModel = hiltViewModel(),
+    favorViewModel: FavorViewModel = hiltViewModel(),
+    telemetryLogger: TelemetryLogger,
+    onScreenChange: (String) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("HomeScreen")
+    }
+
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("HomeScreen", responseTime)
+        }
+    }
+
     val userInfo by userViewModel.user.collectAsState()
     val hasCompletedInfo by userViewModel.hasCompletedInfo.collectAsState()
     val allFavorsOr by favorViewModel.favors.collectAsState()

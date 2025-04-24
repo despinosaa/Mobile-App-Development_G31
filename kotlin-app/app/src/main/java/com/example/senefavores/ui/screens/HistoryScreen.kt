@@ -15,14 +15,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
+import com.example.senefavores.data.repository.FavorRepository
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.HistoryFavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.TelemetryLogger
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import kotlinx.coroutines.launch
 
 enum class Tab {
     SOLICITADOS,
@@ -94,8 +97,27 @@ fun parseDateTime(dateTimeStr: String): LocalDateTime {
 fun HistoryScreen(
     navController: NavController,
     userViewModel: UserViewModel = hiltViewModel(),
-    favorViewModel: FavorViewModel = hiltViewModel()
+    favorViewModel: FavorViewModel = hiltViewModel(),
+    telemetryLogger: TelemetryLogger,
+    favorRepository: FavorRepository,
+    onScreenChange: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("HistoryScreen")
+    }
+
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("HistoryScreen", responseTime)
+        }
+    }
+
     var selectedTab by remember { mutableStateOf(Tab.SOLICITADOS) }
     var selectedItem by remember { mutableStateOf(2) } // 2 corresponds to History
     val userInfo by userViewModel.user.collectAsState()

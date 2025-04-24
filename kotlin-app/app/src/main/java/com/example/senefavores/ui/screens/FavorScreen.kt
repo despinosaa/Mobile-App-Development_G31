@@ -9,7 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,16 +18,15 @@ import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.SenefavoresHeader
-import com.example.senefavores.ui.theme.BlackButtons
 import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.theme.MikadoYellow
-import com.example.senefavores.ui.theme.WhiteTextColor
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
 
 @Composable
@@ -38,8 +36,26 @@ fun FavorScreen(
     locationHelper: LocationHelper,
     hasLocationPermission: Boolean,
     userViewModel: UserViewModel = hiltViewModel(),
-    favorViewModel: FavorViewModel = hiltViewModel()
+    favorViewModel: FavorViewModel = hiltViewModel(),
+    telemetryLogger: TelemetryLogger,
+    onScreenChange: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("FavorScreen")
+    }
+
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("FavorScreen", responseTime)
+        }
+    }
+
     var selectedItem by remember { mutableStateOf(0) }
     var showDialog by remember { mutableStateOf(false) }
     var userStars by remember { mutableStateOf(0f) }

@@ -14,14 +14,38 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.components.CustomButton
+import com.example.senefavores.ui.theme.BlackButtons
+import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.TelemetryLogger
+import kotlinx.coroutines.launch
 
 @Composable
 fun ResetPasswordScreen(
     navController: NavController,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    telemetryLogger: TelemetryLogger,
+    userRepository: UserRepository,
+    onScreenChange: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+
+    // Notify the parent of the current screen for crash reporting
+    LaunchedEffect(Unit) {
+        onScreenChange("ResetPasswordScreen")
+    }
+
+    // Log response time after the screen is composed
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("ResetPasswordScreen", responseTime)
+        }
+    }
+
     val context = LocalContext.current
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -94,8 +118,8 @@ fun ResetPasswordScreen(
                     Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                 }
             },
-            backgroundColor = Color(0xFF4CAF50), // Green
-            textColor = Color.White,
+            backgroundColor = MikadoYellow, // Green
+            textColor = Color.Black,
             hasBorder = false,
             enabled = !isLoading
         )
@@ -112,7 +136,7 @@ fun ResetPasswordScreen(
             },
             modifier = Modifier.padding(top = 16.dp)
         ) {
-            Text("Volver a Cuenta", color = Color.Blue)
+            Text("Volver a Cuenta", color = Color.Black)
         }
     }
 }
