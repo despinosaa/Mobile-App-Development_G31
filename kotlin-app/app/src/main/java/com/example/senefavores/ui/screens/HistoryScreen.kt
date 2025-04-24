@@ -109,6 +109,7 @@ fun HistoryScreen(
             Log.d("HistoryScreen", "UserInfo is null, attempting to load user")
             userViewModel.loadUserClientInfo()
         }
+        favorViewModel.fetchFavors(userInfo?.id)
     }
 
     // Fetch all favors and reviews

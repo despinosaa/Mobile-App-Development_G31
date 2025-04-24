@@ -25,7 +25,7 @@ class FavorRepository @Inject constructor(
                 val query = supabaseClient.from("favors").select(
                     ) {
                     filter {
-                        exact("accept_user_id", null)
+                        eq("status", "pending")
                         if (userId != null) {
                             neq("request_user_id", userId)
                         }
@@ -65,7 +65,8 @@ class FavorRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             runCatching {
                 supabaseClient.from("favors").update(
-                    { set("accept_user_id", userId) }
+                    { set("accept_user_id", userId)
+                        set("status", "accepted")}
                 ) {
                     filter { eq("id", favorId) }
                 }
@@ -73,6 +74,24 @@ class FavorRepository @Inject constructor(
                 Log.e("FavorRepository", "Error updating favor $favorId: ${it.localizedMessage}", it)
                 throw it // Propagate error to ViewModel
             }
+        }
+    }
+
+    suspend fun updateFavorStatus(favorId: String, status: String) {
+        try {
+            supabaseClient.from("favors").update(
+                {
+                    set("status", status)
+                }
+            ) {
+                filter {
+                    eq("id", favorId)
+                }
+            }
+            Log.d("FavorRepository", "Updated favor $favorId to status=$status")
+        } catch (e: Exception) {
+            Log.e("FavorRepository", "Error updating favor $favorId status: ${e.message}", e)
+            throw e
         }
     }
 

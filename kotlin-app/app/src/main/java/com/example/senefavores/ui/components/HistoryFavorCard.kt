@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +28,7 @@ import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.theme.MikadoYellow
+import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -58,10 +60,12 @@ fun HistoryFavorCard(
     isSolicitados: Boolean,
     hasReview: Boolean,
     navController: NavController,
-    userViewModel: UserViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel(),
+    favorViewModel: FavorViewModel = hiltViewModel()
 ) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
+    val userInfo by userViewModel.user.collectAsState()
 
     LaunchedEffect(favor.request_user_id) {
         userViewModel.getClientById(favor.request_user_id.toString())?.let { user ->
@@ -138,25 +142,118 @@ fun HistoryFavorCard(
                 RatingStars(rating = userRating)
             }
 
-            // Review button for Solicitados, accepted, and not reviewed
-            if (isSolicitados && favor.accept_user_id != null && !hasReview) {
+            // Button logic for Solicitados
+            if (isSolicitados) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        if (favor.accept_user_id.isNotEmpty()) {
-                            navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
+                when (favor.status) {
+                    "pending" -> {
+                        Button(
+                            onClick = {
+                                favor.id?.let { favorViewModel.updateFavorStatus(it, "cancelled") }
+                                favorViewModel.fetchFavors(userInfo?.id)
+                                      },
+
+
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Red,
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                        ) {
+                            Text(text = "Cancelar", fontSize = 14.sp)
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MikadoYellow,
-                        contentColor = BlackTextColor
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                ) {
-                    Text(text = "Hacer Reseña", fontSize = 14.sp)
+                    }
+                    "accepted" -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Button(
+                                onClick = { favor.id?.let { favorViewModel.updateFavorStatus(it, "cancelled") }
+                                            navController.navigate("home"){ launchSingleTop = true }
+                                          },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Red,
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .padding(end = 4.dp)
+                            ) {
+                                Text(text = "Cancelar", fontSize = 14.sp)
+                            }
+                            Button(
+                                onClick = { favor.id?.let { favorViewModel.updateFavorStatus(it, "done") } },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MikadoYellow,
+                                    contentColor = BlackTextColor
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .padding(end = 4.dp)
+                            ) {
+                                Text(text = "Finalizar", fontSize = 14.sp)
+                            }
+                            Button(
+                                onClick = { /* Placeholder: No action */ },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Gray,
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                            ) {
+                                Text(text = "Senetendero", fontSize = 14.sp)
+                            }
+                        }
+                    }
+                    "done", "cancelled" -> {
+                        if (favor.status == "done" || (favor.status == "cancelled" && favor.accept_user_id != null)) {
+                            Button(
+                                onClick = {
+                                    if (favor.accept_user_id?.isNotEmpty() == true) {
+                                        navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MikadoYellow,
+                                    contentColor = BlackTextColor
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                            ) {
+                                Text(text = "Hacer Reseña", fontSize = 14.sp)
+                            }
+                        }
+                    }
                 }
+            } else {
+                // Existing logic for non-Solicitados
+                                if (isSolicitados && favor.accept_user_id != null && !hasReview) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Button(
+                                                    onClick = {
+                                                            if (favor.accept_user_id.isNotEmpty()) {
+                                                                navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
+                                                            }
+                                                        },
+                                            colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MikadoYellow,
+                                                contentColor = BlackTextColor
+                                                    ),
+                                            modifier = Modifier
+                                                        .fillMaxWidth()
+                                                .height(40.dp)
+                                        ) {
+                                                Text(text = "Hacer Reseña", fontSize = 14.sp)
+                                            }
+                                    }
             }
         }
     }
