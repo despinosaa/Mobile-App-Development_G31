@@ -8,6 +8,7 @@ import 'package:senefavores/state/snackbar/models/snackbar_message_model.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_notification_provider.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/auth_watcher_provider.dart';
+import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/loading_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/navigation/navigation_screen.dart';
@@ -77,6 +78,7 @@ class MyApp extends StatelessWidget {
             final authState = ref.watch(authStateProvider);
 
             if (authState.result == AuthResult.loggedIn) {
+              ref.read(currentUserNotifierProvider.notifier).refreshUser();
               return const NavigationScreen();
             } else {
               return const LoginView();
