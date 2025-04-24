@@ -99,6 +99,8 @@ class UserRepository @Inject constructor(
         }
     }
 
+
+
     suspend fun signInWithEmail(emailS: String, passwordS: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -269,6 +271,22 @@ class UserRepository @Inject constructor(
 
             if (authUser == null || authUser.email == null) {
                 Log.d("ClientInsert", "No auth user or email found")
+                return
+            }
+
+            Log.d("ClientInsert", "Found")
+
+            // Check if user already exists in clients table
+            val existingClient = supabaseClient.from("clients")
+                .select {
+                    filter {
+                        eq("id", authUser.id)
+                    }
+                }
+                .decodeSingleOrNull<User>()
+
+            if (existingClient != null) {
+                Log.d("ClientInsert", "Client already exists: id=${authUser.id}, email=${authUser.email}")
                 return
             }
 

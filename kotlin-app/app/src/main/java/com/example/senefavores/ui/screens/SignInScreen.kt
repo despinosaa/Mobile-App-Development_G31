@@ -72,19 +72,19 @@ fun SignInScreen(
         // Email TextField
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { if (it.length <= 50) email = it },
             label = { Text("Correo Electrónico") },
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        singleLine = true
         )
 
         // Password TextField with Eye Icon
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { if (it.length <= 22) password = it },
             label = { Text("Contraseña") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,6 +103,7 @@ fun SignInScreen(
                 }
             }
         )
+
 
         // Login Button
         CustomButton(
@@ -164,7 +165,7 @@ fun SignInScreen(
                     Column {
                         OutlinedTextField(
                             value = resetEmail,
-                            onValueChange = { resetEmail = it },
+                            onValueChange = { if (it.length <= 50) resetEmail = it },
                             label = { Text("Correo Electrónico") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),

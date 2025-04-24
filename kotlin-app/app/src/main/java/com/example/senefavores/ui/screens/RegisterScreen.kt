@@ -72,7 +72,7 @@ fun RegisterScreen(
         // Email TextField
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { if (it.length <= 50) email = it },
             label = { Text("Correo Electrónico") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -84,7 +84,7 @@ fun RegisterScreen(
         // Password TextField
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { if (it.length <= 21) password = it },
             label = { Text("Contraseña") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -97,7 +97,7 @@ fun RegisterScreen(
         // Confirm Password TextField
         OutlinedTextField(
             value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            onValueChange = { if (it.length <= 21) confirmPassword = it },
             label = { Text("Confirmar Contraseña") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -107,12 +107,22 @@ fun RegisterScreen(
             singleLine = true
         )
 
+        // Warning Text
+        Text(
+            text = "La contraseña debe tener entre 8 y 21 caracteres.",
+            fontSize = 12.sp,
+            color = Color.Red,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
         // Register Button
         CustomButton(
             text = if (isLoading) "Registrando..." else "Registrarse",
             onClick = {
                 if (email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank()) {
-                    if (password != confirmPassword) {
+                    if (password.length < 8 || confirmPassword.length < 8) {
+                        Toast.makeText(context, "La contraseña debe tener al menos 8 caracteres", Toast.LENGTH_SHORT).show()
+                    } else if (password != confirmPassword) {
                         Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
                     } else if (!email.endsWith("@uniandes.edu.co")) {
                         Toast.makeText(context, "Correo debe terminar en @uniandes.edu.co", Toast.LENGTH_SHORT).show()

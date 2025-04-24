@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -52,14 +53,29 @@ class UserViewModel @Inject constructor(
     suspend fun loadUserClientInfo(): User? {
         Log.d("UserViewModel", "Fetching user client data...")
         try {
+            // Attempt to restore session
             val session = supabaseClient.supabase.auth.currentSessionOrNull()
             if (session == null) {
-                Log.e("UserViewModel", "No active session found")
-                _error.value = "No se encontró una sesión activa"
-                _user.value = null
-                return null
+                Log.d("UserViewModel", "No active session, attempting to restore...")
+                try {
+                    val restoredSession = supabaseClient.supabase.auth.currentSessionOrNull()
+                    if (restoredSession == null) {
+                        Log.e("UserViewModel", "Failed to restore session")
+                        _error.value = "No se encontró una sesión activa"
+                        _user.value = null
+                        return null
+                    }
+                    Log.d("UserViewModel", "Session restored: user_id=${restoredSession.user?.id}")
+                } catch (e: Exception) {
+                    Log.e("UserViewModel", "Error restoring session: ${e.localizedMessage}", e)
+                    _error.value = "Error al restaurar la sesión: ${e.localizedMessage}"
+                    _user.value = null
+                    return null
+                }
+            } else {
+                Log.d("UserViewModel", "Session found: user_id=${session.user?.id}")
             }
-            Log.d("UserViewModel", "Session found: user_id=${session.user?.id}")
+
             val userData = userRepository.getCurrentClient()
             Log.d("UserViewModel", "User client loaded: $userData")
             _user.value = userData
@@ -129,6 +145,7 @@ class UserViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 userRepository.signInWithEmail(email, password)
+                delay(1000)
                 _isAuthenticated.value = true
                 loadUserClientInfo()
                 Log.d("UserViewModel", "Email sign-in successful")

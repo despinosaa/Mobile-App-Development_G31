@@ -1,7 +1,6 @@
 package com.example.senefavores.ui.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.senefavores.data.model.Favor
@@ -28,7 +27,7 @@ class FavorViewModel @Inject constructor(
     private val _userReviews = MutableStateFlow<List<Review>>(emptyList())
     val userReviews: StateFlow<List<Review>> = _userReviews
 
-    private val _reviews= MutableStateFlow<List<Review>>(emptyList())
+    private val _reviews = MutableStateFlow<List<Review>>(emptyList())
     val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
 
     fun fetchFavors(userId: String?) {
@@ -56,7 +55,6 @@ class FavorViewModel @Inject constructor(
             try {
                 favorRepository.updateFavorAcceptUserId(favorId, userId)
                 Log.d("FavorViewModel", "Favor $favorId accepted by user $userId")
-
                 fetchFavors(userId)
             } catch (e: Exception) {
                 Log.e("FavorViewModel", "Error accepting favor $favorId: ${e.localizedMessage}", e)
@@ -70,7 +68,6 @@ class FavorViewModel @Inject constructor(
             try {
                 favorRepository.updateFavorStatus(favorId, status)
                 Log.d("FavorViewModel", "Updated favor $favorId to status=$status")
-                // Refresh favors to reflect the update
                 val userId = _favors.value.firstOrNull { it.id == favorId }?.request_user_id
                 fetchFavors(userId)
             } catch (e: Exception) {
@@ -103,14 +100,26 @@ class FavorViewModel @Inject constructor(
         }
     }
 
+    suspend fun getFavorById(favorId: String): Favor? {
+        if (favorId.isBlank()) {
+            Log.e("FavorViewModel", "Invalid favorId: empty or blank")
+            return null
+        }
+        return try {
+            val favor = favorRepository.getFavorById(favorId)
+            Log.d("FavorViewModel", "Fetched favor: $favor")
+            favor
+        } catch (e: Exception) {
+            Log.e("FavorViewModel", "Error fetching favor: ${e.localizedMessage}, cause: ${e.cause}", e)
+            null
+        }
+    }
+
     fun addReview(review: Review) {
         viewModelScope.launch {
             try {
-                // Insert the review
                 favorRepository.addReview(review)
                 Log.d("FavorViewModel", "Review added: $review")
-
-                // Update client stars
                 val reviews = favorRepository.getReviewsByReviewedId(review.reviewed_id)
                 val averageStars = if (reviews.isNotEmpty()) {
                     reviews.map { it.stars }.average().toFloat()
@@ -119,14 +128,11 @@ class FavorViewModel @Inject constructor(
                 }
                 favorRepository.updateClientStars(review.reviewed_id, averageStars)
                 Log.d("FavorViewModel", "Updated client stars for ${review.reviewed_id}: $averageStars")
-
-                // Refresh reviews to keep UI in sync
                 fetchReviews()
             } catch (e: Exception) {
                 Log.e("FavorViewModel", "Error adding review or updating stars: ${e.localizedMessage}", e)
-                throw e // Propagate to ReviewScreen for Snackbar
+                throw e
             }
         }
     }
-
 }

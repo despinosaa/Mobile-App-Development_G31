@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +40,7 @@ import kotlinx.serialization.json.Json
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.viewmodel.FavorViewModel
+import kotlinx.coroutines.delay
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -76,27 +78,27 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
     val allFavorsOr by favorViewModel.favors.collectAsState()
     val allFavors = allFavorsOr.take(25)
 
-    var showDialog by remember { mutableStateOf(false) }
-    var hasChecked by remember { mutableStateOf(false) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+    var hasChecked by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(hasCompletedInfo, hasChecked, userInfo) {
+    LaunchedEffect(userInfo, hasCompletedInfo, hasChecked) {
         if (!hasChecked) {
             Log.d("Dialog", "Checking user info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
             Log.d("UserInfo", "Loading user info...")
+
+            // Delay to ensure session is set after sign-in
+            delay(500)
             val user = userViewModel.loadUserClientInfo()
             Log.d("UserInfo", "User loaded: $user")
 
-            if (user != null) {
-                if (user.name?.isNotEmpty() != true || user.phone?.isNotEmpty() != true) {
-                    showDialog = true
-                    hasChecked = true
-                }
-            } else {
+            if (user == null) {
                 Log.d("UserInfo", "No client found, inserting new client")
                 userViewModel.insertUserInClients()
                 showDialog = true
-                hasChecked = true
+            } else if (user.name.isNullOrEmpty() || user.phone.isNullOrEmpty()) {
+                showDialog = true
             }
+            hasChecked = true
             Log.d("Dialog", "Updated showDialog: $showDialog")
         }
         // Fetch favors with user ID (null if user not loaded)
@@ -107,7 +109,7 @@ fun HomeScreen(navController: NavController, userViewModel: UserViewModel = hilt
         showDialog = showDialog,
         userInfo = userInfo,
         userViewModel = userViewModel,
-        onDismiss = { showDialog = false; hasChecked = false }
+        onDismiss = { showDialog = false }
     )
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }

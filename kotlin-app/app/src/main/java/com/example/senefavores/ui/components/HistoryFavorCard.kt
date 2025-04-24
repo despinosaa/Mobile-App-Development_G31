@@ -11,25 +11,30 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
-import com.example.senefavores.ui.theme.FavorCategoryColor
-import com.example.senefavores.ui.theme.CompraCategoryColor
-import com.example.senefavores.ui.theme.TutoriaCategoryColor
+import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.theme.BlackTextColor
+import com.example.senefavores.ui.theme.CompraCategoryColor
+import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.MikadoYellow
+import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -53,6 +58,14 @@ fun formatTime2(favorTime: String): String {
     throw IllegalArgumentException("Invalid date format: $favorTime")
 }
 
+fun truncateText(text: String, maxLength: Int = 32): String {
+    return if (text.length > maxLength) {
+        text.take(maxLength) + "..."
+    } else {
+        text
+    }
+}
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HistoryFavorCard(
@@ -62,22 +75,98 @@ fun HistoryFavorCard(
     navController: NavController,
     userViewModel: UserViewModel = hiltViewModel(),
     favorViewModel: FavorViewModel = hiltViewModel(),
-    onStatusUpdate: () -> Unit = {} // Callback for status updates
+    onStatusUpdate: () -> Unit = {}
 ) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
     val userInfo by userViewModel.user.collectAsState()
     var localStatus by remember(favor.id) { mutableStateOf(favor.status) }
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedUser by remember { mutableStateOf<User?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(favor.request_user_id) {
-        userViewModel.getClientById(favor.request_user_id.toString())?.let { user ->
-            userName = user.name ?: "Usuario desconocido"
-            userRating = user.stars ?: 0.0f
+    // Fetch user name based on tab
+    LaunchedEffect(favor.id, isSolicitados) {
+        if (isSolicitados) {
+            // Solicitados: Use accept_user_id
+            userName = favor.accept_user_id?.let { acceptId ->
+                userViewModel.getClientById(acceptId)?.name ?: "Usuario desconocido"
+            } ?: "Ninguno"
+            userRating = favor.accept_user_id?.let { acceptId ->
+                userViewModel.getClientById(acceptId)?.stars ?: 0.0f
+            } ?: 0.0f
+        } else {
+            // Aceptados: Use request_user_id
+            userViewModel.getClientById(favor.request_user_id)?.let { user ->
+                userName = user.name ?: "Usuario desconocido"
+                userRating = user.stars ?: 0.0f
+            }
         }
     }
 
     LaunchedEffect(favor.status) {
         localStatus = favor.status
+    }
+
+    // Dialog for Senetendero info
+    if (showDialog && selectedUser != null) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Información del Senetendero")
+                    if (!selectedUser?.profilePic.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = selectedUser?.profilePic,
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .padding(bottom = 8.dp),
+                            contentScale = ContentScale.Crop,
+                            error = painterResource(R.drawable.ic_account),
+                            placeholder = painterResource(R.drawable.ic_account)
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.ic_account),
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier
+                                .size(80.dp)
+                                .padding(bottom = 8.dp)
+                        )
+                    }
+                    Text("Nombre: ${truncateText(selectedUser?.name ?: "Desconocido")}")
+                    Text("Correo: ${truncateText(selectedUser?.email ?: "N/A")}")
+                    Text("Teléfono: ${truncateText(selectedUser?.phone ?: "N/A")}")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("Calificación:")
+                        RatingStars(rating = selectedUser?.stars ?: 0.0f)
+                    }
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Button(
+                        onClick = { showDialog = false },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MikadoYellow,
+                            contentColor = BlackTextColor
+                        )
+                    ) {
+                        Text("Cerrar")
+                    }
+                }
+            }
+        )
     }
 
     Card(
@@ -91,7 +180,11 @@ fun HistoryFavorCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = formatTime2(favor.created_at), fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
+                Text(
+                    text = truncateText(formatTime2(favor.created_at)),
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(
@@ -106,28 +199,39 @@ fun HistoryFavorCard(
                         ),
                         modifier = Modifier
                             .height(32.dp)
-                            .width(72.dp)
-                            .padding(end = 4.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            .width(72.dp),
+                        contentPadding = PaddingValues(vertical = 2.dp)
                     ) {
                         Text(
-                            text = favor.category,
+                            text = truncateText(favor.category),
                             fontSize = 14.sp,
                             color = BlackTextColor,
                             maxLines = 1
                         )
                     }
-                    Text(text = "$ ${favor.reward}", fontSize = 14.sp)
+                    Text(
+                        text = truncateText("$ ${favor.reward}"),
+                        fontSize = 14.sp
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(text = favor.title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = truncateText(favor.title),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text(text = favor.description, fontSize = 14.sp)
+            Text(
+                text = truncateText(favor.description),
+                fontSize = 14.sp,
+                maxLines = 1
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -140,9 +244,11 @@ fun HistoryFavorCard(
                     contentDescription = "Usuario",
                     modifier = Modifier
                         .size(20.dp)
-                        .padding(end = 4.dp)
                 )
-                Text(text = userName, fontSize = 14.sp)
+                Text(
+                    text = truncateText(if (isSolicitados) "Senetendero: $userName" else "Solicitante: $userName"),
+                    fontSize = 14.sp
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 RatingStars(rating = userRating)
             }
@@ -186,9 +292,8 @@ fun HistoryFavorCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp)
-                                    .padding(end = 4.dp)
                             ) {
-                                Text(text = "Cancelar", fontSize = 14.sp)
+                                Text(text = "Cancelar", fontSize = 11.sp)
                             }
                             Button(
                                 onClick = {
@@ -203,26 +308,35 @@ fun HistoryFavorCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp)
-                                    .padding(end = 4.dp)
                             ) {
-                                Text(text = "Finalizar", fontSize = 14.sp)
+                                Text(text = "Finalizar", fontSize = 11.sp)
                             }
                             Button(
-                                onClick = { /* Placeholder: No action */ },
+                                onClick = {
+                                    favor.accept_user_id?.let { acceptId ->
+                                        coroutineScope.launch {
+                                            userViewModel.getClientById(acceptId)?.let { user ->
+                                                selectedUser = user
+                                                showDialog = true
+                                            }
+                                        }
+                                    }
+                                },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.Gray,
                                     contentColor = Color.White
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(40.dp)
+                                    .height(40.dp),
+                                enabled = favor.accept_user_id != null
                             ) {
-                                Text(text = "Senetendero", fontSize = 14.sp)
+                                Text(text = "Senetendero", fontSize = 11.sp)
                             }
                         }
                     }
                     "done", "cancelled" -> {
-                        if (localStatus == "done" || (localStatus == "cancelled" && favor.accept_user_id != null)) {
+                        if (!hasReview && (localStatus == "done" || (localStatus == "cancelled" && favor.accept_user_id != null))) {
                             Button(
                                 onClick = {
                                     if (favor.accept_user_id?.isNotEmpty() == true) {
@@ -240,26 +354,6 @@ fun HistoryFavorCard(
                                 Text(text = "Hacer Reseña", fontSize = 14.sp)
                             }
                         }
-                    }
-                }
-            } else {
-                if (isSolicitados && favor.accept_user_id != null && !hasReview) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            if (favor.accept_user_id.isNotEmpty()) {
-                                navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MikadoYellow,
-                            contentColor = BlackTextColor
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                    ) {
-                        Text(text = "Hacer Reseña", fontSize = 14.sp)
                     }
                 }
             }

@@ -4,6 +4,7 @@ import android.provider.SyncStateContract.Columns
 import android.util.Log
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
+import com.example.senefavores.data.model.User
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -36,6 +37,39 @@ class FavorRepository @Inject constructor(
                 Log.e("FavorRepository", "Error fetching favors: ${it.localizedMessage}", it)
                 emptyList()
             }
+        }
+    }
+
+    suspend fun getFavorById(favorId: String): Favor? {
+        return try {
+            val favor = supabaseClient
+                .from("favors")
+                .select(
+                    columns = io.github.jan.supabase.postgrest.query.Columns.list(
+                        "id",
+                        "title",
+                        "description",
+                        "category",
+                        "reward",
+                        "favor_time",
+                        "created_at",
+                        "request_user_id",
+                        "accept_user_id",
+                        "latitude",
+                        "longitude",
+                        "status"
+                    )
+                ) {
+                    filter {
+                        eq("id", favorId)
+                    }
+                }
+                .decodeSingle<Favor>()
+            Log.d("FavorViewModel", "Fetched favor: $favor")
+            favor
+        } catch (e: Exception) {
+            Log.e("FavorViewModel", "Error fetching favor: ${e.localizedMessage}", e)
+            null
         }
     }
 

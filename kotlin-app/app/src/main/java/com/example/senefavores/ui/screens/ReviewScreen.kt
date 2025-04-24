@@ -1,24 +1,35 @@
 package com.example.senefavores.ui.screens
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
+import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.SenefavoresHeader
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.formatTime2
+import com.example.senefavores.util.truncateText
 import kotlinx.coroutines.launch
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReviewScreen(
     navController: NavController,
@@ -32,6 +43,9 @@ fun ReviewScreen(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var stars by remember { mutableStateOf(0) }
+    var favor by remember { mutableStateOf<Favor?>(null) }
+    var acceptUserName by remember { mutableStateOf("Cargando...") }
+    var selectedItem by remember { mutableStateOf(2) } // History selected
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val starsOptions = listOf(1, 2, 3, 4, 5)
@@ -45,6 +59,17 @@ fun ReviewScreen(
         }
     }
 
+    // Fetch favor and accept user's name
+    LaunchedEffect(favorId, acceptUserId) {
+        favor = favorViewModel.getFavorById(favorId)
+        acceptUserName = if (acceptUserId.isNotEmpty()) {
+            userViewModel.getClientById(acceptUserId)?.name ?: "Usuario desconocido"
+        } else {
+            "Ninguno"
+        }
+        Log.d("ReviewScreen", "Favor: $favor, AcceptUserName: $acceptUserName")
+    }
+
     // Log userInfo, favorId, requestUserId, acceptUserId
     LaunchedEffect(userInfo, favorId, requestUserId, acceptUserId) {
         Log.d("ReviewScreen", "UserInfo: id=${userInfo?.id}, name=${userInfo?.name}, favorId=$favorId, requestUserId=$requestUserId, acceptUserId=$acceptUserId")
@@ -52,9 +77,29 @@ fun ReviewScreen(
 
     Scaffold(
         topBar = {
-            SenefavoresHeader(
-                title = "Hacer Reseña",
-                onAccountClick = { navController.navigate("account") }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                SenefavoresHeader(
+                    title = "Hacer Reseña",
+                    onAccountClick = { navController.navigate("account") }
+                )
+            }
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                selectedItem = selectedItem,
+                onItemClick = { index ->
+                    selectedItem = index
+                    when (index) {
+                        0 -> navController.navigate("home") { launchSingleTop = true }
+                        1 -> navController.navigate("createFavor") { launchSingleTop = true }
+                        2 -> navController.navigate("history") { launchSingleTop = true }
+                    }
+                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -67,6 +112,81 @@ fun ReviewScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Favor and User Information
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Favor",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                if (favor != null) {
+                    Text(
+                        text = AnnotatedString.Builder().apply {
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("Título: ")
+                            }
+                            append(truncateText(favor!!.title))
+                        }.toAnnotatedString(),
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = AnnotatedString.Builder().apply {
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("Descripción: ")
+                            }
+                            append(truncateText(favor!!.description))
+                        }.toAnnotatedString(),
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = AnnotatedString.Builder().apply {
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("Hora: ")
+                            }
+                            append(favor!!.favor_time?.let { formatTime2(it) } ?: "N/A")
+                        }.toAnnotatedString(),
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = AnnotatedString.Builder().apply {
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("Estado: ")
+                            }
+                            append(
+                                when (favor!!.status) {
+                                    "pending" -> "Pendiente"
+                                    "accepted" -> "Aceptado"
+                                    "done" -> "Completado"
+                                    else -> "Desconocido"
+                                }
+                            )
+                        }.toAnnotatedString(),
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = AnnotatedString.Builder().apply {
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("Senetendero: ")
+                            }
+                            append(truncateText(acceptUserName))
+                        }.toAnnotatedString(),
+                        fontSize = 14.sp
+                    )
+                } else {
+                    Text(
+                        text = "Cargando información del favor...",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            // Review Form
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -126,61 +246,64 @@ fun ReviewScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = {
-                    if (userInfo?.id == null) {
-                        Log.d("ReviewScreen", "Submit failed: User not authenticated")
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Usuario no autenticado")
-                        }
-                        return@Button
-                    }
-                    if (title.isBlank() || description.isBlank() || stars == 0) {
-                        Log.d("ReviewScreen", "Submit failed: Empty fields (title=$title, description=$description, stars=$stars)")
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Por favor, completa todos los campos")
-                        }
-                        return@Button
-                    }
-                    if (acceptUserId.isEmpty()) {
-                        Log.d("ReviewScreen", "Submit failed: Invalid acceptUserId")
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("ID de usuario aceptado inválido")
-                        }
-                        return@Button
-                    }
-                    coroutineScope.launch {
-                        try {
-                            Log.d("ReviewScreen", "Creating review: id=$favorId, reviewer_id=${userInfo!!.id}, reviewed_id=$acceptUserId")
-                            val review = Review(
-                                id = favorId,
-                                title = title,
-                                description = description,
-                                stars = stars,
-                                reviewer_id = userInfo!!.id,
-                                reviewed_id = acceptUserId
-                            )
-                            Log.d("ReviewScreen", "Submitting review: $review")
-                            favorViewModel.addReview(review)
-                            Log.d("ReviewScreen", "Review submitted successfully")
-                            navController.navigate("history") { launchSingleTop = true }
-                        } catch (e: Exception) {
-                            Log.e("ReviewScreen", "Error submitting review: ${e.localizedMessage}, cause: ${e.cause}", e)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(
+                    onClick = {
+                        if (userInfo?.id == null) {
+                            Log.d("ReviewScreen", "Submit failed: User not authenticated")
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Error al enviar reseña: ${e.localizedMessage}")
+                                snackbarHostState.showSnackbar("Usuario no autenticado")
+                            }
+                            return@Button
+                        }
+                        if (title.isBlank() || description.isBlank() || stars == 0) {
+                            Log.d("ReviewScreen", "Submit failed: Empty fields (title=$title, description=$description, stars=$stars)")
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Por favor, completa todos los campos")
+                            }
+                            return@Button
+                        }
+                        if (acceptUserId.isEmpty()) {
+                            Log.d("ReviewScreen", "Submit failed: Invalid acceptUserId")
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("ID de usuario aceptado inválido")
+                            }
+                            return@Button
+                        }
+                        coroutineScope.launch {
+                            try {
+                                Log.d("ReviewScreen", "Creating review: id=$favorId, reviewer_id=${userInfo!!.id}, reviewed_id=$acceptUserId")
+                                val review = Review(
+                                    id = favorId,
+                                    title = title,
+                                    description = description,
+                                    stars = stars,
+                                    reviewer_id = userInfo!!.id,
+                                    reviewed_id = acceptUserId
+                                )
+                                Log.d("ReviewScreen", "Submitting review: $review")
+                                favorViewModel.addReview(review)
+                                Log.d("ReviewScreen", "Review submitted successfully")
+                                navController.navigate("history") { launchSingleTop = true }
+                            } catch (e: Exception) {
+                                Log.e("ReviewScreen", "Error submitting review: ${e.localizedMessage}, cause: ${e.cause}", e)
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Error al enviar reseña: ${e.localizedMessage}")
+                                }
                             }
                         }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MikadoYellow,
-                    contentColor = BlackTextColor
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text(text = "Enviar Reseña", fontSize = 16.sp)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MikadoYellow,
+                        contentColor = BlackTextColor
+                    ),
+                    modifier = Modifier.height(50.dp)
+                ) {
+                    Text(text = "Enviar Reseña", fontSize = 16.sp)
+                }
             }
         }
     }
