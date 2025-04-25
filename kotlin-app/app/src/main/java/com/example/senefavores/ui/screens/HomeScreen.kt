@@ -35,6 +35,7 @@ import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BackgroundColor
 import com.example.senefavores.ui.theme.BlackTextColor
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.parseDateTime
 import kotlinx.serialization.encodeToString
@@ -70,6 +71,7 @@ fun HomeScreen(
     userViewModel: UserViewModel = hiltViewModel(),
     favorViewModel: FavorViewModel = hiltViewModel(),
     telemetryLogger: TelemetryLogger,
+    networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -93,6 +95,14 @@ fun HomeScreen(
 
     var showDialog by rememberSaveable { mutableStateOf(false) }
     var hasChecked by rememberSaveable { mutableStateOf(false) }
+
+    var isOnline by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        isOnline = networkChecker.isOnline()
+        if (!isOnline) {
+            Log.d("HomeScreen", "No internet connection detected")
+        }
+    }
 
     LaunchedEffect(userInfo, hasCompletedInfo, hasChecked) {
         if (!hasChecked) {
@@ -246,16 +256,33 @@ fun HomeScreen(
                     )
                 }
             }
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(displayedFavors) { favor ->
-                    FavorCard(favor = favor, userViewModel = userViewModel, onClick = {
-                        val favorJson = Json.encodeToString(favor)
-                        navController.navigate("favorScreen/$favorJson")
-                    })
+            if (isOnline) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    items(displayedFavors) { favor ->
+                        FavorCard(favor = favor, userViewModel = userViewModel, onClick = {
+                            val favorJson = Json.encodeToString(favor)
+                            navController.navigate("favorScreen/$favorJson")
+                        })
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Estás sin conexión",
+                        fontSize = 18.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }

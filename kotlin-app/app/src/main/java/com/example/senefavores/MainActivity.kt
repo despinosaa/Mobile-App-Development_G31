@@ -21,6 +21,7 @@ import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.navigation.AppNavHost
 import com.example.senefavores.ui.theme.SenefavoresTheme
 import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.SupabaseClient
@@ -44,6 +45,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var userRepository: UserRepository
+
+    @Inject
+    lateinit var networkChecker: NetworkChecker
 
     private var hasLocationPermission by mutableStateOf(false)
     private var currentScreen by mutableStateOf("MainActivity")
@@ -95,6 +99,7 @@ class MainActivity : ComponentActivity() {
                         telemetryLogger = telemetryLogger,
                         favorRepository = favorRepository,
                         userRepository = userRepository,
+                        networkChecker = networkChecker,
                         onScreenChange = { screenName ->
                             currentScreen = screenName
                         }
