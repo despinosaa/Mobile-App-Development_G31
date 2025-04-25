@@ -1,17 +1,15 @@
 package com.example.senefavores.data.repository
 
-import android.provider.SyncStateContract.Columns
 import android.util.Log
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
-import com.example.senefavores.data.model.User
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.buildJsonObject
-import java.util.Objects.isNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,17 +18,18 @@ class FavorRepository @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) {
 
-    suspend fun getFavors(userId: String?): List<Favor> {
+    suspend fun getFavors(userId: String?, offset: Int = 0, limit: Int = 100): List<Favor> {
         return withContext(Dispatchers.IO) {
             runCatching {
-                val query = supabaseClient.from("favors").select(
-                    ) {
+                val query = supabaseClient.from("favors").select {
                     filter {
                         eq("status", "pending")
                         if (userId != null) {
                             neq("request_user_id", userId)
                         }
                     }
+                    order("created_at", order = Order.DESCENDING)
+                    range(offset.toLong(), (offset + limit - 1).toLong()) // Convert Int to Long
                 }
                 query.decodeList<Favor>()
             }.getOrElse {
@@ -45,7 +44,7 @@ class FavorRepository @Inject constructor(
             val favor = supabaseClient
                 .from("favors")
                 .select(
-                    columns = io.github.jan.supabase.postgrest.query.Columns.list(
+                    columns = Columns.list(
                         "id",
                         "title",
                         "description",
@@ -68,11 +67,10 @@ class FavorRepository @Inject constructor(
             Log.d("FavorViewModel", "Fetched favor: $favor")
             favor
         } catch (e: Exception) {
-            Log.e("FavorViewModel", "Error fetching favor: ${e.localizedMessage}", e)
+            Log.e("FavorViewModel", "Error fetching favor: ${e.localizedMessage}", e) // Fixed 'it' to 'e'
             null
         }
     }
-
 
     suspend fun getAllFavors(): List<Favor> {
         return withContext(Dispatchers.IO) {
@@ -100,8 +98,10 @@ class FavorRepository @Inject constructor(
         withContext(Dispatchers.IO) {
             runCatching {
                 supabaseClient.from("favors").update(
-                    { set("accept_user_id", userId)
-                        set("status", "accepted")}
+                    {
+                        set("accept_user_id", userId)
+                        set("status", "accepted")
+                    }
                 ) {
                     filter { eq("id", favorId) }
                 }
@@ -156,6 +156,7 @@ class FavorRepository @Inject constructor(
             }
         }
     }
+
     suspend fun getReviewsByReviewedId(reviewedId: String): List<Review> = withContext(Dispatchers.IO) {
         try {
             val reviews = supabaseClient.postgrest["reviews"].select {
