@@ -123,6 +123,8 @@ class FavorCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               favor.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
             const SizedBox(height: 12),
