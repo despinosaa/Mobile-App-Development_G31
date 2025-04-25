@@ -24,7 +24,17 @@ class ProfileScreen extends ConsumerWidget {
 
     ref.read(currentUserNotifierProvider.notifier).refreshUser();
     final currentUser = ref.watch(currentUserNotifierProvider);
-    ref.refresh(userReviewsProvider(currentUser!.id));
+
+    // If currentUser is still loading (null), show a loader or placeholder
+    if (currentUser == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.black),
+        ),
+      );
+    }
+
+    ref.refresh(userReviewsProvider(currentUser.id));
 
     return Scaffold(
       backgroundColor: Colors.white,
