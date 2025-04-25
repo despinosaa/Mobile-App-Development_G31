@@ -1,53 +1,70 @@
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/state/user/models/user_model.dart';
+import 'package:senefavores/utils/local_database.dart';
 
 class CurrentUserStateNotifier extends StateNotifier<UserModel?> {
-  CurrentUserStateNotifier() : super(null) {
+  CurrentUserStateNotifier(): super(null) {
     fetchCurrentUser();
   }
 
-  void updatePhone(String phone) {
-    if (state != null) {
-      state = state!.copyWith(phone: phone);
-    }
-  }
-
+  /// Called on sign-in / auth changes
   Future<void> fetchCurrentUser() async {
     try {
       final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-
-      if (user == null) {
+      final authUser = supabase.auth.currentUser;
+      if (authUser == null) {
         state = null;
         return;
       }
 
-      final Map<String, dynamic>? response = await supabase
+      // 1. check connectivity
+      final conn = await Connectivity().checkConnectivity();
+      if (conn == ConnectivityResult.none) {
+        // → offline: load from cache
+        state = await LocalDatabase.instance.getCachedUser(authUser.id);
+        return;
+      }
+
+      // 2. online: fetch from Supabase
+      final resp = await supabase
           .from('clients')
           .select()
-          .eq('email', user.email!)
+          .eq('id', authUser.id)
           .maybeSingle();
 
-      if (response != null) {
-        state = UserModel.fromJson(response);
+      if (resp != null) {
+        final u = UserModel.fromJson(resp as Map<String, dynamic>);
+        state = u;
+        // cache
+        await LocalDatabase.instance.cacheUser(u);
       } else {
         state = null;
       }
     } catch (e) {
-      state = null;
+      // on error, fall back to cache
+      final authUser = Supabase.instance.client.auth.currentUser;
+      if (authUser != null) {
+        state = await LocalDatabase.instance.getCachedUser(authUser.id);
+      } else {
+        state = null;
+      }
     }
   }
 
-  void setUser(UserModel user) {
-    state = user;
+  void updatePhone(String phone) {
+    if (state != null) {
+      final updated = state!.copyWith(phone: phone);
+      state = updated;
+      // update cache
+      LocalDatabase.instance.cacheUser(updated);
+    }
   }
 
-  void clearUser() {
+  Future<void> clearUser() async {
     state = null;
   }
 
-  Future<void> refreshUser() async {
-    await fetchCurrentUser();
-  }
+  Future<void> refreshUser() => fetchCurrentUser();
 }
