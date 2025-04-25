@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
@@ -233,7 +234,13 @@ fun CreateFavorScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Text(text = "Categoría:")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text(text = "Categoría:")
+            }
             Spacer(modifier = Modifier.height(12.dp))
             // CATEGORÍA
             Row(
@@ -310,8 +317,10 @@ fun CreateFavorScreen(
                             request_user_id = currentUserId,
                             accept_user_id = "",
                             latitude = latitud,
-                            longitude = longitud
+                            longitude = longitud,
+                            status = "pending"
                         )
+                        Log.e("Favor", newFavor.status.toString())
                         favorViewModel.addFavor(newFavor)
                         navController.navigate("home") { launchSingleTop = true }
                     }

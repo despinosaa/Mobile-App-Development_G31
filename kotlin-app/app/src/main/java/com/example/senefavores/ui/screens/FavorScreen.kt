@@ -28,6 +28,27 @@ import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.LocationHelper
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+
+
+@Composable
+fun RewardText(reward: Int) {
+    val df = remember {
+        DecimalFormat("#,###", DecimalFormatSymbols().apply {
+            groupingSeparator = '.'
+            decimalSeparator  = ','
+        })
+    }
+    val formatted = df.format(reward)
+
+    Text(
+        text     = "Recompensa: $ $formatted",
+        fontSize = 16.sp,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Start
+    )
+}
 
 @Composable
 fun FavorScreen(
@@ -163,12 +184,7 @@ fun FavorScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Recompensa: ${favor.reward}",
-                fontSize = 16.sp,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Start
-            )
+            RewardText(favor.reward)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -182,23 +198,23 @@ fun FavorScreen(
                 )
                 Button(
                     onClick = { /* No action */ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = categoryColor
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = categoryColor),
                     modifier = Modifier
                         .height(35.dp)
-                        .widthIn(min = 80.dp, max = 100.dp)
-                        .padding(horizontal = 4.dp)
+                        .wrapContentWidth()
+                        .defaultMinSize(minWidth = 0.dp)
+                        .padding(horizontal = 4.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
                 ) {
                     Text(
                         text = favor.category,
                         fontSize = 14.sp,
                         color = BlackTextColor,
                         maxLines = 1,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        textAlign = TextAlign.Center
                     )
                 }
+
             }
 
             Spacer(modifier = Modifier.height(16.dp))

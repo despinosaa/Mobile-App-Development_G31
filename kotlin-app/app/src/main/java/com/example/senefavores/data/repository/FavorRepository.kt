@@ -90,6 +90,7 @@ class FavorRepository @Inject constructor(
             supabaseClient
                 .from("favors")
                 .insert(favor)
+            Log.e("Favor", favor.toString())
         }.onFailure {
             Log.e("FavorRepository", "Error adding favor: ${it.localizedMessage}")
         }

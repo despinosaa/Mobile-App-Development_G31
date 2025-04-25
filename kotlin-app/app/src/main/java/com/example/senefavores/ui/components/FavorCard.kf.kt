@@ -34,6 +34,9 @@ import com.example.senefavores.ui.viewmodel.UserViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun formatTime(favorTime: String): String {
@@ -54,6 +57,22 @@ fun formatTime(favorTime: String): String {
     throw IllegalArgumentException("Invalid date format: $favorTime")
 }
 
+@Composable
+fun RewardText(reward: Int) {
+    // set up a DecimalFormat that uses '.' for grouping
+    val df = remember {
+        DecimalFormat("#,###", DecimalFormatSymbols().apply {
+            groupingSeparator = '.'
+            decimalSeparator  = ','
+        })
+    }
+    val formatted = df.format(reward)
+
+    Text(
+        text     = "$ $formatted",
+        fontSize = 14.sp
+    )
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -108,7 +127,7 @@ fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onCl
                             maxLines = 1
                         )
                     }
-                    Text(text = "$ ${favor.reward}", fontSize = 14.sp)
+                    RewardText(favor.reward)
                 }
             }
 
