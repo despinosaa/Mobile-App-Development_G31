@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
@@ -21,6 +23,7 @@ import com.example.senefavores.ui.components.HistoryFavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.parseDateTime
 import java.time.LocalDateTime
@@ -81,6 +84,7 @@ fun HistoryScreen(
     favorViewModel: FavorViewModel = hiltViewModel(),
     telemetryLogger: TelemetryLogger,
     favorRepository: FavorRepository,
+    networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -105,6 +109,14 @@ fun HistoryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var refreshKey by remember { mutableStateOf(0) }
+
+    var isOnline by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        isOnline = networkChecker.isOnline()
+        if (!isOnline) {
+            Log.d("HistoryScreen", "No internet connection detected")
+        }
+    }
 
     LaunchedEffect(userInfo, refreshKey) {
         if (userInfo == null) {
@@ -176,7 +188,22 @@ fun HistoryScreen(
                 onTabSelected = { tab -> selectedTab = tab }
             )
 
-            if (userInfo?.id == null) {
+            if (!isOnline) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Estás sin conexión",
+                        fontSize = 18.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else if (userInfo?.id == null) {
                 Text(
                     text = "Por favor, inicia sesión para ver tu historial",
                     modifier = Modifier.padding(16.dp)

@@ -25,6 +25,7 @@ import com.example.senefavores.ui.screens.SignInScreen
 import com.example.senefavores.ui.screens.RegisterScreen
 import com.example.senefavores.ui.screens.ResetPasswordScreen
 import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.serialization.json.Json
 
@@ -37,6 +38,7 @@ fun AppNavHost(
     telemetryLogger: TelemetryLogger,
     favorRepository: FavorRepository,
     userRepository: UserRepository,
+    networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     NavHost(navController = navController, startDestination = "signIn") {
@@ -73,14 +75,18 @@ fun AppNavHost(
                 userViewModel = hiltViewModel(),
                 favorViewModel = hiltViewModel(),
                 telemetryLogger = telemetryLogger,
+                networkChecker = networkChecker,
                 onScreenChange = onScreenChange
             )
         }
         composable("history") {
             HistoryScreen(
                 navController = navController,
+                userViewModel = hiltViewModel(),
+                favorViewModel = hiltViewModel(),
                 telemetryLogger = telemetryLogger,
                 favorRepository = favorRepository,
+                networkChecker = networkChecker,
                 onScreenChange = onScreenChange
             )
             Log.d("AppNavHost", "Navigated to history")
