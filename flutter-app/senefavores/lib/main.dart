@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'The best app: Senefavores',
       theme: AppTheme.lightTheme,
       home: SafeArea(
         child: Consumer(
@@ -61,7 +61,7 @@ class MyApp extends StatelessWidget {
             ref.listen<bool>(isLoadingProvider, (previous, next) {
               if (next) {
                 LoadingScreen.instance()
-                    .show(context: context, text: 'Loading...');
+                    .show(context: context, text: 'Loading.......');
               } else {
                 LoadingScreen.instance().hide();
               }
