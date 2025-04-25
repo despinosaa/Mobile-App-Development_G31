@@ -30,10 +30,52 @@ class FavorViewModel @Inject constructor(
     private val _reviews = MutableStateFlow<List<Review>>(emptyList())
     val reviews: StateFlow<List<Review>> = _reviews.asStateFlow()
 
+    private var currentOffset = 0
+    private val pageSize = 100
+    private var hasMoreFavors = true
+
     fun fetchFavors(userId: String?) {
         viewModelScope.launch {
-            _favors.value = favorRepository.getFavors(userId)
-            Log.d("DEBUG", "Favor time from API: ${_favors.value}")
+            try {
+                // Reset pagination state when fetching anew
+                currentOffset = 0
+                hasMoreFavors = true
+                val fetchedFavors = favorRepository.getFavors(userId, currentOffset, pageSize)
+                _favors.value = fetchedFavors
+                hasMoreFavors = fetchedFavors.size == pageSize
+                currentOffset += fetchedFavors.size
+                Log.d("DEBUG", "Fetched ${fetchedFavors.size} favors from API (offset: 0), sorted by created_at (descending):")
+                fetchedFavors.forEachIndexed { index, favor ->
+                    Log.d("DEBUG", "Favor #$index: ${favor.title}, created_at: ${favor.created_at}")
+                }
+            } catch (e: Exception) {
+                Log.e("FavorViewModel", "Error fetching favors: ${e.localizedMessage}", e)
+                _favors.value = emptyList()
+                hasMoreFavors = false
+            }
+        }
+    }
+
+    fun loadMoreFavors(userId: String?) {
+        if (!hasMoreFavors) {
+            Log.d("FavorViewModel", "No more favors to load")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val newFavors = favorRepository.getFavors(userId, currentOffset, pageSize)
+                _favors.value = _favors.value + newFavors
+                hasMoreFavors = newFavors.size == pageSize
+                currentOffset += newFavors.size
+                Log.d("DEBUG", "Loaded ${newFavors.size} more favors (offset: ${currentOffset - newFavors.size}), total: ${_favors.value.size}")
+                newFavors.forEachIndexed { index, favor ->
+                    Log.d("DEBUG", "Favor #${currentOffset - newFavors.size + index}: ${favor.title}, created_at: ${favor.created_at}")
+                }
+            } catch (e: Exception) {
+                Log.e("FavorViewModel", "Error loading more favors: ${e.localizedMessage}", e)
+                hasMoreFavors = false
+            }
         }
     }
 

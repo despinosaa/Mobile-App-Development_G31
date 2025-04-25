@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -27,44 +28,23 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
+import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.FavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
-import com.example.senefavores.ui.theme.FavorCategoryColor
-import com.example.senefavores.ui.theme.CompraCategoryColor
-import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BackgroundColor
 import com.example.senefavores.ui.theme.BlackTextColor
-import com.example.senefavores.util.TelemetryLogger
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import com.example.senefavores.ui.viewmodel.UserViewModel
-import com.example.senefavores.data.model.User
+import com.example.senefavores.ui.theme.CompraCategoryColor
+import com.example.senefavores.ui.theme.FavorCategoryColor
+import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.viewmodel.FavorViewModel
+import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.TelemetryLogger
+import com.example.senefavores.util.parseDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun timeToMinutes(favorTime: String): Int {
-    val possibleFormats = listOf(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-    )
-
-    for (formatter in possibleFormats) {
-        try {
-            val dateTime = LocalDateTime.parse(favorTime, formatter)
-            return dateTime.hour * 60 + dateTime.minute
-        } catch (e: DateTimeParseException) {
-            // Ignore and try the next format
-        }
-    }
-
-    throw IllegalArgumentException("Invalid date format: $favorTime")
-}
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
     val categoryFrequency = history.groupingBy { it }.eachCount()
@@ -99,8 +79,7 @@ fun HomeScreen(
 
     val userInfo by userViewModel.user.collectAsState()
     val hasCompletedInfo by userViewModel.hasCompletedInfo.collectAsState()
-    val allFavorsOr by favorViewModel.favors.collectAsState()
-    val allFavors = allFavorsOr.take(25)
+    val allFavors by favorViewModel.favors.collectAsState()
 
     var showDialog by rememberSaveable { mutableStateOf(false) }
     var hasChecked by rememberSaveable { mutableStateOf(false) }
@@ -140,6 +119,7 @@ fun HomeScreen(
     var selectedItem by remember { mutableStateOf(0) }
     var isSortDescending by remember { mutableStateOf(true) }
     var isSmartSortActive by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
@@ -152,9 +132,9 @@ fun HomeScreen(
         }
     }.let { favors ->
         if (isSortDescending) {
-            favors.sortedBy { timeToMinutes(it.created_at) }.reversed()
+            favors.sortedBy { parseDateTime(it.created_at) }.reversed()
         } else {
-            favors.sortedBy { timeToMinutes(it.created_at) }
+            favors.sortedBy { parseDateTime(it.created_at) }
         }
     }
 
@@ -162,6 +142,22 @@ fun HomeScreen(
         mutableStateOf(
             if (isSmartSortActive) smartSortFavors(filteredFavors, acceptedFavorsHistory) else filteredFavors
         )
+    }
+
+    // LazyColumn state to detect scroll position
+    val listState = rememberLazyListState()
+
+    // Detect when the user reaches the end of the list
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
+            .collect { visibleItems ->
+                val lastVisibleItem = visibleItems.lastOrNull()
+                if (lastVisibleItem != null && lastVisibleItem.index == displayedFavors.size - 1 && !isLoading) {
+                    isLoading = true
+                    favorViewModel.loadMoreFavors(userInfo?.id)
+                    isLoading = false
+                }
+            }
     }
 
     Scaffold(
@@ -253,13 +249,24 @@ fun HomeScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp),
+                state = listState
             ) {
                 items(displayedFavors) { favor ->
                     FavorCard(favor = favor, onClick = {
                         val favorJson = Json.encodeToString(favor)
                         navController.navigate("favorScreen/$favorJson")
                     })
+                }
+                if (isLoading) {
+                    item {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .wrapContentWidth(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
         }
