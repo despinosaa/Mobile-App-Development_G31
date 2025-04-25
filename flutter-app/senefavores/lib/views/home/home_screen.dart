@@ -1,6 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/providers/favors_provider.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/home/models/filter_button_sort.dart';
@@ -8,6 +10,8 @@ import 'package:senefavores/state/home/models/smart_sorting.dart';
 import 'package:senefavores/state/home/providers/selected_category_filter_button_provider.dart';
 import 'package:senefavores/state/home/providers/selected_sort_filter_button_provider.dart';
 import 'package:senefavores/state/home/providers/smart_sorting_state_notifier_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
+import 'package:senefavores/state/user/models/user_model.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/acceptfavor/accept_favor_screen.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
@@ -29,6 +33,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final favors = ref.watch(favorsStreamProvider);
     final filter = ref.watch(selectedSortFilterButtonProvider);
     final smartSorting = ref.watch(smartSortingStateNotifierProvider);
+    final connectivity = ref.watch(connectivityProvider).value;
 
     return SafeArea(
       child: Column(
@@ -124,6 +129,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     final userAsync =
                         ref.watch(userProvider(favor.requestUserId));
 
+                    if (connectivity == ConnectivityResult.none) {
+                      return InkWell(
+                        onTap: () {
+                          ref.read(snackbarProvider).showSnackbar(
+                                "No hay conexión a Internet",
+                                isError: true,
+                              );
+                        },
+                        child: FavorCard(
+                          favor: favor,
+                          user: UserModel(
+                            email: " ",
+                            id: " ",
+                            name: " ",
+                          ),
+                        ),
+                      );
+                    }
+
                     return userAsync.when(
                       data: (user) => InkWell(
                         onTap: () {
@@ -165,17 +189,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   screen: 'HomeScreen',
                   crashInfo: error.toString(),
                 );
-                return const SizedBox(
-                  height: 0,
-                );
-                /*if (error.toString() ==
-                    'Null check operator used on a null value') { 
+
+                if (error.toString() ==
+                    'Null check operator used on a null value') {
                   return const Center(
                       child: CircularProgressIndicator(
                     color: Colors.black,
                   ));
                 }
-                return Center(child: Text("Error loading favors: $error"));*/
+                return const Center(
+                    child: CircularProgressIndicator(
+                  color: Colors.black,
+                ));
+                return Center(child: Text("Error loading favors: $error"));
               },
             ),
           ),

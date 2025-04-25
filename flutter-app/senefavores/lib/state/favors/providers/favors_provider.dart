@@ -1,5 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:hive/hive.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/extension.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/home/models/filter_button_sort.dart';
@@ -7,6 +10,7 @@ import 'package:senefavores/state/home/models/smart_sorting.dart';
 import 'package:senefavores/state/home/providers/selected_category_filter_button_provider.dart';
 import 'package:senefavores/state/home/providers/selected_sort_filter_button_provider.dart';
 import 'package:senefavores/state/home/providers/smart_sorting_state_notifier_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:senefavores/utils/logger.dart';
@@ -14,6 +18,9 @@ import 'package:senefavores/utils/logger.dart';
 final favorsStreamProvider =
     StreamProvider.autoDispose<List<FavorModel>>((ref) async* {
   final supabase = Supabase.instance.client;
+
+  final connectivity = ref.watch(connectivityProvider).value;
+  final box = await Hive.openBox('favorsBox');
 
   final selectedCategory = ref.watch(selectedCategoryFilterButtonProvider);
   final selectedSort = ref.watch(selectedSortFilterButtonProvider);
@@ -25,6 +32,80 @@ final favorsStreamProvider =
     return;
   }
 
+  if (connectivity == ConnectivityResult.none) {
+    ref.read(snackbarProvider).showSnackbar(
+          "No internet connection. Showing cached favors.",
+          isError: true,
+        );
+    final cachedFavors = box.get('cachedFavors', defaultValue: []);
+    try {
+      List<FavorModel> favorsList =
+          List<Map<String, dynamic>>.from(cachedFavors)
+              .map((e) => FavorModel.fromJson(e))
+              .where((favor) =>
+                  favor.acceptUserId == null &&
+                  favor.status == "pending" &&
+                  // Apply category filter if selected
+                  (selectedCategory == FilterButtonCategory.none ||
+                      favor.category ==
+                          (selectedCategory == FilterButtonCategory.tutoria
+                              ? 'Tutoría'
+                              : selectedCategory
+                                  .toString()
+                                  .split('.')
+                                  .last
+                                  .capitalize())))
+              .toList();
+
+      // Apply sorting (by createdAt)
+      favorsList.sort((a, b) {
+        if (selectedSort == FilterButtonSort.asc) {
+          return a.createdAt.compareTo(b.createdAt);
+        } else {
+          return b.createdAt.compareTo(a.createdAt);
+        }
+      });
+
+      // Apply Smart Sorting based on cached favors (accepted ones)
+      if (smartSorting == SmartSorting.enabled) {
+        // Calculate accepted category count from cached favors
+        final acceptedCategoryCount = <String, int>{};
+        List<Map<String, dynamic>> cachedData =
+            List<Map<String, dynamic>>.from(cachedFavors);
+        for (var favorJson in cachedData) {
+          final favor = FavorModel.fromJson(favorJson);
+          if (favor.acceptUserId != null) {
+            acceptedCategoryCount[favor.category] =
+                (acceptedCategoryCount[favor.category] ?? 0) + 1;
+          }
+        }
+
+        // Sort categories by count
+        final sortedCategories = acceptedCategoryCount.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        final preferredCategories = sortedCategories.map((e) => e.key).toList();
+
+        // Apply smart sorting to favorsList
+        favorsList.sort((a, b) {
+          int aPriority = preferredCategories.contains(a.category)
+              ? preferredCategories.indexOf(a.category)
+              : preferredCategories.length;
+          int bPriority = preferredCategories.contains(b.category)
+              ? preferredCategories.indexOf(b.category)
+              : preferredCategories.length;
+          return aPriority.compareTo(bPriority);
+        });
+      }
+
+      yield favorsList;
+    } catch (e) {
+      print("Error decoding cached favors: $e");
+      yield [];
+    }
+    return;
+  }
+
+  // Online - streaming logic remains the same
   Stream<List<FavorModel>> favorStream;
 
   if (smartSorting == SmartSorting.enabled) {
@@ -56,6 +137,10 @@ final favorsStreamProvider =
             screen: 'HomeScreen',
             responseTimeMs: duration,
           );
+
+          // Cache data in Hive
+          box.put('cachedFavors', data);
+
           return data
               .map((favor) => FavorModel.fromJson(favor))
               .where((favor) =>
@@ -80,7 +165,7 @@ final favorsStreamProvider =
     return;
   }
 
-  // If Smart Sorting is disabled, fetch favors normally
+  // Smart Sorting disabled - standard fetch
   if (selectedCategory == FilterButtonCategory.none) {
     final start = DateTime.now();
 
@@ -95,6 +180,10 @@ final favorsStreamProvider =
             screen: 'HomeScreen',
             responseTimeMs: duration,
           );
+
+          // Cache data in Hive
+          box.put('cachedFavors', data);
+
           return data
               .map((favor) => FavorModel.fromJson(favor))
               .where((favor) =>
@@ -105,10 +194,7 @@ final favorsStreamProvider =
     final start = DateTime.now();
 
     String category = selectedCategory.toString().split('.').last.capitalize();
-
-    if (category == "Tutoria") {
-      category = "Tutoría";
-    }
+    if (category == "Tutoria") category = "Tutoría";
 
     yield* supabase
         .from('favors')
@@ -121,6 +207,9 @@ final favorsStreamProvider =
             screen: 'HomeScreen',
             responseTimeMs: duration,
           );
+
+          box.put('cachedFavors', data);
+
           return data
               .map((favor) => FavorModel.fromJson(favor))
               .where((favor) =>

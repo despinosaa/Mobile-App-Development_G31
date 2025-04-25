@@ -1,8 +1,10 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/favors/providers/upload_favor_state_notifier_provider.dart.dart';
 import 'package:senefavores/state/location/providers/user_location_state_notifier_provider.dart';
@@ -25,6 +27,7 @@ class PostFavorScreen extends HookConsumerWidget {
     final averageAcceptanceTimeAsync = ref.watch(
       favorAverageAcceptanceTimeProvider(selectedCategory.value ?? ''),
     );
+    final connectivity = ref.watch(connectivityProvider).value;
 
     // Hooks to listen to text field changes.
     final titleValue = useValueListenable(titleController);
@@ -149,6 +152,14 @@ class PostFavorScreen extends HookConsumerWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
+                  if (connectivity == ConnectivityResult.none) {
+                    ref.read(snackbarProvider).showSnackbar(
+                          "No se puede publicar sin conexión a Internet",
+                          isError: true,
+                        );
+                    return;
+                  }
+
                   final start = DateTime.now();
 
                   final title = titleController.text.trim();

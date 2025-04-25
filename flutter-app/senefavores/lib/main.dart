@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/theme.dart';
 import 'package:senefavores/state/auth/models/auth_result.dart';
@@ -8,7 +9,6 @@ import 'package:senefavores/state/snackbar/models/snackbar_message_model.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_notification_provider.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/auth_watcher_provider.dart';
-import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/views/components/loading_screen.dart';
 import 'package:senefavores/views/login/login_view.dart';
 import 'package:senefavores/views/navigation/navigation_screen.dart';
@@ -25,6 +25,9 @@ void main() {
       anonKey:
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlYnVtemN4dHR5cXVvcmhpaWNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2NDM1MDQsImV4cCI6MjA1NzIxOTUwNH0.PiAnATAnWk_7Brz6XzZqQMkaCoGOItFGKhy1EZ8OnVg',
     );
+
+    await Hive.initFlutter();
+    await Hive.openBox('favors');
 
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
