@@ -31,6 +31,7 @@ import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
+import com.example.senefavores.util.NetworkChecker
 
 @Composable
 fun SignInScreen(
@@ -38,6 +39,7 @@ fun SignInScreen(
     userViewModel: UserViewModel = hiltViewModel(),
     telemetryLogger: TelemetryLogger,
     userRepository: UserRepository,
+    networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()

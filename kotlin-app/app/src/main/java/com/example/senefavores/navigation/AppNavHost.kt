@@ -47,7 +47,8 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange
+                onScreenChange = onScreenChange,
+                networkChecker = networkChecker
             )
             Log.d("AppNavHost", "Navigated to signIn")
         }
@@ -96,7 +97,8 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange
+                onScreenChange = onScreenChange,
+                networkChecker = networkChecker
             )
             Log.d("AppNavHost", "Navigated to account")
         }
@@ -116,7 +118,8 @@ fun AppNavHost(
                 hasLocationPermission = hasLocationPermission,
                 telemetryLogger = telemetryLogger,
                 favorRepository = favorRepository,
-                onScreenChange = onScreenChange
+                onScreenChange = onScreenChange,
+                networkChecker = networkChecker,
             )
             onScreenChange("createFavor")
             Log.d("AppNavHost", "Navigated to createFavor")
@@ -134,7 +137,8 @@ fun AppNavHost(
                     locationHelper = locationHelper,
                     hasLocationPermission = hasLocationPermission,
                     telemetryLogger = telemetryLogger,
-                    onScreenChange = onScreenChange
+                    onScreenChange = onScreenChange,
+                    networkChecker = networkChecker
                 )
                 Log.d("AppNavHost", "Navigated to favorScreen with favor=$favor")
             } else {
@@ -163,7 +167,8 @@ fun AppNavHost(
                     requestUserId = requestUserId,
                     acceptUserId = acceptUserId,
                     telemetryLogger = telemetryLogger,
-                    onScreenChange = onScreenChange
+                    onScreenChange = onScreenChange,
+                    networkChecker = networkChecker
                 )
                 Log.d("AppNavHost", "Navigated to review with favorId=$favorId, requestUserId=$requestUserId, acceptUserId=$acceptUserId")
             }

@@ -28,6 +28,7 @@ import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.ui.components.RatingStars
 import androidx.compose.ui.platform.LocalContext
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,7 @@ fun AccountScreen(
     favorViewModel: FavorViewModel = hiltViewModel(),
     telemetryLogger: TelemetryLogger,
     userRepository: UserRepository,
+    networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()

@@ -26,6 +26,7 @@ import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
@@ -58,6 +59,7 @@ fun FavorScreen(
     hasLocationPermission: Boolean,
     userViewModel: UserViewModel = hiltViewModel(),
     favorViewModel: FavorViewModel = hiltViewModel(),
+    networkChecker: NetworkChecker,
     telemetryLogger: TelemetryLogger,
     onScreenChange: (String) -> Unit
 ) {

@@ -26,6 +26,7 @@ import com.example.senefavores.util.TelemetryLogger
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import com.example.senefavores.util.NetworkChecker
 
 @Composable
 fun CreateFavorScreen(
@@ -34,6 +35,7 @@ fun CreateFavorScreen(
     hasLocationPermission: Boolean,
     telemetryLogger: TelemetryLogger,
     favorRepository: FavorRepository,
+    networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
