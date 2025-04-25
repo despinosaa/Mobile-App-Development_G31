@@ -88,6 +88,10 @@ fun FavorScreen(
     val userInfo by userViewModel.user.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    //Conexion
+    var isOnline by remember { mutableStateOf(true) }
+    var showNoConnectionDialog by remember { mutableStateOf(false) }
+
     // Fetch requester's details
     LaunchedEffect(favor.request_user_id) {
         favor.request_user_id.takeIf { it.isNotEmpty() }?.let { userId ->
@@ -99,6 +103,14 @@ fun FavorScreen(
                 userPhone = it.phone ?: "No phone provided"
                 Log.d("FavorScreen", "Requester loaded: name=$userName, phone=$userPhone, stars=$userStars")
             } ?: Log.e("FavorScreen", "Failed to load requester for userId=$userId")
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isOnline = networkChecker.isOnline()
+        if (!isOnline) {
+            Log.d("CreateFavorScreen", "No internet connection detected")
+            showNoConnectionDialog = true
         }
     }
 
@@ -271,32 +283,44 @@ fun FavorScreen(
 
             Button(
                 onClick = {
-                    if (isAcceptEnabled && userInfo?.id != null) {
-                        coroutineScope.launch {
-                            try {
-                                Log.d("FavorScreen", "Attempting to accept favor: favorId=${favor.id}, userId=${userInfo!!.id}")
-                                favorViewModel.acceptFavor(favor.id.toString(), userInfo!!.id)
-                                Log.d("FavorScreen", "Favor accepted successfully")
-                                showDialog = true
-                            } catch (e: Exception) {
-                                Log.e("FavorScreen", "Error accepting favor: ${e.localizedMessage}", e)
-                                snackbarHostState.showSnackbar("No se pudo aceptar el favor: ${e.localizedMessage}")
+                    isOnline = networkChecker.isOnline()
+                    if (isOnline) {
+                        if (isAcceptEnabled && userInfo?.id != null) {
+                            coroutineScope.launch {
+                                try {
+                                    Log.d(
+                                        "FavorScreen",
+                                        "Attempting to accept favor: favorId=${favor.id}, userId=${userInfo!!.id}"
+                                    )
+                                    favorViewModel.acceptFavor(favor.id.toString(), userInfo!!.id)
+                                    Log.d("FavorScreen", "Favor accepted successfully")
+                                    showDialog = true
+                                } catch (e: Exception) {
+                                    Log.e(
+                                        "FavorScreen",
+                                        "Error accepting favor: ${e.localizedMessage}",
+                                        e
+                                    )
+                                    snackbarHostState.showSnackbar("No se pudo aceptar el favor: ${e.localizedMessage}")
+                                }
+                            }
+                        } else {
+                            val reason = when {
+                                userInfo?.id == null -> "Usuario no autenticado"
+                                !isAcceptEnabled && !hasLocationPermission -> "Permisos de ubicación no concedidos"
+                                !isAcceptEnabled -> "No estás dentro del campus"
+                                else -> "Condiciones no cumplidas"
+                            }
+                            Log.w("FavorScreen", "Cannot accept favor: $reason")
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(reason)
                             }
                         }
                     } else {
-                        val reason = when {
-                            userInfo?.id == null -> "Usuario no autenticado"
-                            !isAcceptEnabled && !hasLocationPermission -> "Permisos de ubicación no concedidos"
-                            !isAcceptEnabled -> "No estás dentro del campus"
-                            else -> "Condiciones no cumplidas"
-                        }
-                        Log.w("FavorScreen", "Cannot accept favor: $reason")
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(reason)
-                        }
+                        showNoConnectionDialog = true
                     }
-                },
-                enabled = isAcceptEnabled && userInfo?.id != null,
+                    },
+                    enabled = isAcceptEnabled && userInfo?.id != null,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MikadoYellow,
                     disabledContainerColor = MikadoYellow.copy(alpha = 0.5f)
@@ -352,6 +376,51 @@ fun FavorScreen(
                     containerColor = Color.White,
                     titleContentColor = BlackTextColor,
                     textContentColor = BlackTextColor
+                )
+            }
+
+            if (showNoConnectionDialog) {
+                AlertDialog(
+                    onDismissRequest = { /* opcional: showNoConnectionDialog = false */ },
+                    title = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Sin conexión",
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    },
+                    text = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Estás sin conexión",
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp), // opcional: un poco de espacio abajo
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TextButton(onClick = {
+                                showNoConnectionDialog = false
+                                navController.navigate("home") {
+                                    launchSingleTop = true
+                                }
+                            }) {
+                                Text("Ir al inicio")
+                            }
+                        }
+                    }
                 )
             }
         }
