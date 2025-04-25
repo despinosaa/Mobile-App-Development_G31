@@ -8,8 +8,6 @@ import java.time.format.DateTimeParseException
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun parseDateTime(dateTimeStr: String): LocalDateTime {
-<<<<<<< Updated upstream
-=======
     val possibleFormats = listOf(
         DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
         DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"),
@@ -28,7 +26,6 @@ fun parseDateTime(dateTimeStr: String): LocalDateTime {
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun formatTime2(favorTime: String): String {
->>>>>>> Stashed changes
     val possibleFormats = listOf(
         DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
         DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"),
@@ -38,25 +35,14 @@ fun formatTime2(favorTime: String): String {
 
     for (formatter in possibleFormats) {
         try {
-            return LocalDateTime.parse(dateTimeStr, formatter)
+            val dateTime = LocalDateTime.parse(favorTime, formatter)
+            return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
         } catch (e: DateTimeParseException) {
             // Ignore and try the next format
         }
     }
 
-    throw IllegalArgumentException("Invalid date format: $dateTimeStr")
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatTime2(favorTime: String): String {
-    val dateTime = parseDateTime(favorTime)
-    return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatDateTimeFull(dateTime: LocalDateTime): String {
-    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-    return dateTime.format(formatter)
+    throw IllegalArgumentException("Invalid date format: $favorTime")
 }
 
 fun truncateText(text: String, maxLength: Int = 32): String {

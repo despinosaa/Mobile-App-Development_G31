@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
@@ -131,6 +132,7 @@ fun CreateFavorScreen(
                         titleError = when {
                             text.isBlank() -> "Falta llenar el título"
                             text.length > 50 -> "El título no puede tener más de 50 caracteres"
+                            text.filter { it.isLetter() }.length < 5 -> "El título debe tener al menos 5 letras"
                             else -> null
                         }
                     },
@@ -170,6 +172,7 @@ fun CreateFavorScreen(
                     descriptionError = when {
                         text.isBlank() -> "Falta llenar la descripción"
                         text.length > 500 -> "La descripción no puede tener más de 500 caracteres"
+                        text.filter { it.isLetter() }.length < 5 -> "La descripción debe tener al menos 5 letras"
                         else -> null
                     }
                 },
@@ -231,7 +234,14 @@ fun CreateFavorScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text(text = "Categoría:")
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             // CATEGORÍA
             Row(
                 modifier = Modifier
@@ -239,32 +249,36 @@ fun CreateFavorScreen(
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-<<<<<<< Updated upstream
-                Text(text = "Categoría:")
-=======
->>>>>>> Stashed changes
                 Spacer(modifier = Modifier.width(8.dp))
+
+                // make these buttons share the row equally
                 val categories = listOf("Favor", "Compra", "Tutoría")
                 for (cat in categories) {
                     val catColor = when (cat) {
-                        "Favor" -> FavorCategoryColor
-                        "Compra" -> CompraCategoryColor
+                        "Favor"   -> FavorCategoryColor
+                        "Compra"  -> CompraCategoryColor
                         "Tutoría" -> TutoriaCategoryColor
-                        else -> Color.Black
+                        else      -> Color.Black
                     }
                     val selected = (selectedCategory == cat)
+
                     OutlinedButton(
                         onClick = { selectedCategory = cat },
+                        modifier = Modifier
+                            .weight(1f)             // ← each button fills 1/3 of width
+                            .height(40.dp),         // optional: give a consistent height
                         border = BorderStroke(1.dp, Color.Black),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = if (selected) catColor else Color.White,
-                            contentColor = if (selected) Color.White else Color.Black
+                            contentColor   = if (selected) Color.White else Color.Black
                         ),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(cat)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    if (cat != categories.last()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                 }
             }
 
@@ -286,6 +300,8 @@ fun CreateFavorScreen(
             val latitud = currentLocation?.latitude ?: 0.0
             val longitud = currentLocation?.longitude ?: 0.0
 
+            val canPublishByLocation = (selectedCategory == "Tutoría") || isInsideCampus
+
             OutlinedButton(
                 onClick = {
                     scope.launch {
@@ -300,13 +316,15 @@ fun CreateFavorScreen(
                             request_user_id = currentUserId,
                             accept_user_id = "",
                             latitude = latitud,
-                            longitude = longitud
+                            longitude = longitud,
+                            status = "pending"
                         )
+                        Log.e("Favor", newFavor.status.toString())
                         favorViewModel.addFavor(newFavor)
                         navController.navigate("home") { launchSingleTop = true }
                     }
                 },
-                enabled = isInsideCampus && isFormValid,
+                enabled = canPublishByLocation && isFormValid,
                 border = BorderStroke(1.dp, Color.Black),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.White,

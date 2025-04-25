@@ -31,35 +31,9 @@ import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.viewmodel.UserViewModel
-<<<<<<< Updated upstream
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatTime(favorTime: String): String {
-    val possibleFormats = listOf(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-    )
-
-    for (formatter in possibleFormats) {
-        try {
-            val dateTime = LocalDateTime.parse(favorTime, formatter)
-            return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-        } catch (e: DateTimeParseException) {
-            // Ignore and try the next format
-        }
-    }
-
-    throw IllegalArgumentException("Invalid date format: $favorTime")
-}
-
-=======
 import com.example.senefavores.util.formatTime2
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
->>>>>>> Stashed changes
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -132,7 +106,7 @@ fun FavorCard(
                             maxLines = 1
                         )
                     }
-                    Text(text = "$ ${favor.reward}", fontSize = 14.sp)
+                    RewardText(favor.reward)
                 }
             }
 

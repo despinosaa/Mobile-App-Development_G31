@@ -193,10 +193,7 @@ fun HistoryFavorCard(
                             maxLines = 1
                         )
                     }
-                    Text(
-                        text = truncateText("$ ${favor.reward}"),
-                        fontSize = 14.sp
-                    )
+                    RewardText(favor.reward)
                 }
             }
 

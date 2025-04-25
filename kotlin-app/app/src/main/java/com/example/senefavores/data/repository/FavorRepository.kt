@@ -1,9 +1,6 @@
 package com.example.senefavores.data.repository
 
-<<<<<<< Updated upstream
-=======
 import android.os.Build
->>>>>>> Stashed changes
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.example.senefavores.data.model.Favor
@@ -15,12 +12,9 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-<<<<<<< Updated upstream
-=======
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
->>>>>>> Stashed changes
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,11 +34,7 @@ class FavorRepository @Inject constructor(
                         }
                     }
                     order("created_at", order = Order.DESCENDING)
-<<<<<<< Updated upstream
-                    range(offset.toLong(), (offset + limit - 1).toLong()) // Convert Int to Long
-=======
                     range(offset.toLong(), (offset + limit - 1).toLong())
->>>>>>> Stashed changes
                 }
                 val favors = query.decodeList<Favor>()
                 Log.d("FavorRepository", "Fetched favors: $favors")
@@ -85,11 +75,7 @@ class FavorRepository @Inject constructor(
             Log.d("FavorRepository", "Fetched favor: $favor")
             favor
         } catch (e: Exception) {
-<<<<<<< Updated upstream
-            Log.e("FavorViewModel", "Error fetching favor: ${e.localizedMessage}", e) // Fixed 'it' to 'e'
-=======
             Log.e("FavorRepository", "Error fetching favor: ${e.localizedMessage}", e)
->>>>>>> Stashed changes
             null
         }
     }
@@ -112,10 +98,7 @@ class FavorRepository @Inject constructor(
             supabaseClient
                 .from("favors")
                 .insert(favor)
-<<<<<<< Updated upstream
-=======
             Log.d("FavorRepository", "Added favor: $favor")
->>>>>>> Stashed changes
         }.onFailure {
             Log.e("FavorRepository", "Error adding favor: ${it.localizedMessage}", it)
         }
@@ -131,10 +114,7 @@ class FavorRepository @Inject constructor(
                     {
                         set("accept_user_id", userId)
                         set("status", "accepted")
-<<<<<<< Updated upstream
-=======
                         set("accepted_at", currentTime)
->>>>>>> Stashed changes
                     }
                 ) {
                     filter { eq("id", favorId) }
