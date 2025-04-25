@@ -239,7 +239,10 @@ fun CreateFavorScreen(
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+<<<<<<< Updated upstream
                 Text(text = "Categoría:")
+=======
+>>>>>>> Stashed changes
                 Spacer(modifier = Modifier.width(8.dp))
                 val categories = listOf("Favor", "Compra", "Tutoría")
                 for (cat in categories) {
@@ -352,7 +355,10 @@ fun convertDateToMillis(date: String): Long {
 }
 
 fun calculateAverageAcceptanceTime(favors: List<Favor>, category: String): Long {
-    val validFavors = favors.filter { it.category == category && it.favor_time != null }
+    // Filter favors by category and ensure both created_at and favor_time are non-null
+    val validFavors = favors.filter { favor ->
+        favor.category == category && favor.created_at != null && favor.favor_time != null
+    }
     if (validFavors.isEmpty()) return when (category) {
         "Favor" -> 5L
         "Compra" -> 10L
@@ -362,10 +368,11 @@ fun calculateAverageAcceptanceTime(favors: List<Favor>, category: String): Long 
 
     val totalMinutes = validFavors.sumOf { favor ->
         try {
-            val created = convertDateToMillis(favor.created_at)
+            val created = convertDateToMillis(favor.created_at!!)
             val accepted = convertDateToMillis(favor.favor_time!!)
             (accepted - created) / 60000
         } catch (e: Exception) {
+            Log.e("CreateFavorScreen", "Error calculating time for favor ${favor.id}: created_at=${favor.created_at}, favor_time=${favor.favor_time}", e)
             0L
         }
     }

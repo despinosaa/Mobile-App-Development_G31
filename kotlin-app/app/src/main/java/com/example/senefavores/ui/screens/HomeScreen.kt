@@ -34,17 +34,41 @@ import com.example.senefavores.ui.components.FavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
 import com.example.senefavores.ui.theme.BackgroundColor
 import com.example.senefavores.ui.theme.BlackTextColor
+<<<<<<< Updated upstream
 import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
+=======
+import com.example.senefavores.util.TelemetryLogger
+import com.example.senefavores.util.parseDateTime
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.data.model.User
+>>>>>>> Stashed changes
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.parseDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+<<<<<<< Updated upstream
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+=======
+import java.time.LocalDateTime
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun timeToMinutes(favorTime: String): Int {
+    return try {
+        val dateTime = parseDateTime(favorTime)
+        dateTime.hour * 60 + dateTime.minute
+    } catch (e: IllegalArgumentException) {
+        Log.e("HomeScreen", "Invalid date format in timeToMinutes: $favorTime", e)
+        0 // Fallback to 0 minutes (earliest possible time)
+    }
+}
+>>>>>>> Stashed changes
 
 fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
     val categoryFrequency = history.groupingBy { it }.eachCount()
@@ -62,14 +86,12 @@ fun HomeScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val startTime = remember { System.currentTimeMillis() }
 
-    // Notify the parent of the current screen for crash reporting
     LaunchedEffect(Unit) {
         onScreenChange("HomeScreen")
     }
 
-    // Log response time after the screen is composed
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -89,7 +111,6 @@ fun HomeScreen(
             Log.d("Dialog", "Checking user info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
             Log.d("UserInfo", "Loading user info...")
 
-            // Delay to ensure session is set after sign-in
             delay(500)
             val user = userViewModel.loadUserClientInfo()
             Log.d("UserInfo", "User loaded: $user")
@@ -104,7 +125,6 @@ fun HomeScreen(
             hasChecked = true
             Log.d("Dialog", "Updated showDialog: $showDialog")
         }
-        // Fetch favors with user ID (null if user not loaded)
         favorViewModel.fetchFavors(userInfo?.id)
     }
 
@@ -131,10 +151,26 @@ fun HomeScreen(
             favors.filter { it.category == selectedCategory }
         }
     }.let { favors ->
+<<<<<<< Updated upstream
         if (isSortDescending) {
             favors.sortedBy { parseDateTime(it.created_at) }.reversed()
         } else {
             favors.sortedBy { parseDateTime(it.created_at) }
+=======
+        // Filter out favors with null created_at
+        val validFavors = favors.filter { favor ->
+            favor.created_at != null
+        }
+        try {
+            if (isSortDescending) {
+                validFavors.sortedBy { timeToMinutes(it.created_at!!) }.reversed()
+            } else {
+                validFavors.sortedBy { timeToMinutes(it.created_at!!) }
+            }
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Error sorting favors: ${e.message}", e)
+            validFavors // Fallback to unsorted list
+>>>>>>> Stashed changes
         }
     }
 
@@ -253,7 +289,7 @@ fun HomeScreen(
                 state = listState
             ) {
                 items(displayedFavors) { favor ->
-                    FavorCard(favor = favor, onClick = {
+                    FavorCard(favor = favor, userViewModel = userViewModel, onClick = {
                         val favorJson = Json.encodeToString(favor)
                         navController.navigate("favorScreen/$favorJson")
                     })
