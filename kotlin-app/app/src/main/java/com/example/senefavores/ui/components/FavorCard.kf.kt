@@ -1,6 +1,7 @@
 package com.example.senefavores.ui.components
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -25,58 +26,22 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
-import com.example.senefavores.data.repository.UserRepository
-import com.example.senefavores.ui.theme.FavorCategoryColor // Importar colores
+import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.CompraCategoryColor
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.example.senefavores.util.formatTime2
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatTime(favorTime: String): String {
-    val possibleFormats = listOf(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-    )
-
-    for (formatter in possibleFormats) {
-        try {
-            val dateTime = LocalDateTime.parse(favorTime, formatter)
-            return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-        } catch (e: DateTimeParseException) {
-            // Ignore and try the next format
-        }
-    }
-
-    throw IllegalArgumentException("Invalid date format: $favorTime")
-}
-
-@Composable
-fun RewardText(reward: Int) {
-    // set up a DecimalFormat that uses '.' for grouping
-    val df = remember {
-        DecimalFormat("#,###", DecimalFormatSymbols().apply {
-            groupingSeparator = '.'
-            decimalSeparator  = ','
-        })
-    }
-    val formatted = df.format(reward)
-
-    Text(
-        text     = "$ $formatted",
-        fontSize = 14.sp
-    )
-}
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onClick: () -> Unit) {
+fun FavorCard(
+    favor: Favor,
+    userViewModel: UserViewModel = hiltViewModel(),
+    onClick: () -> Unit
+) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
 
@@ -94,14 +59,28 @@ fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onCl
             .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Fila superior con hora y categoría/remuneración
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
-
             ) {
-                Text(text = formatTime(favor.created_at), fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
+                val displayTime = if (favor.created_at != null) {
+                    try {
+                        Log.d("DEBUG", "Favor time from API: $favor")
+                        formatTime2(favor.created_at)
+                    } catch (e: IllegalArgumentException) {
+                        Log.e("FavorCard", "Invalid created_at format for favor ${favor.id}: ${favor.created_at}")
+                        "Invalid time"
+                    }
+                } else {
+                    Log.w("FavorCard", "created_at is null for favor ${favor.id}")
+                    "Not specified"
+                }
+                Text(
+                    text = displayTime,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(
@@ -158,4 +137,20 @@ fun FavorCard(favor: Favor, userViewModel: UserViewModel = hiltViewModel(), onCl
             }
         }
     }
+}
+
+@Composable
+fun RewardText(reward: Int) {
+    val df = remember {
+        DecimalFormat("#,###", DecimalFormatSymbols().apply {
+            groupingSeparator = '.'
+            decimalSeparator = ','
+        })
+    }
+    val formatted = df.format(reward)
+
+    Text(
+        text = "$ $formatted",
+        fontSize = 14.sp
+    )
 }

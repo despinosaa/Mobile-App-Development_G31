@@ -1,6 +1,7 @@
 package com.example.senefavores.ui.components
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -27,29 +28,8 @@ import com.example.senefavores.ui.theme.MikadoYellow
 import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.formatTime2
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatTime2(favorTime: String): String {
-    val possibleFormats = listOf(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-    )
-
-    for (formatter in possibleFormats) {
-        try {
-            val dateTime = LocalDateTime.parse(favorTime, formatter)
-            return dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
-        } catch (e: DateTimeParseException) {
-            // Ignore and try the next format
-        }
-    }
-
-    throw IllegalArgumentException("Invalid date format: $favorTime")
-}
 
 fun truncateText(text: String, maxLength: Int = 32): String {
     return if (text.length > maxLength) {
@@ -173,8 +153,19 @@ fun HistoryFavorCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val displayTime = if (favor.created_at != null) {
+                    try {
+                        formatTime2(favor.created_at)
+                    } catch (e: IllegalArgumentException) {
+                        Log.e("HistoryFavorCard", "Invalid created_at format for favor ${favor.id}: ${favor.created_at}")
+                        "Invalid time"
+                    }
+                } else {
+                    Log.w("HistoryFavorCard", "created_at is null for favor ${favor.id}")
+                    "Not specified"
+                }
                 Text(
-                    text = truncateText(formatTime2(favor.created_at)),
+                    text = truncateText(displayTime),
                     fontSize = 14.sp,
                     modifier = Modifier.padding(end = 8.dp)
                 )

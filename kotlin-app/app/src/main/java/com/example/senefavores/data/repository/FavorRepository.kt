@@ -1,6 +1,8 @@
 package com.example.senefavores.data.repository
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
 import io.github.jan.supabase.SupabaseClient
@@ -10,6 +12,9 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,9 +34,11 @@ class FavorRepository @Inject constructor(
                         }
                     }
                     order("created_at", order = Order.DESCENDING)
-                    range(offset.toLong(), (offset + limit - 1).toLong()) // Convert Int to Long
+                    range(offset.toLong(), (offset + limit - 1).toLong())
                 }
-                query.decodeList<Favor>()
+                val favors = query.decodeList<Favor>()
+                Log.d("FavorRepository", "Fetched favors: $favors")
+                favors
             }.getOrElse {
                 Log.e("FavorRepository", "Error fetching favors: ${it.localizedMessage}", it)
                 emptyList()
@@ -54,6 +61,7 @@ class FavorRepository @Inject constructor(
                         "created_at",
                         "request_user_id",
                         "accept_user_id",
+                        "accepted_at",
                         "latitude",
                         "longitude",
                         "status"
@@ -64,10 +72,10 @@ class FavorRepository @Inject constructor(
                     }
                 }
                 .decodeSingle<Favor>()
-            Log.d("FavorViewModel", "Fetched favor: $favor")
+            Log.d("FavorRepository", "Fetched favor: $favor")
             favor
         } catch (e: Exception) {
-            Log.e("FavorViewModel", "Error fetching favor: ${e.localizedMessage}", e) // Fixed 'it' to 'e'
+            Log.e("FavorRepository", "Error fetching favor: ${e.localizedMessage}", e)
             null
         }
     }
@@ -75,7 +83,9 @@ class FavorRepository @Inject constructor(
     suspend fun getAllFavors(): List<Favor> {
         return withContext(Dispatchers.IO) {
             runCatching {
-                supabaseClient.from("favors").select().decodeList<Favor>()
+                val favors = supabaseClient.from("favors").select().decodeList<Favor>()
+                Log.d("FavorRepository", "Fetched all favors: $favors")
+                favors
             }.getOrElse {
                 Log.e("FavorRepository", "Error fetching all favors: ${it.localizedMessage}", it)
                 emptyList()
@@ -88,26 +98,31 @@ class FavorRepository @Inject constructor(
             supabaseClient
                 .from("favors")
                 .insert(favor)
-            Log.e("Favor", favor.toString())
+            Log.d("FavorRepository", "Added favor: $favor")
         }.onFailure {
-            Log.e("FavorRepository", "Error adding favor: ${it.localizedMessage}")
+            Log.e("FavorRepository", "Error adding favor: ${it.localizedMessage}", it)
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun updateFavorAcceptUserId(favorId: String, userId: String) {
         withContext(Dispatchers.IO) {
             runCatching {
+                val currentTime = LocalDateTime.now(ZoneId.of("UTC"))
+                    .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 supabaseClient.from("favors").update(
                     {
                         set("accept_user_id", userId)
                         set("status", "accepted")
+                        set("accepted_at", currentTime)
                     }
                 ) {
                     filter { eq("id", favorId) }
                 }
+                Log.d("FavorRepository", "Favor $favorId accepted by user $userId at $currentTime")
             }.onFailure {
                 Log.e("FavorRepository", "Error updating favor $favorId: ${it.localizedMessage}", it)
-                throw it // Propagate error to ViewModel
+                throw it
             }
         }
     }

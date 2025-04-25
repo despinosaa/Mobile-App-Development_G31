@@ -22,9 +22,8 @@ import com.example.senefavores.ui.components.SenefavoresHeader
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.TelemetryLogger
+import com.example.senefavores.util.parseDateTime
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import kotlinx.coroutines.launch
 
 enum class Tab {
@@ -41,7 +40,6 @@ fun TabRow(
         modifier = Modifier.padding(vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // "Solicitados" tab
         if (selectedTab == Tab.SOLICITADOS) {
             Button(
                 onClick = { onTabSelected(Tab.SOLICITADOS) },
@@ -57,7 +55,6 @@ fun TabRow(
                 Text(text = "Solicitados")
             }
         }
-        // "Aceptados" tab
         if (selectedTab == Tab.ACEPTADOS) {
             Button(
                 onClick = { onTabSelected(Tab.ACEPTADOS) },
@@ -77,22 +74,6 @@ fun TabRow(
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-fun parseDateTime(dateTimeStr: String): LocalDateTime {
-    val possibleFormats = listOf(
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"),
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-    )
-    for (formatter in possibleFormats) {
-        try {
-            return LocalDateTime.parse(dateTimeStr, formatter)
-        } catch (e: DateTimeParseException) {
-            // Try next format
-        }
-    }
-    throw IllegalArgumentException("Invalid date format: $dateTimeStr")
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HistoryScreen(
     navController: NavController,
@@ -103,14 +84,12 @@ fun HistoryScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val startTime = remember { System.currentTimeMillis() }
 
-    // Notify the parent of the current screen for crash reporting
     LaunchedEffect(Unit) {
         onScreenChange("HistoryScreen")
     }
 
-    // Log response time after the screen is composed
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -119,16 +98,14 @@ fun HistoryScreen(
     }
 
     var selectedTab by remember { mutableStateOf(Tab.SOLICITADOS) }
-    var selectedItem by remember { mutableStateOf(2) } // 2 corresponds to History
+    var selectedItem by remember { mutableStateOf(2) }
     val userInfo by userViewModel.user.collectAsState()
     val allFavors by favorViewModel.allFavors.collectAsState()
     val reviews by favorViewModel.reviews.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Refresh key to trigger fetchAllFavors on status updates
     var refreshKey by remember { mutableStateOf(0) }
 
-    // Load user and fetch data
     LaunchedEffect(userInfo, refreshKey) {
         if (userInfo == null) {
             Log.d("HistoryScreen", "UserInfo is null, attempting to load user")
@@ -139,18 +116,28 @@ fun HistoryScreen(
         favorViewModel.fetchReviews()
     }
 
-    // Filter and sort favors
     val filteredFavors = allFavors.filter { favor ->
         when (selectedTab) {
             Tab.SOLICITADOS -> favor.request_user_id == userInfo?.id
             Tab.ACEPTADOS -> favor.accept_user_id == userInfo?.id
         }
+    }.filter { favor ->
+        // Ensure created_at is non-null for SOLICITADOS tab, and either created_at or accepted_at is non-null for ACEPTADOS tab
+        when (selectedTab) {
+            Tab.SOLICITADOS -> favor.created_at != null
+            Tab.ACEPTADOS -> favor.created_at != null || favor.accepted_at != null
+        }
     }.sortedByDescending { favor ->
         try {
-            parseDateTime(favor.created_at)
+            when (selectedTab) {
+                Tab.SOLICITADOS -> parseDateTime(favor.created_at!!)
+                Tab.ACEPTADOS -> {
+                    favor.accepted_at?.let { parseDateTime(it) } ?: parseDateTime(favor.created_at!!)
+                }
+            }
         } catch (e: IllegalArgumentException) {
-            Log.e("HistoryScreen", "Invalid date format for favor ${favor.id}: ${favor.created_at}")
-            LocalDateTime.MIN // Fallback to oldest
+            Log.e("HistoryScreen", "Invalid date format for favor ${favor.id}: created_at=${favor.created_at}, accepted_at=${favor.accepted_at}")
+            LocalDateTime.MIN
         }
     }
 
@@ -184,13 +171,11 @@ fun HistoryScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Tab row
             TabRow(
                 selectedTab = selectedTab,
                 onTabSelected = { tab -> selectedTab = tab }
             )
 
-            // Scrollable list of favors
             if (userInfo?.id == null) {
                 Text(
                     text = "Por favor, inicia sesión para ver tu historial",

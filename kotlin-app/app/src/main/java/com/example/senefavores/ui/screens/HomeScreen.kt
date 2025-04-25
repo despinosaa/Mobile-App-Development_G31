@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -28,23 +27,35 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
-import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.FavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
+import com.example.senefavores.ui.theme.FavorCategoryColor
+import com.example.senefavores.ui.theme.CompraCategoryColor
+import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BackgroundColor
 import com.example.senefavores.ui.theme.BlackTextColor
-import com.example.senefavores.ui.theme.CompraCategoryColor
-import com.example.senefavores.ui.theme.FavorCategoryColor
-import com.example.senefavores.ui.theme.TutoriaCategoryColor
-import com.example.senefavores.ui.viewmodel.FavorViewModel
-import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.parseDateTime
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.data.model.User
+import com.example.senefavores.ui.viewmodel.FavorViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun timeToMinutes(favorTime: String): Int {
+    return try {
+        val dateTime = parseDateTime(favorTime)
+        dateTime.hour * 60 + dateTime.minute
+    } catch (e: IllegalArgumentException) {
+        Log.e("HomeScreen", "Invalid date format in timeToMinutes: $favorTime", e)
+        0 // Fallback to 0 minutes (earliest possible time)
+    }
+}
 
 fun smartSortFavors(favors: List<Favor>, history: List<String>): List<Favor> {
     val categoryFrequency = history.groupingBy { it }.eachCount()
@@ -62,14 +73,12 @@ fun HomeScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val startTime = remember { System.currentTimeMillis() }
 
-    // Notify the parent of the current screen for crash reporting
     LaunchedEffect(Unit) {
         onScreenChange("HomeScreen")
     }
 
-    // Log response time after the screen is composed
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -79,7 +88,8 @@ fun HomeScreen(
 
     val userInfo by userViewModel.user.collectAsState()
     val hasCompletedInfo by userViewModel.hasCompletedInfo.collectAsState()
-    val allFavors by favorViewModel.favors.collectAsState()
+    val allFavorsOr by favorViewModel.favors.collectAsState()
+    val allFavors = allFavorsOr.take(25)
 
     var showDialog by rememberSaveable { mutableStateOf(false) }
     var hasChecked by rememberSaveable { mutableStateOf(false) }
@@ -89,7 +99,6 @@ fun HomeScreen(
             Log.d("Dialog", "Checking user info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
             Log.d("UserInfo", "Loading user info...")
 
-            // Delay to ensure session is set after sign-in
             delay(500)
             val user = userViewModel.loadUserClientInfo()
             Log.d("UserInfo", "User loaded: $user")
@@ -104,7 +113,6 @@ fun HomeScreen(
             hasChecked = true
             Log.d("Dialog", "Updated showDialog: $showDialog")
         }
-        // Fetch favors with user ID (null if user not loaded)
         favorViewModel.fetchFavors(userInfo?.id)
     }
 
@@ -119,7 +127,6 @@ fun HomeScreen(
     var selectedItem by remember { mutableStateOf(0) }
     var isSortDescending by remember { mutableStateOf(true) }
     var isSmartSortActive by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
 
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
@@ -131,10 +138,19 @@ fun HomeScreen(
             favors.filter { it.category == selectedCategory }
         }
     }.let { favors ->
-        if (isSortDescending) {
-            favors.sortedBy { parseDateTime(it.created_at) }.reversed()
-        } else {
-            favors.sortedBy { parseDateTime(it.created_at) }
+        // Filter out favors with null created_at
+        val validFavors = favors.filter { favor ->
+            favor.created_at != null
+        }
+        try {
+            if (isSortDescending) {
+                validFavors.sortedBy { timeToMinutes(it.created_at!!) }.reversed()
+            } else {
+                validFavors.sortedBy { timeToMinutes(it.created_at!!) }
+            }
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Error sorting favors: ${e.message}", e)
+            validFavors // Fallback to unsorted list
         }
     }
 
@@ -142,22 +158,6 @@ fun HomeScreen(
         mutableStateOf(
             if (isSmartSortActive) smartSortFavors(filteredFavors, acceptedFavorsHistory) else filteredFavors
         )
-    }
-
-    // LazyColumn state to detect scroll position
-    val listState = rememberLazyListState()
-
-    // Detect when the user reaches the end of the list
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo }
-            .collect { visibleItems ->
-                val lastVisibleItem = visibleItems.lastOrNull()
-                if (lastVisibleItem != null && lastVisibleItem.index == displayedFavors.size - 1 && !isLoading) {
-                    isLoading = true
-                    favorViewModel.loadMoreFavors(userInfo?.id)
-                    isLoading = false
-                }
-            }
     }
 
     Scaffold(
@@ -249,24 +249,13 @@ fun HomeScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                state = listState
+                    .padding(horizontal = 16.dp)
             ) {
                 items(displayedFavors) { favor ->
-                    FavorCard(favor = favor, onClick = {
+                    FavorCard(favor = favor, userViewModel = userViewModel, onClick = {
                         val favorJson = Json.encodeToString(favor)
                         navController.navigate("favorScreen/$favorJson")
                     })
-                }
-                if (isLoading) {
-                    item {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                                .wrapContentWidth(Alignment.CenterHorizontally)
-                        )
-                    }
                 }
             }
         }
