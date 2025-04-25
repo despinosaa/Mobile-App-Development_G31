@@ -20,13 +20,7 @@ class SenefavoresImageAndTitleAndProfile extends ConsumerWidget {
         SenefavoresImageAndTitle(),
         IconButton(
           onPressed: () {
-            if (connectivity == ConnectivityResult.none) {
-              ref.read(snackbarProvider).showSnackbar(
-                    'Perfil no disponible sin conexión a internet',
-                    isError: true,
-                  );
-              return;
-            }
+
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => ProfileScreen()),
