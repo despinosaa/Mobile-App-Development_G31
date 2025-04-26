@@ -270,7 +270,7 @@ fun AccountScreen(
                 Spacer(modifier = Modifier.width(16.dp))
                 Button(
                     onClick = {
-                        userViewModel.logout(context)
+                        //userViewModel.logout(context)
                         navController.navigate("signIn") {
                             popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         }
