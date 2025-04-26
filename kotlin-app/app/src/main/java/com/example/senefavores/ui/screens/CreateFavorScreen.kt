@@ -41,13 +41,17 @@ fun CreateFavorScreen(
     val scope = rememberCoroutineScope()
     val startTime = remember { System.currentTimeMillis() }
 
+    //Conexion
+    var isOnline by remember { mutableStateOf(true) }
+    var showNoConnectionDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         onScreenChange("CreateFavorScreen")
     }
 
+    // Carga inicial de datos
     val favorViewModel: FavorViewModel = hiltViewModel()
     val userViewModel: UserViewModel = hiltViewModel()
-
     LaunchedEffect(Unit) {
         userViewModel.loadUserClientInfo()
         favorViewModel.fetchAllFavors()
@@ -55,6 +59,24 @@ fun CreateFavorScreen(
     val currentUser by userViewModel.user.collectAsState(initial = null)
     val allFavors by favorViewModel.allFavors.collectAsState(initial = emptyList())
 
+    // Telemetría de tiempo de respuesta
+    LaunchedEffect(Unit) {
+        val responseTime = System.currentTimeMillis() - startTime
+        scope.launch {
+            telemetryLogger.logResponseTime("CreateFavorScreen", responseTime)
+        }
+    }
+
+    // Verificar estado de red al entrar
+    LaunchedEffect(Unit) {
+        isOnline = networkChecker.isOnline()
+        if (!isOnline) {
+            Log.d("CreateFavorScreen", "No internet connection detected")
+            showNoConnectionDialog = true
+        }
+    }
+
+    // Ubicación dentro del campus
     val isInsideCampus = if (hasLocationPermission) {
         val result = locationHelper.isInsideCampus(locationHelper.currentLocation.value)
         Log.i("Locacion", "¿Dentro del campus? $result, Ubicación: ${locationHelper.currentLocation.value}")
@@ -63,26 +85,16 @@ fun CreateFavorScreen(
         false
     }
 
-    LaunchedEffect(Unit) {
-        val responseTime = System.currentTimeMillis() - startTime
-        scope.launch {
-            telemetryLogger.logResponseTime("CreateFavorScreen", responseTime)
-        }
-    }
-
-    // Estados de campo + errores
+    // Estados de formulario
     var selectedCategory by remember { mutableStateOf("Favor") }
-
     var title by remember { mutableStateOf("") }
     var titleError by remember { mutableStateOf<String?>(null) }
-
     var description by remember { mutableStateOf("") }
     var descriptionError by remember { mutableStateOf<String?>(null) }
-
     var recompensa by remember { mutableStateOf("") }
     var rewardError by remember { mutableStateOf<String?>(null) }
 
-    // Validación final del formulario
+    // Validación del formulario
     val isFormValid = titleError.isNullOrEmpty()
             && descriptionError.isNullOrEmpty()
             && rewardError.isNullOrEmpty()
@@ -103,250 +115,300 @@ fun CreateFavorScreen(
                 onItemClick = { idx ->
                     when (idx) {
                         0 -> navController.navigate("home") { launchSingleTop = true }
-                        1 -> {} // estamos aquí
+                        1 -> {} // aquí
                         2 -> navController.navigate("history") { launchSingleTop = true }
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+                .padding(padding)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // TÍTULO
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
             ) {
-                Text(text = "Título:")
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { text ->
-                        title = text
-                        titleError = when {
-                            text.isBlank() -> "Falta llenar el título"
-                            text.length > 50 -> "El título no puede tener más de 50 caracteres"
-                            text.filter { it.isLetter() }.length < 5 -> "El título debe tener al menos 5 letras"
-                            else -> null
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp),
-                    isError = titleError != null,
-                    singleLine = true
-                )
-            }
-            titleError?.let {
-                Text(
-                    text = it,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodySmall,
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // TÍTULO
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 32.dp, top = 4.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // DESCRIPCIÓN
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text(text = "Descripción:")
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = description,
-                onValueChange = { text ->
-                    description = text
-                    descriptionError = when {
-                        text.isBlank() -> "Falta llenar la descripción"
-                        text.length > 500 -> "La descripción no puede tener más de 500 caracteres"
-                        text.filter { it.isLetter() }.length < 5 -> "La descripción debe tener al menos 5 letras"
-                        else -> null
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(horizontal = 16.dp),
-                maxLines = 6,
-                isError = descriptionError != null
-            )
-            descriptionError?.let {
-                Text(
-                    text = it,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 32.dp, top = 4.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // RECOMPENSA
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Recompensa:")
-                OutlinedTextField(
-                    value = recompensa,
-                    onValueChange = { text ->
-                        recompensa = text
-                        rewardError = when {
-                            text.isBlank() -> "Falta la recompensa"
-                            text.toIntOrNull() == null -> "La recompensa debe ser un número"
-                            text.toInt() > 10_000_000 -> "La recompensa no puede ser mayor a 10 000 000"
-                            else -> null
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp),
-                    isError = rewardError != null,
-                    singleLine = true
-                )
-            }
-            rewardError?.let {
-                Text(
-                    text = it,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 32.dp, top = 4.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text(text = "Categoría:")
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            // CATEGORÍA
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // make these buttons share the row equally
-                val categories = listOf("Favor", "Compra", "Tutoría")
-                for (cat in categories) {
-                    val catColor = when (cat) {
-                        "Favor"   -> FavorCategoryColor
-                        "Compra"  -> CompraCategoryColor
-                        "Tutoría" -> TutoriaCategoryColor
-                        else      -> Color.Black
-                    }
-                    val selected = (selectedCategory == cat)
-
-                    OutlinedButton(
-                        onClick = { selectedCategory = cat },
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Título:")
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { text ->
+                            title = text
+                            titleError = when {
+                                text.isBlank() -> "Falta llenar el título"
+                                text.length > 50 -> "El título no puede tener más de 50 caracteres"
+                                text.filter { it.isLetter() }.length < 5 -> "El título debe tener al menos 5 letras"
+                                else -> null
+                            }
+                        },
                         modifier = Modifier
-                            .weight(1f)             // ← each button fills 1/3 of width
-                            .height(40.dp),         // optional: give a consistent height
-                        border = BorderStroke(1.dp, Color.Black),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (selected) catColor else Color.White,
-                            contentColor   = if (selected) Color.White else Color.Black
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(cat)
+                            .weight(1f)
+                            .padding(start = 8.dp),
+                        isError = titleError != null,
+                        singleLine = true
+                    )
+                }
+                titleError?.let {
+                    Text(
+                        text = it,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 32.dp, top = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // DESCRIPCIÓN
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(text = "Descripción:")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { text ->
+                        description = text
+                        descriptionError = when {
+                            text.isBlank() -> "Falta llenar la descripción"
+                            text.length > 500 -> "La descripción no puede tener más de 500 caracteres"
+                            text.filter { it.isLetter() }.length < 5 -> "La descripción debe tener al menos 5 letras"
+                            else -> null
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(horizontal = 16.dp),
+                    maxLines = 6,
+                    isError = descriptionError != null
+                )
+                descriptionError?.let {
+                    Text(
+                        text = it,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 32.dp, top = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // RECOMPENSA
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Recompensa:")
+                    OutlinedTextField(
+                        value = recompensa,
+                        onValueChange = { text ->
+                            recompensa = text
+                            rewardError = when {
+                                text.isBlank() -> "Falta la recompensa"
+                                text.toIntOrNull() == null -> "La recompensa debe ser un número"
+                                text.toInt() > 10_000_000 -> "La recompensa no puede ser mayor a 10 000 000"
+                                else -> null
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp),
+                        isError = rewardError != null,
+                        singleLine = true
+                    )
+                }
+                rewardError?.let {
+                    Text(
+                        text = it,
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 32.dp, top = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // CATEGORÍA
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(text = "Categoría:")
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val categories = listOf("Favor", "Compra", "Tutoría")
+                    for (cat in categories) {
+                        val catColor = when (cat) {
+                            "Favor"   -> FavorCategoryColor
+                            "Compra"  -> CompraCategoryColor
+                            "Tutoría" -> TutoriaCategoryColor
+                            else      -> Color.Black
+                        }
+                        val selected = (selectedCategory == cat)
+                        OutlinedButton(
+                            onClick = { selectedCategory = cat },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
+                            border = BorderStroke(1.dp, Color.Black),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (selected) catColor else Color.White,
+                                contentColor   = if (selected) Color.White else Color.Black
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(cat)
+                        }
+                        if (cat != categories.last()) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                     }
-                    if (cat != categories.last()) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Tiempo promedio de aceptación de un $selectedCategory: ${
+                        calculateAverageAcceptanceTime(allFavors, selectedCategory)
+                    } minutos",
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // BOTÓN PUBLICAR
+                val currentUserId = currentUser?.id ?: ""
+                val currentLocation = locationHelper.currentLocation.value
+                val latitud = currentLocation?.latitude ?: 0.0
+                val longitud = currentLocation?.longitude ?: 0.0
+                val canPublishByLocation = (selectedCategory == "Tutoría") || isInsideCampus
+
+                OutlinedButton(
+                    onClick = {
+                        isOnline = networkChecker.isOnline()
+                        if (isOnline) {
+                            scope.launch {
+                                val currentTime = Clock.System.now().toString()
+                                val newFavor = Favor(
+                                    title = title,
+                                    description = description,
+                                    category = selectedCategory,
+                                    reward = recompensa.toInt(),
+                                    favor_time = null,
+                                    created_at = currentTime,
+                                    request_user_id = currentUserId,
+                                    accept_user_id = "",
+                                    latitude = latitud,
+                                    longitude = longitud,
+                                    status = "pending"
+                                )
+                                favorViewModel.addFavor(newFavor)
+                                navController.navigate("home") { launchSingleTop = true }
+                            }
+                        } else {
+                            showNoConnectionDialog = true
+                        }
+                    },
+                    enabled = canPublishByLocation && isFormValid,
+                    border = BorderStroke(1.dp, Color.Black),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color.LightGray,
+                        disabledContentColor = Color.DarkGray
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text("Publicar")
+                }
+
+                if (!isInsideCampus) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No estás dentro del campus",
+                        color = Color.DarkGray
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // TIEMPO PROMEDIO
-            Text(
-                text = "Tiempo promedio de aceptación de un $selectedCategory: ${
-                    calculateAverageAcceptanceTime(allFavors, selectedCategory)
-                } minutos",
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // BOTÓN PUBLICAR
-            val currentUserId = currentUser?.id ?: ""
-            val currentLocation = locationHelper.currentLocation.value
-            val latitud = currentLocation?.latitude ?: 0.0
-            val longitud = currentLocation?.longitude ?: 0.0
-
-            val canPublishByLocation = (selectedCategory == "Tutoría") || isInsideCampus
-
-            OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        val currentTime = Clock.System.now().toString()
-                        val newFavor = Favor(
-                            title = title,
-                            description = description,
-                            category = selectedCategory,
-                            reward = recompensa.toInt(),
-                            favor_time = null,
-                            created_at = currentTime,
-                            request_user_id = currentUserId,
-                            accept_user_id = "",
-                            latitude = latitud,
-                            longitude = longitud,
-                            status = "pending"
-                        )
-                        Log.e("Favor", newFavor.status.toString())
-                        favorViewModel.addFavor(newFavor)
-                        navController.navigate("home") { launchSingleTop = true }
+            if (showNoConnectionDialog) {
+                AlertDialog(
+                    onDismissRequest = { /* opcional: showNoConnectionDialog = false */ },
+                    title = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Sin conexión",
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    },
+                    text = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Estás sin conexión",
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp), // opcional: un poco de espacio abajo
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TextButton(onClick = {
+                                showNoConnectionDialog = false
+                                navController.navigate("home") {
+                                    launchSingleTop = true
+                                }
+                            }) {
+                                Text("Ir al inicio")
+                            }
+                        }
                     }
-                },
-                enabled = canPublishByLocation && isFormValid,
-                border = BorderStroke(1.dp, Color.Black),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                    disabledContainerColor = Color.LightGray,
-                    disabledContentColor = Color.DarkGray
-                ),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Text("Publicar")
-            }
-
-            if (!isInsideCampus) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "No estás dentro del campus",
-                    color = Color.DarkGray
                 )
             }
         }
@@ -375,7 +437,6 @@ fun convertDateToMillis(date: String): Long {
 }
 
 fun calculateAverageAcceptanceTime(favors: List<Favor>, category: String): Long {
-    // Filter favors by category and ensure both created_at and favor_time are non-null
     val validFavors = favors.filter { favor ->
         favor.category == category && favor.created_at != null && favor.favor_time != null
     }
