@@ -304,7 +304,7 @@ fun HistoryFavorCard(
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.Gray,
+                                    containerColor = Color.Black,
                                     contentColor = Color.White
                                 ),
                                 modifier = Modifier

@@ -27,24 +27,24 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
+import com.example.senefavores.data.model.User
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.FavorCard
 import com.example.senefavores.ui.components.SenefavoresHeader
-import com.example.senefavores.ui.theme.FavorCategoryColor
-import com.example.senefavores.ui.theme.CompraCategoryColor
-import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BackgroundColor
 import com.example.senefavores.ui.theme.BlackTextColor
+import com.example.senefavores.ui.theme.CompraCategoryColor
+import com.example.senefavores.ui.theme.FavorCategoryColor
+import com.example.senefavores.ui.theme.TutoriaCategoryColor
+import com.example.senefavores.ui.viewmodel.FavorViewModel
+import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.parseDateTime
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import com.example.senefavores.ui.viewmodel.UserViewModel
-import com.example.senefavores.data.model.User
-import com.example.senefavores.ui.viewmodel.FavorViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -92,23 +92,16 @@ fun HomeScreen(
     val hasCompletedInfo by userViewModel.hasCompletedInfo.collectAsState()
     val allFavorsOr by favorViewModel.favors.collectAsState()
     val allFavors = allFavorsOr.take(25)
+    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
 
     var showDialog by rememberSaveable { mutableStateOf(false) }
     var hasChecked by rememberSaveable { mutableStateOf(false) }
-
-    var isOnline by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        isOnline = networkChecker.isOnline()
-        if (!isOnline) {
-            Log.d("HomeScreen", "No internet connection detected")
-        }
-    }
 
     LaunchedEffect(userInfo, hasCompletedInfo, hasChecked) {
         if (!hasChecked) {
             Log.d("HomeScreen", "Checking user session and info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
             Log.d("UserInfo", "Waiting for session check...")
-             // Increased delay to ensure session is loaded
+            // Increased delay to ensure session is loaded
             var user = userViewModel.loadUserClientInfo()
             delay(2000)
             user = userViewModel.loadUserClientInfo()

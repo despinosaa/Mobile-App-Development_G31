@@ -16,6 +16,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
@@ -45,14 +47,14 @@ fun ReviewScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val startTime = remember { System.currentTimeMillis() }
 
-    // Notify the parent of the current screen for crash reporting
+    // Notify parent of current screen
     LaunchedEffect(Unit) {
         onScreenChange("ReviewScreen")
     }
 
-    // Log response time after the screen is composed
+    // Log response time
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -61,13 +63,13 @@ fun ReviewScreen(
     }
 
     val userInfo by userViewModel.user.collectAsState()
+    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var stars by remember { mutableStateOf(0) }
     var favor by remember { mutableStateOf<Favor?>(null) }
     var acceptUserName by remember { mutableStateOf("Cargando...") }
     var selectedItem by remember { mutableStateOf(2) } // History selected
-    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val starsOptions = listOf(1, 2, 3, 4, 5)
     var expanded by remember { mutableStateOf(false) }
@@ -81,14 +83,16 @@ fun ReviewScreen(
     }
 
     // Fetch favor and accept user's name
-    LaunchedEffect(favorId, acceptUserId) {
-        favor = favorViewModel.getFavorById(favorId)
-        acceptUserName = if (acceptUserId.isNotEmpty()) {
-            userViewModel.getClientById(acceptUserId)?.name ?: "Usuario desconocido"
-        } else {
-            "Ninguno"
+    LaunchedEffect(favorId, acceptUserId, isOnline) {
+        if (isOnline) {
+            favor = favorViewModel.getFavorById(favorId)
+            acceptUserName = if (acceptUserId.isNotEmpty()) {
+                userViewModel.getClientById(acceptUserId)?.name ?: "Usuario desconocido"
+            } else {
+                "Ninguno"
+            }
+            Log.d("ReviewScreen", "Favor: $favor, AcceptUserName: $acceptUserName")
         }
-        Log.d("ReviewScreen", "Favor: $favor, AcceptUserName: $acceptUserName")
     }
 
     // Log userInfo, favorId, requestUserId, acceptUserId
@@ -200,7 +204,7 @@ fun ReviewScreen(
                     )
                 } else {
                     Text(
-                        text = "Cargando información del favor...",
+                        text = if (isOnline) "Cargando información del favor..." else "Sin conexión, información no disponible",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
@@ -275,26 +279,33 @@ fun ReviewScreen(
                     onClick = {
                         if (userInfo?.id == null) {
                             Log.d("ReviewScreen", "Submit failed: User not authenticated")
-                            coroutineScope.launch {
+                            scope.launch {
                                 snackbarHostState.showSnackbar("Usuario no autenticado")
                             }
                             return@Button
                         }
                         if (title.isBlank() || description.isBlank() || stars == 0) {
                             Log.d("ReviewScreen", "Submit failed: Empty fields (title=$title, description=$description, stars=$stars)")
-                            coroutineScope.launch {
+                            scope.launch {
                                 snackbarHostState.showSnackbar("Por favor, completa todos los campos")
                             }
                             return@Button
                         }
                         if (acceptUserId.isEmpty()) {
                             Log.d("ReviewScreen", "Submit failed: Invalid acceptUserId")
-                            coroutineScope.launch {
+                            scope.launch {
                                 snackbarHostState.showSnackbar("ID de usuario aceptado inválido")
                             }
                             return@Button
                         }
-                        coroutineScope.launch {
+                        if (!isOnline) {
+                            Log.d("ReviewScreen", "Submit failed: No internet connection")
+                            scope.launch {
+                                snackbarHostState.showSnackbar("No hay conexión a internet")
+                            }
+                            return@Button
+                        }
+                        scope.launch {
                             try {
                                 Log.d("ReviewScreen", "Creating review: id=$favorId, reviewer_id=${userInfo!!.id}, reviewed_id=$acceptUserId")
                                 val review = Review(
@@ -311,7 +322,7 @@ fun ReviewScreen(
                                 navController.navigate("history") { launchSingleTop = true }
                             } catch (e: Exception) {
                                 Log.e("ReviewScreen", "Error submitting review: ${e.localizedMessage}, cause: ${e.cause}", e)
-                                coroutineScope.launch {
+                                scope.launch {
                                     snackbarHostState.showSnackbar("Error al enviar reseña: ${e.localizedMessage}")
                                 }
                             }
@@ -321,10 +332,21 @@ fun ReviewScreen(
                         containerColor = MikadoYellow,
                         contentColor = BlackTextColor
                     ),
-                    modifier = Modifier.height(50.dp)
+                    modifier = Modifier.height(50.dp),
+                    enabled = isOnline
                 ) {
                     Text(text = "Enviar Reseña", fontSize = 16.sp)
                 }
+            }
+
+            // No Connectivity Message
+            if (!isOnline) {
+                Text(
+                    text = "No hay conexión a internet",
+                    fontSize = 12.sp,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))

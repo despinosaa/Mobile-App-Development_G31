@@ -29,9 +29,9 @@ import com.example.senefavores.R
 import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
-import com.example.senefavores.util.NetworkChecker
 
 @Composable
 fun SignInScreen(
@@ -43,15 +43,15 @@ fun SignInScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
-    val isOnline by remember { derivedStateOf { networkChecker.isOnline() } }
+    val startTime = remember { System.currentTimeMillis() }
+    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
 
-    // Notify the parent of the current screen for crash reporting
+    // Notify parent of current screen
     LaunchedEffect(Unit) {
         onScreenChange("SignInScreen")
     }
 
-    // Log response time after the screen is composed
+    // Log response time
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -69,9 +69,9 @@ fun SignInScreen(
     var isPasswordVisible by remember { mutableStateOf(false) }
 
     // Navigate to home on successful authentication
-    LaunchedEffect(isAuthenticated) {
-        if (isAuthenticated) {
-            Log.d("SignInScreen", "Auth successful, navigating to home")
+    LaunchedEffect(isAuthenticated, isOnline) {
+        if (isAuthenticated && isOnline) {
+            Log.d("SignInScreen", "Auth successful and online, navigating to home")
             navController.navigate("home") {
                 popUpTo("signIn") { inclusive = true }
             }
@@ -158,7 +158,7 @@ fun SignInScreen(
                     Toast.makeText(context, "Por favor, ingrese correo y contraseña", Toast.LENGTH_SHORT).show()
                 }
             },
-            backgroundColor = BlackButtons, // Green for sign-in
+            backgroundColor = BlackButtons,
             textColor = Color.White,
             hasBorder = false,
             enabled = !isLoading && isOnline

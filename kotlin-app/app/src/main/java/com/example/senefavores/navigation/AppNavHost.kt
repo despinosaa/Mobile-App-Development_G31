@@ -124,7 +124,8 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange
+                onScreenChange = onScreenChange,
+                networkChecker = networkChecker
             )
             Log.d("AppNavHost", "Navigated to resetPassword")
         }

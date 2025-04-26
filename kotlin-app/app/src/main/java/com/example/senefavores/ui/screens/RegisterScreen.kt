@@ -27,8 +27,8 @@ import com.example.senefavores.R
 import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.NetworkChecker
+import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
 
 @Composable
@@ -41,15 +41,15 @@ fun RegisterScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
-    val isOnline by remember { derivedStateOf { networkChecker.isOnline() } }
+    val startTime = remember { System.currentTimeMillis() }
+    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
 
-    // Notify the parent of the current screen for crash reporting
+    // Notify parent of current screen
     LaunchedEffect(Unit) {
         onScreenChange("RegisterScreen")
     }
 
-    // Log response time after the screen is composed
+    // Log response time
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
