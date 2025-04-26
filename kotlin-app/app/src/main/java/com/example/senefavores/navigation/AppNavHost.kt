@@ -39,9 +39,24 @@ fun AppNavHost(
     favorRepository: FavorRepository,
     userRepository: UserRepository,
     networkChecker: NetworkChecker,
+    initialRoute: String,
     onScreenChange: (String) -> Unit
 ) {
-    NavHost(navController = navController, startDestination = "signIn") {
+    // Validate initialRoute
+    val validRoutes = listOf(
+        "signIn", "register", "forgot", "home", "history", "account",
+        "resetPassword", "createFavor", "favorScreen/{favorJson}",
+        "review/{favorId}/{requestUserId}/{acceptUserId}"
+    )
+    val startDestination = if (initialRoute in validRoutes) {
+        initialRoute
+    } else {
+        Log.e("AppNavHost", "Invalid initialRoute: $initialRoute, defaulting to signIn")
+        "signIn"
+    }
+    Log.d("AppNavHost", "Starting navigation with startDestination: $startDestination")
+
+    NavHost(navController = navController, startDestination = startDestination) {
         composable("signIn") {
             SignInScreen(
                 navController = navController,
@@ -57,7 +72,8 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange
+                onScreenChange = onScreenChange,
+                networkChecker = networkChecker
             )
             Log.d("AppNavHost", "Navigated to register")
         }
@@ -79,6 +95,7 @@ fun AppNavHost(
                 networkChecker = networkChecker,
                 onScreenChange = onScreenChange
             )
+            Log.d("AppNavHost", "Navigated to home")
         }
         composable("history") {
             HistoryScreen(
@@ -119,7 +136,7 @@ fun AppNavHost(
                 telemetryLogger = telemetryLogger,
                 favorRepository = favorRepository,
                 onScreenChange = onScreenChange,
-                networkChecker = networkChecker,
+                networkChecker = networkChecker
             )
             onScreenChange("createFavor")
             Log.d("AppNavHost", "Navigated to createFavor")

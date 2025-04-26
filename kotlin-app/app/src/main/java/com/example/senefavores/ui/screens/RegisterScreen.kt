@@ -28,6 +28,7 @@ import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.components.CustomButton
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.TelemetryLogger
+import com.example.senefavores.util.NetworkChecker
 import kotlinx.coroutines.launch
 
 @Composable
@@ -36,10 +37,12 @@ fun RegisterScreen(
     userViewModel: UserViewModel = hiltViewModel(),
     telemetryLogger: TelemetryLogger,
     userRepository: UserRepository,
+    networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val isOnline by remember { derivedStateOf { networkChecker.isOnline() } }
 
     // Notify the parent of the current screen for crash reporting
     LaunchedEffect(Unit) {
@@ -134,8 +137,18 @@ fun RegisterScreen(
             text = "La contraseña debe tener entre 8 y 21 caracteres.",
             fontSize = 12.sp,
             color = Color.Red,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
         )
+
+        // No Connectivity Message
+        if (!isOnline) {
+            Text(
+                text = "No hay conexión a internet",
+                fontSize = 12.sp,
+                color = Color.Red,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
 
         // Register Button
         CustomButton(
@@ -167,7 +180,7 @@ fun RegisterScreen(
             backgroundColor = Color(0xFF4CAF50), // Green for sign-in
             textColor = Color.White,
             hasBorder = false,
-            enabled = !isLoading
+            enabled = !isLoading && isOnline
         )
 
         Spacer(modifier = Modifier.height(16.dp))

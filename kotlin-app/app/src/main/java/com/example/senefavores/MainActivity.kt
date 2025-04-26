@@ -25,6 +25,7 @@ import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.SupabaseClient
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
@@ -90,20 +91,40 @@ class MainActivity : ComponentActivity() {
             SenefavoresTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    // Handle deep link with NavController availability
-                    HandleDeepLink(intent, navController)
-                    AppNavHost(
-                        navController = navController,
-                        locationHelper = locationHelper,
-                        hasLocationPermission = hasLocationPermission,
-                        telemetryLogger = telemetryLogger,
-                        favorRepository = favorRepository,
-                        userRepository = userRepository,
-                        networkChecker = networkChecker,
-                        onScreenChange = { screenName ->
-                            currentScreen = screenName
+                    val coroutineScope = rememberCoroutineScope()
+                    var initialRoute by remember { mutableStateOf<String?>(null) }
+
+                    // Check session on startup
+                    LaunchedEffect(Unit) {
+                        coroutineScope.launch {
+                            val hasSession = userRepository.hasActiveSession()
+                            initialRoute = if (hasSession) {
+                                Log.d("MainActivity", "Session found, navigating to home")
+                                "home"
+                            } else {
+                                Log.d("MainActivity", "No session, navigating to signIn")
+                                "signIn"
+                            }
                         }
-                    )
+                    }
+
+                    // Handle deep link and initial navigation
+                    HandleDeepLink(intent, navController)
+                    if (initialRoute != null) {
+                        AppNavHost(
+                            navController = navController,
+                            locationHelper = locationHelper,
+                            hasLocationPermission = hasLocationPermission,
+                            telemetryLogger = telemetryLogger,
+                            favorRepository = favorRepository,
+                            userRepository = userRepository,
+                            networkChecker = networkChecker,
+                            initialRoute = initialRoute!!,
+                            onScreenChange = { screenName ->
+                                currentScreen = screenName
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -176,7 +197,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-
             } else {
                 Log.d("AmongUs", "No code in deep link, navigating to signIn")
                 navController.navigate("signIn") {
@@ -185,14 +205,6 @@ class MainActivity : ComponentActivity() {
                     }
                     launchSingleTop = true
                 }
-            }
-        } else {
-            Log.d("AmongUs", "Invalid or no deep link, navigating to signIn")
-            navController.navigate("signIn") {
-                popUpTo(navController.graph.startDestinationId) {
-                    inclusive = true
-                }
-                launchSingleTop = true
             }
         }
     }

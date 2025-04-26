@@ -26,6 +26,32 @@ class UserRepository @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) {
 
+    suspend fun hasActiveSession(): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Check for existing session
+                val session = supabaseClient.auth.currentSessionOrNull()
+                if (session != null) {
+                    Log.d("UserRepository", "Active session found: $session")
+                    return@withContext true
+                }
+
+                // Try to restore session
+                val restoredSession = supabaseClient.auth.currentSessionOrNull()
+                if (restoredSession != null) {
+                    Log.d("UserRepository", "Session restored: $restoredSession")
+                    return@withContext true
+                }
+
+                Log.d("UserRepository", "No active session found")
+                false
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error checking session: ${e.localizedMessage}", e)
+                false
+            }
+        }
+    }
+
     suspend fun getUsers(): List<User> {
         return withContext(Dispatchers.IO) {
             runCatching {
@@ -67,7 +93,7 @@ class UserRepository @Inject constructor(
         return runCatching {
             Log.d("AzureAuth", "Starting Azure sign-in...")
 
-            supabaseClient.auth.signInWith(Github){
+            supabaseClient.auth.signInWith(Github) {
                 scopes.add("email")
             }
 
@@ -99,8 +125,6 @@ class UserRepository @Inject constructor(
         }
     }
 
-
-
     suspend fun signInWithEmail(emailS: String, passwordS: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -116,7 +140,6 @@ class UserRepository @Inject constructor(
         }
     }
 
-
     suspend fun signUpWithEmail(emails: String, passwords: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -131,9 +154,6 @@ class UserRepository @Inject constructor(
             }
         }
     }
-
-
-
 
     suspend fun waitForSessionAndEnsureUser(): Boolean {
         supabaseClient.auth.awaitInitialization()
@@ -307,11 +327,12 @@ class UserRepository @Inject constructor(
         }
     }
 
+    @Deprecated("Use hasActiveSession instead")
     suspend fun checkUserSession(): Boolean {
         val session = supabaseClient.auth.currentSessionOrNull()
-        Log.e("UserInfo","Session after redirect: $session")
+        Log.d("UserRepository", "Session after redirect: $session")
         val user = supabaseClient.auth.retrieveUserForCurrentSession(updateSession = true)
-        Log.e("UserInfo","User after redirect: $user")
+        Log.d("UserRepository", "User after redirect: $user")
         return session != null
     }
 
@@ -405,8 +426,6 @@ class UserRepository @Inject constructor(
         }
     }
 
-
-
     suspend fun verifyRecoveryOtp(email: String, token: String) {
         return withContext(Dispatchers.IO) {
             try {
@@ -442,6 +461,7 @@ class UserRepository @Inject constructor(
             password = newPassword
         }
     }
+
     suspend fun verifyEmailOtp(email: String, token: String) {
         supabaseClient.auth.verifyEmailOtp(
             type = OtpType.Email.RECOVERY,

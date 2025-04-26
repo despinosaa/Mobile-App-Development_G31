@@ -44,6 +44,7 @@ fun SignInScreen(
 ) {
     val scope = rememberCoroutineScope()
     val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val isOnline by remember { derivedStateOf { networkChecker.isOnline() } }
 
     // Notify the parent of the current screen for crash reporting
     LaunchedEffect(Unit) {
@@ -129,6 +130,16 @@ fun SignInScreen(
             }
         )
 
+        // No Connectivity Message
+        if (!isOnline) {
+            Text(
+                text = "No hay conexión a internet",
+                fontSize = 12.sp,
+                color = Color.Red,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
         // Login Button
         CustomButton(
             text = if (isLoading) "Iniciando..." else "Iniciar Sesión",
@@ -150,7 +161,7 @@ fun SignInScreen(
             backgroundColor = BlackButtons, // Green for sign-in
             textColor = Color.White,
             hasBorder = false,
-            enabled = !isLoading
+            enabled = !isLoading && isOnline
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -216,7 +227,7 @@ fun SignInScreen(
                             }
                         },
                         modifier = Modifier.padding(end = 8.dp),
-                        enabled = !isLoading
+                        enabled = !isLoading && isOnline
                     ) {
                         Text(if (isLoading) "Enviando..." else "Enviar")
                     }

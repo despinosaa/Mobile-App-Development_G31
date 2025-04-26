@@ -44,6 +44,7 @@ fun AccountScreen(
 ) {
     val scope = rememberCoroutineScope()
     val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val isOnline by remember { derivedStateOf { networkChecker.isOnline() } }
 
     // Notify the parent of the current screen for crash reporting
     LaunchedEffect(Unit) {
@@ -68,21 +69,27 @@ fun AccountScreen(
     // Map of reviewer_id to name
     val reviewerNames = remember { mutableStateMapOf<String, String?>() }
 
-    // Load user and reviews
-    LaunchedEffect(Unit) {
-        userViewModel.loadUserClientInfo()
+    // Load user and reviews (only if online)
+    LaunchedEffect(isOnline) {
+        if (isOnline) {
+            userViewModel.loadUserClientInfo()
+        }
     }
-    LaunchedEffect(user) {
-        user?.let { favorViewModel.fetchUserReviews(it.id) }
+    LaunchedEffect(user, isOnline) {
+        if (isOnline) {
+            user?.let { favorViewModel.fetchUserReviews(it.id) }
+        }
     }
 
-    // Fetch reviewer names for each review
-    LaunchedEffect(reviews) {
-        reviews.forEach { review ->
-            if (!reviewerNames.containsKey(review.reviewer_id)) {
-                coroutineScope.launch {
-                    val client = userViewModel.getClientById(review.reviewer_id)
-                    reviewerNames[review.reviewer_id] = client?.name
+    // Fetch reviewer names for each review (only if online)
+    LaunchedEffect(reviews, isOnline) {
+        if (isOnline) {
+            reviews.forEach { review ->
+                if (!reviewerNames.containsKey(review.reviewer_id)) {
+                    coroutineScope.launch {
+                        val client = userViewModel.getClientById(review.reviewer_id)
+                        reviewerNames[review.reviewer_id] = client?.name
+                    }
                 }
             }
         }
@@ -183,7 +190,7 @@ fun AccountScreen(
                 }
                 else -> {
                     Text(
-                        text = "Cargando información del usuario...",
+                        text = if (isOnline) "Cargando información del usuario..." else "No hay conexión, mostrando datos guardados...",
                         fontSize = 16.sp,
                         modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
                     )
@@ -212,7 +219,7 @@ fun AccountScreen(
                     user == null -> {
                         item {
                             Text(
-                                text = "Cargando reseñas...",
+                                text = if (isOnline) "Cargando reseñas..." else "No hay conexión, mostrando reseñas guardadas...",
                                 fontSize = 14.sp,
                                 color = Color.Gray,
                                 modifier = Modifier.padding(16.dp)
@@ -233,7 +240,7 @@ fun AccountScreen(
                         items(reviews) { review ->
                             ReviewCard(
                                 review = review,
-                                reviewerName = reviewerNames[review.reviewer_id]
+                                reviewerName = reviewerNames[review.reviewer_id] ?: "Cargando..."
                             )
                         }
                     }
@@ -255,7 +262,8 @@ fun AccountScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = BlackButtons,
                         contentColor = WhiteTextColor
-                    )
+                    ),
+                    enabled = isOnline
                 ) {
                     Text("Cambiar contraseña")
                 }

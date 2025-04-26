@@ -106,22 +106,26 @@ fun HomeScreen(
 
     LaunchedEffect(userInfo, hasCompletedInfo, hasChecked) {
         if (!hasChecked) {
-            Log.d("Dialog", "Checking user info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
-            Log.d("UserInfo", "Loading user info...")
+            Log.d("HomeScreen", "Checking user session and info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
+            Log.d("UserInfo", "Waiting for session check...")
+             // Increased delay to ensure session is loaded
+            var user = userViewModel.loadUserClientInfo()
+            delay(2000)
+            user = userViewModel.loadUserClientInfo()
+            Log.d("UserInfo", "User loaded: $user, session exists: ${user != null}")
 
-            delay(500)
-            val user = userViewModel.loadUserClientInfo()
-            Log.d("UserInfo", "User loaded: $user")
-
-            if (user == null) {
+            if (user == null && isOnline) {
                 Log.d("UserInfo", "No client found, inserting new client")
                 userViewModel.insertUserInClients()
                 showDialog = true
-            } else if (user.name.isNullOrEmpty() || user.phone.isNullOrEmpty()) {
+            } else if (isOnline && (user?.name.isNullOrEmpty() || user?.phone.isNullOrEmpty())) {
+                Log.d("UserInfo", "Incomplete user info: name=${user?.name}, phone=${user?.phone}")
                 showDialog = true
+            } else {
+                Log.d("UserInfo", "User info complete or offline, no dialog needed")
             }
             hasChecked = true
-            Log.d("Dialog", "Updated showDialog: $showDialog")
+            Log.d("HomeScreen", "Session check complete: showDialog=$showDialog")
         }
         favorViewModel.fetchFavors(userInfo?.id)
     }
@@ -335,7 +339,7 @@ fun ShowUserInfoDialog(
     }
 
     if (showDialog) {
-        Log.e("Dialog", "Entered dialog function")
+        Log.d("HomeScreen", "Showing user info dialog")
         AlertDialog(
             onDismissRequest = { /* Do nothing to prevent dismissal */ },
             title = { Text("Información Incompleta") },
@@ -374,10 +378,9 @@ fun ShowUserInfoDialog(
             confirmButton = {
                 Button(
                     onClick = {
-                        Log.d("Dialog", "Save clicked: name=$name, phone=$phone, isPhoneValid=$isPhoneValid")
+                        Log.d("HomeScreen", "Dialog save clicked: name=$name, phone=$phone, isPhoneValid=$isPhoneValid")
                         if (name.isNotBlank() && phone.isNotBlank() && isPhoneValid) {
                             userViewModel.updateClientsUser(name = name, phone = phone)
-                            Log.d("Dialog", "Calling onDismiss after save")
                             onDismiss()
                         }
                     },
