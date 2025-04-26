@@ -186,7 +186,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Debes verificar tu cuenta con el enlace enviado a tu correo.",
+            text = "Debes verificar tu cuenta con el correo desde tu telefono y volver a ingresar a la aplicación.",
             fontSize = 14.sp,
             color = Color.Gray,
             modifier = Modifier
