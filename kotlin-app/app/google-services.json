@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "827023409244",
+    "project_id": "senefavores-72b36",
+    "storage_bucket": "senefavores-72b36.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:827023409244:android:25d1861938e5e9bff8a699",
+        "android_client_info": {
+          "package_name": "com.example.senefavores"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs0urlbcnyM_22R05fF9InBK8Pz_xp-PI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

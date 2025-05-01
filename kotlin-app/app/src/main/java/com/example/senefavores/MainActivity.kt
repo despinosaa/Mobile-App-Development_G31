@@ -93,23 +93,29 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
                     var initialRoute by remember { mutableStateOf<String?>(null) }
+                    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
 
-                    // Check session on startup
+                    // Check network and session on startup
                     LaunchedEffect(Unit) {
                         coroutineScope.launch {
-                            val hasSession = userRepository.hasActiveSession()
-                            initialRoute = if (hasSession) {
-                                Log.d("MainActivity", "Session found, navigating to home")
-                                "home"
-                            } else {
-                                Log.d("MainActivity", "No session, navigating to signIn")
+                            initialRoute = if (!isOnline) {
+                                Log.d("MainActivity", "Offline, navigating to signIn")
                                 "signIn"
+                            } else {
+                                val hasSession = userRepository.hasActiveSession()
+                                if (hasSession) {
+                                    Log.d("MainActivity", "Session found, navigating to home")
+                                    "home"
+                                } else {
+                                    Log.d("MainActivity", "No session, navigating to signIn")
+                                    "signIn"
+                                }
                             }
                         }
                     }
 
                     // Handle deep link and initial navigation
-                    HandleDeepLink(intent, navController)
+                    HandleDeepLink(intent, navController, isOnline)
                     if (initialRoute != null) {
                         AppNavHost(
                             navController = navController,
@@ -132,18 +138,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent) // Update the intent
-        handleDeepLink(intent, null)
+        setIntent(intent)
+        handleDeepLink(intent, null, networkChecker.isOnline())
     }
 
     @Composable
-    private fun HandleDeepLink(intent: Intent?, navController: androidx.navigation.NavController) {
-        LaunchedEffect(intent?.data?.toString()) {
-            intent?.let { handleDeepLink(it, navController) }
+    private fun HandleDeepLink(intent: Intent?, navController: androidx.navigation.NavController, isOnline: Boolean) {
+        LaunchedEffect(intent?.data?.toString(), isOnline) {
+            intent?.let { handleDeepLink(it, navController, isOnline) }
         }
     }
 
-    private fun handleDeepLink(intent: Intent, navController: androidx.navigation.NavController?) {
+    private fun handleDeepLink(intent: Intent, navController: androidx.navigation.NavController?, isOnline: Boolean) {
         val uri: Uri? = intent.data
         val uriString = uri?.toString()
         Log.d("AmongUs", "Deep link received: $uri")
@@ -165,16 +171,14 @@ class MainActivity : ComponentActivity() {
             if (error != null) {
                 Log.d("AmongUs", "Error deep link: error=$error, error_code=${uri.getQueryParameter("error_code")}")
                 navController.navigate("signIn") {
-                    popUpTo(navController.graph.startDestinationId) {
-                        inclusive = true
-                    }
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
                     launchSingleTop = true
                 }
                 return
             }
 
             val code = uri.getQueryParameter("code")
-            if (code != null) {
+            if (code != null && isOnline) {
                 Log.d("AmongUs", "Deep link detected, code=$code")
                 // Exchange code for session
                 runBlocking {
@@ -182,27 +186,21 @@ class MainActivity : ComponentActivity() {
                         userRepository.exchangeCodeForSession(code)
                         Log.d("AmongUs", "Session exchanged for code=$code")
                         navController.navigate("home") {
-                            popUpTo("home") {
-                                inclusive = true
-                            }
+                            popUpTo("home") { inclusive = true }
                             launchSingleTop = true
                         }
                     } catch (e: Exception) {
                         Log.e("AmongUs", "Failed to exchange session: ${e.message}")
                         navController.navigate("signIn") {
-                            popUpTo(navController.graph.startDestinationId) {
-                                inclusive = true
-                            }
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
                 }
             } else {
-                Log.d("AmongUs", "No code in deep link, navigating to signIn")
+                Log.d("AmongUs", "No code or offline, navigating to signIn")
                 navController.navigate("signIn") {
-                    popUpTo(navController.graph.startDestinationId) {
-                        inclusive = true
-                    }
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
                     launchSingleTop = true
                 }
             }

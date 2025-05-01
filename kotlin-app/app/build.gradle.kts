@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     id("dagger.hilt.android.plugin")
     kotlin("kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -46,6 +47,9 @@ android {
 dependencies {
 
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+    implementation("com.google.firebase:firebase-analytics")
 
 
     implementation(libs.androidx.core.ktx)

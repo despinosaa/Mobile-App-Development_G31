@@ -18,11 +18,11 @@ import com.example.senefavores.R
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.SenefavoresHeader
-import com.example.senefavores.ui.theme.FavorCategoryColor
-import com.example.senefavores.ui.theme.CompraCategoryColor
-import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.theme.BlackTextColor
+import com.example.senefavores.ui.theme.CompraCategoryColor
+import com.example.senefavores.ui.theme.FavorCategoryColor
 import com.example.senefavores.ui.theme.MikadoYellow
+import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.LocationHelper
@@ -32,19 +32,18 @@ import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 
-
 @Composable
 fun RewardText(reward: Int) {
     val df = remember {
         DecimalFormat("#,###", DecimalFormatSymbols().apply {
             groupingSeparator = '.'
-            decimalSeparator  = ','
+            decimalSeparator = ','
         })
     }
     val formatted = df.format(reward)
 
     Text(
-        text     = "Recompensa: $ $formatted",
+        text = "Recompensa: $ $formatted",
         fontSize = 16.sp,
         modifier = Modifier.fillMaxWidth(),
         textAlign = TextAlign.Start
@@ -64,14 +63,14 @@ fun FavorScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
+    val startTime = remember { System.currentTimeMillis() }
 
-    // Notify the parent of the current screen for crash reporting
+    // Notify parent of current screen
     LaunchedEffect(Unit) {
         onScreenChange("FavorScreen")
     }
 
-    // Log response time after the screen is composed
+    // Log response time
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -87,9 +86,7 @@ fun FavorScreen(
     val coroutineScope = rememberCoroutineScope()
     val userInfo by userViewModel.user.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-
-    //Conexion
-    var isOnline by remember { mutableStateOf(true) }
+    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
     var showNoConnectionDialog by remember { mutableStateOf(false) }
 
     // Fetch requester's details
@@ -103,14 +100,6 @@ fun FavorScreen(
                 userPhone = it.phone ?: "No phone provided"
                 Log.d("FavorScreen", "Requester loaded: name=$userName, phone=$userPhone, stars=$userStars")
             } ?: Log.e("FavorScreen", "Failed to load requester for userId=$userId")
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        isOnline = networkChecker.isOnline()
-        if (!isOnline) {
-            Log.d("CreateFavorScreen", "No internet connection detected")
-            showNoConnectionDialog = true
         }
     }
 
@@ -139,8 +128,8 @@ fun FavorScreen(
     }
 
     // Log button state
-    LaunchedEffect(isAcceptEnabled, userInfo?.id, hasLocationPermission) {
-        Log.d("FavorScreen", "Button state - isAcceptEnabled: $isAcceptEnabled, userInfo.id: ${userInfo?.id}, favor.id: ${favor.id}, category: ${favor.category}, hasLocationPermission: $hasLocationPermission")
+    LaunchedEffect(isAcceptEnabled, userInfo?.id, hasLocationPermission, isOnline) {
+        Log.d("FavorScreen", "Button state - isAcceptEnabled: $isAcceptEnabled, userInfo.id: ${userInfo?.id}, favor.id: ${favor.id}, category: ${favor.category}, hasLocationPermission: $hasLocationPermission, isOnline: $isOnline")
     }
 
     val categoryColor = when (favor.category) {
@@ -228,7 +217,6 @@ fun FavorScreen(
                         textAlign = TextAlign.Center
                     )
                 }
-
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -279,48 +267,55 @@ fun FavorScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (!isOnline) {
+                Text(
+                    text = "No hay conexión a internet",
+                    fontSize = 12.sp,
+                    color = Color.Red,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = {
-                    isOnline = networkChecker.isOnline()
-                    if (isOnline) {
-                        if (isAcceptEnabled && userInfo?.id != null) {
-                            coroutineScope.launch {
-                                try {
-                                    Log.d(
-                                        "FavorScreen",
-                                        "Attempting to accept favor: favorId=${favor.id}, userId=${userInfo!!.id}"
-                                    )
-                                    favorViewModel.acceptFavor(favor.id.toString(), userInfo!!.id)
-                                    Log.d("FavorScreen", "Favor accepted successfully")
-                                    showDialog = true
-                                } catch (e: Exception) {
-                                    Log.e(
-                                        "FavorScreen",
-                                        "Error accepting favor: ${e.localizedMessage}",
-                                        e
-                                    )
-                                    snackbarHostState.showSnackbar("No se pudo aceptar el favor: ${e.localizedMessage}")
-                                }
-                            }
-                        } else {
-                            val reason = when {
-                                userInfo?.id == null -> "Usuario no autenticado"
-                                !isAcceptEnabled && !hasLocationPermission -> "Permisos de ubicación no concedidos"
-                                !isAcceptEnabled -> "No estás dentro del campus"
-                                else -> "Condiciones no cumplidas"
-                            }
-                            Log.w("FavorScreen", "Cannot accept favor: $reason")
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(reason)
+                    if (isAcceptEnabled && userInfo?.id != null) {
+                        coroutineScope.launch {
+                            try {
+                                Log.d(
+                                    "FavorScreen",
+                                    "Attempting to accept favor: favorId=${favor.id}, userId=${userInfo!!.id}"
+                                )
+                                favorViewModel.acceptFavor(favor.id.toString(), userInfo!!.id)
+                                Log.d("FavorScreen", "Favor accepted successfully")
+                                showDialog = true
+                            } catch (e: Exception) {
+                                Log.e(
+                                    "FavorScreen",
+                                    "Error accepting favor: ${e.localizedMessage}",
+                                    e
+                                )
+                                snackbarHostState.showSnackbar("No se pudo aceptar el favor: ${e.localizedMessage}")
                             }
                         }
                     } else {
+                        val reason = when {
+                            userInfo?.id == null -> "Usuario no autenticado"
+                            !isAcceptEnabled && !hasLocationPermission -> "Permisos de ubicación no concedidos"
+                            !isAcceptEnabled -> "No estás dentro del campus"
+                            else -> "Condiciones no cumplidas"
+                        }
+                        Log.w("FavorScreen", "Cannot accept favor: $reason")
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(reason)
+                        }
                         showNoConnectionDialog = true
                     }
-                    },
-                    enabled = isAcceptEnabled && userInfo?.id != null,
+                },
+                enabled = isAcceptEnabled && userInfo?.id != null && isOnline,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MikadoYellow,
                     disabledContainerColor = MikadoYellow.copy(alpha = 0.5f)
@@ -379,6 +374,7 @@ fun FavorScreen(
                 )
             }
 
+            // Dialog for no connection
             if (showNoConnectionDialog) {
                 AlertDialog(
                     onDismissRequest = { /* opcional: showNoConnectionDialog = false */ },
@@ -408,7 +404,7 @@ fun FavorScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp), // opcional: un poco de espacio abajo
+                                .padding(bottom = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             TextButton(onClick = {

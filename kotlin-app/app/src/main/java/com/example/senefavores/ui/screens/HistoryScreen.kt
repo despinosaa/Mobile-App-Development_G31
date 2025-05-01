@@ -11,9 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
@@ -87,7 +87,9 @@ fun HistoryScreen(
     networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
+
     val scope = rememberCoroutineScope()
+    val user by userViewModel.user.collectAsState()
     val startTime = remember { System.currentTimeMillis() }
 
     LaunchedEffect(Unit) {
@@ -107,16 +109,9 @@ fun HistoryScreen(
     val allFavors by favorViewModel.allFavors.collectAsState()
     val reviews by favorViewModel.reviews.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
 
     var refreshKey by remember { mutableStateOf(0) }
-
-    var isOnline by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        isOnline = networkChecker.isOnline()
-        if (!isOnline) {
-            Log.d("HistoryScreen", "No internet connection detected")
-        }
-    }
 
     LaunchedEffect(userInfo, refreshKey) {
         if (userInfo == null) {

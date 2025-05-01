@@ -1,7 +1,10 @@
+
 package com.example.senefavores.ui.screens
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -11,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.repository.FavorRepository
@@ -22,11 +26,10 @@ import com.example.senefavores.ui.theme.TutoriaCategoryColor
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
-import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import com.example.senefavores.util.NetworkChecker
 
 @Composable
 fun CreateFavorScreen(
@@ -41,7 +44,7 @@ fun CreateFavorScreen(
     val scope = rememberCoroutineScope()
     val startTime = remember { System.currentTimeMillis() }
 
-    //Conexion
+    // Conexion
     var isOnline by remember { mutableStateOf(true) }
     var showNoConnectionDialog by remember { mutableStateOf(false) }
 
@@ -271,10 +274,10 @@ fun CreateFavorScreen(
                     val categories = listOf("Favor", "Compra", "Tutoría")
                     for (cat in categories) {
                         val catColor = when (cat) {
-                            "Favor"   -> FavorCategoryColor
-                            "Compra"  -> CompraCategoryColor
+                            "Favor" -> FavorCategoryColor
+                            "Compra" -> CompraCategoryColor
                             "Tutoría" -> TutoriaCategoryColor
-                            else      -> Color.Black
+                            else -> Color.Black
                         }
                         val selected = (selectedCategory == cat)
                         OutlinedButton(
@@ -285,7 +288,7 @@ fun CreateFavorScreen(
                             border = BorderStroke(1.dp, Color.Black),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = if (selected) catColor else Color.White,
-                                contentColor   = if (selected) Color.White else Color.Black
+                                contentColor = if (selected) Color.White else Color.Black
                             ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -297,14 +300,32 @@ fun CreateFavorScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = "Tiempo promedio de aceptación de un $selectedCategory: ${
-                        calculateAverageAcceptanceTime(allFavors, selectedCategory)
-                    } minutos",
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
+                // TIPS
+                var isTipsExpanded by remember { mutableStateOf(false) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clickable { isTipsExpanded = !isTipsExpanded },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Tips")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (isTipsExpanded) "▲" else "▼")
+                }
+                if (isTipsExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text("Recompensa promedio de $selectedCategory aceptados: $${calculateAverageReward(allFavors, selectedCategory)}")
+                        Text("Hora promedio de aceptación: ${calculateAverageAcceptanceHour(allFavors, selectedCategory)}")
+                        Text("Tiempo promedio de aceptación: ${calculateAverageAcceptanceTime(allFavors, selectedCategory)} minutos")
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -366,7 +387,6 @@ fun CreateFavorScreen(
                 }
             }
 
-
             if (showNoConnectionDialog) {
                 AlertDialog(
                     onDismissRequest = { /* opcional: showNoConnectionDialog = false */ },
@@ -396,7 +416,7 @@ fun CreateFavorScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 8.dp), // opcional: un poco de espacio abajo
+                                .padding(bottom = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             TextButton(onClick = {
@@ -458,4 +478,49 @@ fun calculateAverageAcceptanceTime(favors: List<Favor>, category: String): Long 
         }
     }
     return totalMinutes / validFavors.size
+}
+
+fun calculateAverageReward(favors: List<Favor>, category: String): Int {
+    val validFavors = favors.filter { favor ->
+        favor.category == category && favor.accept_user_id != null && favor.accept_user_id.isNotEmpty()
+    }
+    if (validFavors.isEmpty()) return when (category) {
+        "Favor" -> 0
+        "Compra" -> 0
+        "Tutoría" -> 0
+        else -> 0
+    }
+
+    val totalReward = validFavors.sumOf { favor -> favor.reward.toLong() }
+    return (totalReward / validFavors.size).toInt()
+}
+
+@SuppressLint("DefaultLocale")
+fun calculateAverageAcceptanceHour(favors: List<Favor>, category: String): String {
+    val validFavors = favors.filter { favor ->
+        favor.category == category && favor.accept_user_id != null && favor.accept_user_id.isNotEmpty() && favor.accepted_at != null
+    }
+    Log.d("CreateFavorScreen", "Valid favors for $category: ${validFavors.size}, accepted_at: ${validFavors.map { it.accepted_at }}")
+    if (validFavors.isEmpty()) return "00:00"
+
+    val totalMinutes = validFavors.sumOf { favor ->
+        try {
+            val timePart = favor.accepted_at!!.split("T")[1] // e.g., "15:00:30.548106+00:00"
+            val timeWithoutMicroseconds = timePart.split(".")[0] // e.g., "15:00:30"
+            val timeComponents = timeWithoutMicroseconds.split(":") // e.g., ["15", "00", "30"]
+            val hours = timeComponents[0].toDouble() // e.g., 15
+            val minutes = timeComponents[1].toDouble() // e.g., 0
+            val total = hours * 60 + minutes // e.g., 15 * 60 + 0 = 900
+            Log.d("CreateFavorScreen", "Time for favor ${favor.id}: ${String.format("%02.0f:%02.0f", hours, minutes)}, total minutes=$total, accepted_at=${favor.accepted_at}")
+            total
+        } catch (e: Exception) {
+            Log.e("CreateFavorScreen", "Error parsing accepted_at for favor ${favor.id}: accepted_at=${favor.accepted_at}", e)
+            0.0
+        }
+    }
+    val averageMinutes = totalMinutes / validFavors.size
+    val hours = (averageMinutes / 60).toInt()
+    val minutes = (averageMinutes % 60).toInt()
+    Log.d("CreateFavorScreen", "Average time for $category: $averageMinutes minutes, formatted: ${String.format("%02d:%02d", hours, minutes)}")
+    return String.format("%02d:%02d", hours, minutes)
 }

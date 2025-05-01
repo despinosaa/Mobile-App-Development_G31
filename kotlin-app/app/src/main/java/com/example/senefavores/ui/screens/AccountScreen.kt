@@ -1,3 +1,4 @@
+
 package com.example.senefavores.ui.screens
 
 import androidx.compose.foundation.Image
@@ -9,8 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.example.senefavores.ui.theme.WhiteTextColor
-import com.example.senefavores.ui.theme.BlackButtons
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -24,10 +23,11 @@ import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.components.BottomNavigationBar
 import com.example.senefavores.ui.components.ReviewCard
 import com.example.senefavores.ui.components.SenefavoresHeader
+import com.example.senefavores.ui.components.RatingStars
+import com.example.senefavores.ui.theme.BlackButtons
+import com.example.senefavores.ui.theme.WhiteTextColor
 import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
-import com.example.senefavores.ui.components.RatingStars
-import androidx.compose.ui.platform.LocalContext
 import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
@@ -43,15 +43,15 @@ fun AccountScreen(
     onScreenChange: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val startTime = remember { System.currentTimeMillis() } // Start time for response time measurement
-    val isOnline by remember { derivedStateOf { networkChecker.isOnline() } }
+    val startTime = remember { System.currentTimeMillis() }
+    val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
 
-    // Notify the parent of the current screen for crash reporting
+    // Notify parent of current screen
     LaunchedEffect(Unit) {
         onScreenChange("AccountScreen")
     }
 
-    // Log response time after the screen is composed
+    // Log response time
     LaunchedEffect(Unit) {
         val responseTime = System.currentTimeMillis() - startTime
         scope.launch {
@@ -62,7 +62,6 @@ fun AccountScreen(
     val user by userViewModel.user.collectAsState()
     val error by userViewModel.error.collectAsState()
     val reviews by favorViewModel.userReviews.collectAsState()
-    val context = LocalContext.current
     var selectedItem by remember { mutableStateOf(3) } // Account is index 3
     val coroutineScope = rememberCoroutineScope()
 
@@ -283,6 +282,16 @@ fun AccountScreen(
                 ) {
                     Text("Cerrar Sesión")
                 }
+            }
+
+            // No Connectivity Message
+            if (!isOnline) {
+                Text(
+                    text = "No hay conexión a internet",
+                    fontSize = 12.sp,
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }
