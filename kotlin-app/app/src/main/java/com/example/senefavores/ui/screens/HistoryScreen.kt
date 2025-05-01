@@ -87,7 +87,9 @@ fun HistoryScreen(
     networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
+
     val scope = rememberCoroutineScope()
+    val user by userViewModel.user.collectAsState()
     val startTime = remember { System.currentTimeMillis() }
 
     LaunchedEffect(Unit) {
