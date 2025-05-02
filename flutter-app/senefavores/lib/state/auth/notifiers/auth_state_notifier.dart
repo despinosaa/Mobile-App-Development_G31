@@ -96,4 +96,14 @@ class AuthStateNotifier extends StateNotifier<AuthStatus> {
       isLoading: false,
     );
   }
+
+  Future<void> signOutWithNoConnection() async {
+    state = state.copyWith(isLoading: true);
+    await _ref.read(sessionStorageProvider).clear();
+    state = state.copyWith(
+      result: AuthResult.none,
+      userId: null,
+      isLoading: false,
+    );
+  }
 }

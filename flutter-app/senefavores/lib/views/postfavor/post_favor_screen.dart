@@ -1,12 +1,17 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hive/hive.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
+import 'package:senefavores/state/favors/providers/category_text_provider.dart';
+import 'package:senefavores/state/favors/providers/reward_text_provider.dart';
+import 'package:senefavores/state/favors/providers/reward_value_provider.dart';
 import 'package:senefavores/state/favors/providers/upload_favor_state_notifier_provider.dart.dart';
 import 'package:senefavores/state/favors/providers/favor_acceptance_time_provider.dart';
 import 'package:senefavores/state/favors/providers/no_response_favors_count_provider.dart';
@@ -37,6 +42,50 @@ class PostFavorScreen extends HookConsumerWidget {
 
     final titleValue = useValueListenable(titleController);
     final descriptionValue = useValueListenable(descriptionController);
+
+    useEffect(() {
+      final favorDraftBox = Hive.box('favor_drafts');
+      if (connectivity != ConnectivityResult.none) {
+        if (favorDraftBox.containsKey('draft')) {
+          final cached = favorDraftBox.get('draft') as Map;
+
+          titleController.text = cached['title'] ?? '';
+          descriptionController.text = cached['description'] ?? '';
+          rewardController.text = cached['reward'] ?? '';
+          selectedCategory.value = cached['category'];
+
+          favorDraftBox.delete('draft');
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            ref.read(snackbarProvider).showSnackbar(
+                  "Se restauró un borrador guardado anteriormente",
+                  isError: false,
+                );
+          });
+        }
+      }
+      return null;
+    }, []);
+
+    useEffect(() {
+      void rewardListener() {
+        ref.read(rewardTextProvider.notifier).state = rewardController.text;
+      }
+
+      rewardController.addListener(rewardListener);
+      return () => rewardController.removeListener(rewardListener);
+    }, [rewardController]);
+
+    useEffect(() {
+      void categoryListener() {
+        ref.read(categoryTextProvider.notifier).state =
+            selectedCategory.value ?? '';
+      }
+
+      selectedCategory.addListener(categoryListener);
+      return () => selectedCategory.removeListener(categoryListener);
+    }, [selectedCategory]);
+
+    final acceptanceProbability = ref.watch(acceptanceProbabilityProvider);
 
     return SafeArea(
       child: Column(
@@ -156,6 +205,15 @@ class PostFavorScreen extends HookConsumerWidget {
                           .copyWith(color: Colors.red),
                     ),
                   ),
+                  Text(
+                    "Probabilidad de aceptacion: $acceptanceProbability%",
+                    style: AppTextStyles.oswaldSubtitle,
+                  ),
+                  Text(
+                    "Hora con mayor aceptacion: 2:32pm",
+                    style: AppTextStyles.oswaldSubtitle,
+                  ),
+
                   const SizedBox(height: 30),
                 ],
               ),
@@ -168,14 +226,26 @@ class PostFavorScreen extends HookConsumerWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
+                  final favorDraftBox = Hive.box('favor_drafts');
+
+                  // Check connectivity
                   if (connectivity == ConnectivityResult.none) {
+                    // Cache current input
+                    favorDraftBox.put('draft', {
+                      'title': titleController.text.trim(),
+                      'description': descriptionController.text.trim(),
+                      'reward': rewardController.text.trim(),
+                      'category': selectedCategory.value,
+                    });
+
                     ref.read(snackbarProvider).showSnackbar(
-                          "No se puede publicar sin conexión a Internet",
+                          "No se puede publicar sin conexión a Internet. El favor fue guardado como borrador.",
                           isError: true,
                         );
                     return;
                   }
 
+                  // START actual logic if online
                   final start = DateTime.now();
                   final title = titleController.text.trim();
                   final description = descriptionController.text.trim();
@@ -192,6 +262,7 @@ class PostFavorScreen extends HookConsumerWidget {
                         );
                     return;
                   }
+
                   if (title.length > 60) {
                     ref.read(snackbarProvider).showSnackbar(
                           "El título no puede exceder 60 caracteres",
@@ -199,6 +270,7 @@ class PostFavorScreen extends HookConsumerWidget {
                         );
                     return;
                   }
+
                   if (!RegExp(r'[A-Za-z0-9]').hasMatch(title)) {
                     ref.read(snackbarProvider).showSnackbar(
                           "El título debe contener al menos un carácter alfanumérico",
@@ -241,6 +313,7 @@ class PostFavorScreen extends HookConsumerWidget {
                     final locationData = await ref
                         .read(userLocationProvider.notifier)
                         .getCurrentLocation();
+
                     final success = await ref
                         .read(uploadFavorStateNotifierProvider.notifier)
                         .uploadFavor(
