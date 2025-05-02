@@ -42,6 +42,8 @@ object AppModule {
         return LocationHelper(context, locationCache)
     }
 
+    @Provides
+    @Singleton
     fun provideFavorRepository(
         supabaseClient: SupabaseClient,
         @ApplicationContext context: Context
