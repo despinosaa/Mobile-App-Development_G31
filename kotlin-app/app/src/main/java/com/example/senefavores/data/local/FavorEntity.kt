@@ -11,3 +11,11 @@ data class FavorEntity(
     val favor: Favor,
     val syncedAt: LocalDateTime
 )
+
+//Michi
+@Entity(tableName = "favor_queue")
+data class QueuedFavorEntity(
+    @PrimaryKey val id: String,
+    val favor: Favor,
+    val enqueuedAt: Long
+)

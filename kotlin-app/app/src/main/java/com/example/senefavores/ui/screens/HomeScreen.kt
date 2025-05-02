@@ -251,6 +251,7 @@ fun HomeScreen(
                     }
                 }
             } else {
+                favorViewModel.processQueue()
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()

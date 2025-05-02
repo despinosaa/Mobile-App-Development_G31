@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +31,8 @@ import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun CreateFavorScreen(
@@ -46,6 +50,9 @@ fun CreateFavorScreen(
     // Conexion
     var isOnline by remember { mutableStateOf(true) }
     var showNoConnectionDialog by remember { mutableStateOf(false) }
+    var publicarClick by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+
 
     LaunchedEffect(Unit) {
         onScreenChange("CreateFavorScreen")
@@ -82,6 +89,8 @@ fun CreateFavorScreen(
         if (!isOnline) {
             Log.d("CreateFavorScreen", "No internet connection detected")
             showNoConnectionDialog = true
+        } else {
+            favorRepository.processQueuedFavors()
         }
     }
 
@@ -138,7 +147,8 @@ fun CreateFavorScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -330,6 +340,7 @@ fun CreateFavorScreen(
                         Text("Recompensa promedio de $selectedCategory aceptados: $${calculateAverageReward(allFavors, selectedCategory)}")
                         Text("Hora promedio de aceptación: ${calculateAverageAcceptanceHour(allFavors, selectedCategory)}")
                         Text("Tiempo promedio de aceptación: ${calculateAverageAcceptanceTime(allFavors, selectedCategory)} minutos")
+                        Text("Usuarios sin respuesta en las ultimas 24h: ${getUsersWithNoResponsesInLast24Hours(allFavors, selectedCategory)}")
                     }
                 }
 
@@ -345,24 +356,22 @@ fun CreateFavorScreen(
                 OutlinedButton(
                     onClick = {
                         isOnline = networkChecker.isOnline()
+                        if (hasLocationPermission) {
+                            locationHelper.getLastLocation(currentUser?.id)
+                        }
+                        val updatedLocation = locationHelper.currentLocation.value
+                        val updatedLatitud = updatedLocation?.latitude ?: 0.0
+                        val updatedLongitud = updatedLocation?.longitude ?: 0.0
+                        val currentTime = Clock.System.now().toString()
                         if (isOnline) {
                             scope.launch {
-                                if (hasLocationPermission) {
-                                    locationHelper.getLastLocation(currentUser?.id)
-                                }
-                                val updatedLocation = locationHelper.currentLocation.value
-                                val updatedLatitud = updatedLocation?.latitude ?: 0.0
-                                val updatedLongitud = updatedLocation?.longitude ?: 0.0
-                                val currentTime = Clock.System.now().toString()
                                 val newFavor = Favor(
                                     title = title,
                                     description = description,
                                     category = selectedCategory,
                                     reward = recompensa.toInt(),
-                                    favor_time = null,
                                     created_at = currentTime,
                                     request_user_id = currentUserId,
-                                    accept_user_id = "",
                                     latitude = updatedLatitud,
                                     longitude = updatedLongitud,
                                     status = "pending"
@@ -371,7 +380,23 @@ fun CreateFavorScreen(
                                 navController.navigate("home") { launchSingleTop = true }
                             }
                         } else {
-                            showNoConnectionDialog = true
+                            scope.launch {
+                                val newFavor = Favor(
+                                    title = title,
+                                    description = description,
+                                    category = selectedCategory,
+                                    reward = recompensa.toInt(),
+                                    created_at = currentTime,
+                                    request_user_id = currentUserId,
+                                    latitude = updatedLatitud,
+                                    longitude = updatedLongitud,
+                                    status = "pending"
+                                )
+                                Log.e("Favor","OfflineQueue")
+                                favorRepository.enqueueFavor(newFavor)
+                                showNoConnectionDialog = true
+                                publicarClick = true
+                            }
                         }
                     },
                     enabled = canPublishByLocation && isFormValid,
@@ -418,10 +443,17 @@ fun CreateFavorScreen(
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Estás sin conexión",
-                                textAlign = TextAlign.Center
-                            )
+                            if (publicarClick) {
+                                Text(
+                                    text = "Estás sin conexión, tu favor se pondrá en una cola, si en 5 minutos no recuperas la conexión el favor no se publicará",
+                                    textAlign = TextAlign.Center
+                                )
+                            } else {
+                                Text(
+                                    text = "Estás sin conexión, si deseas publicar un favor este se pondrá en una cola, si en 5 minutos no recuperas la conexión el favor no se publicará",
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     },
                     confirmButton = {
@@ -432,12 +464,13 @@ fun CreateFavorScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             TextButton(onClick = {
-                                showNoConnectionDialog = false
-                                navController.navigate("home") {
-                                    launchSingleTop = true
+                                if (publicarClick) {
+                                    navController.navigate("home")
                                 }
+                                showNoConnectionDialog = false
+                                publicarClick = false
                             }) {
-                                Text("Ir al inicio")
+                                Text("Entendido")
                             }
                         }
                     }
@@ -505,6 +538,28 @@ fun calculateAverageReward(favors: List<Favor>, category: String): Int {
 
     val totalReward = validFavors.sumOf { favor -> favor.reward.toLong() }
     return (totalReward / validFavors.size).toInt()
+}
+
+fun getUsersWithNoResponsesInLast24Hours(favors: List<Favor>, selectedCategory: String): Int {
+    val currentTimeMillis = System.currentTimeMillis()
+    val twentyFourHoursInMillis = 24 * 60 * 60 * 1000
+    val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+
+    val recentFavors = favors.filter { favor ->
+        val favorCreatedAtMillis = favor.created_at?.let {
+            val localDateTime = LocalDateTime.parse(it, formatter)
+            localDateTime.atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        }
+        favorCreatedAtMillis != null && favorCreatedAtMillis >= (currentTimeMillis - twentyFourHoursInMillis) &&
+                favor.category == selectedCategory
+    }
+
+    val count = recentFavors.groupBy { it.request_user_id }
+        .count { (_, userFavors) ->
+            userFavors.all { favor -> favor.accept_user_id == null || favor.accepted_at == null }
+        }
+
+    return count
 }
 
 @SuppressLint("DefaultLocale")

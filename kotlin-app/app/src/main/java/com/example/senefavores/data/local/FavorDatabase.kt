@@ -5,11 +5,16 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [FavorEntity::class], version = 1, exportSchema = false)
+@Database(entities = [FavorEntity::class, QueuedFavorEntity::class], version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class FavorDatabase : RoomDatabase() {
     abstract fun favorDao(): FavorDao
+
+    //Michi
+    abstract fun favorQueueDao(): FavorQueueDao
 
     companion object {
         @Volatile
@@ -21,7 +26,7 @@ abstract class FavorDatabase : RoomDatabase() {
                     context.applicationContext,
                     FavorDatabase::class.java,
                     "favor_database"
-                ).fallbackToDestructiveMigration() // Allows destructive migration on version mismatch
+                )
                     .build()
                 INSTANCE = instance
                 instance
