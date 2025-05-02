@@ -5,6 +5,9 @@ import com.example.senefavores.data.local.FavorDatabase
 import com.example.senefavores.data.remote.SupabaseManagement
 import com.example.senefavores.data.repository.FavorRepository
 import com.example.senefavores.data.repository.UserRepository
+import com.example.senefavores.util.LocationCache
+import com.example.senefavores.util.LocationHelper
+import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import dagger.Module
 import dagger.Provides
@@ -26,11 +29,25 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideLocationCache(): LocationCache {
+        return LocationCache()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLocationHelper(
+        @ApplicationContext context: Context,
+        locationCache: LocationCache
+    ): LocationHelper {
+        return LocationHelper(context, locationCache)
+    }
+
     fun provideFavorRepository(
         supabaseClient: SupabaseClient,
         @ApplicationContext context: Context
     ): FavorRepository {
         return FavorRepository(supabaseClient, FavorDatabase.getDatabase(context).favorDao())
+
     }
 
     @Provides
@@ -50,7 +67,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideContext(@ApplicationContext context: Context): Context {
-        return context
+    fun provideNetworkChecker(@ApplicationContext context: Context): NetworkChecker {
+        return NetworkChecker(context)
     }
 }

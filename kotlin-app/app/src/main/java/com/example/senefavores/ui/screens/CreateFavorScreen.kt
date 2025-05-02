@@ -1,4 +1,3 @@
-
 package com.example.senefavores.ui.screens
 
 import android.annotation.SuppressLint
@@ -61,6 +60,13 @@ fun CreateFavorScreen(
     }
     val currentUser by userViewModel.user.collectAsState(initial = null)
     val allFavors by favorViewModel.allFavors.collectAsState(initial = emptyList())
+
+    // Fetch location when permissions are granted
+    LaunchedEffect(hasLocationPermission, currentUser) {
+        if (hasLocationPermission) {
+            locationHelper.getLastLocation(currentUser?.id)
+        }
+    }
 
     // Telemetría de tiempo de respuesta
     LaunchedEffect(Unit) {
@@ -341,6 +347,12 @@ fun CreateFavorScreen(
                         isOnline = networkChecker.isOnline()
                         if (isOnline) {
                             scope.launch {
+                                if (hasLocationPermission) {
+                                    locationHelper.getLastLocation(currentUser?.id)
+                                }
+                                val updatedLocation = locationHelper.currentLocation.value
+                                val updatedLatitud = updatedLocation?.latitude ?: 0.0
+                                val updatedLongitud = updatedLocation?.longitude ?: 0.0
                                 val currentTime = Clock.System.now().toString()
                                 val newFavor = Favor(
                                     title = title,
@@ -351,8 +363,8 @@ fun CreateFavorScreen(
                                     created_at = currentTime,
                                     request_user_id = currentUserId,
                                     accept_user_id = "",
-                                    latitude = latitud,
-                                    longitude = longitud,
+                                    latitude = updatedLatitud,
+                                    longitude = updatedLongitud,
                                     status = "pending"
                                 )
                                 favorViewModel.addFavor(newFavor)
