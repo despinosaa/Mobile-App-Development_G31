@@ -542,8 +542,7 @@ fun calculateAverageReward(favors: List<Favor>, category: String): Int {
 
 fun getUsersWithNoResponsesInLast24Hours(favors: List<Favor>, selectedCategory: String): Int {
     val currentTimeMillis = System.currentTimeMillis()
-
-    val twentyFourHoursAgoMillis = 24 * 60 * 60 * 1000
+    val twentyFourHoursInMillis = 24 * 60 * 60 * 1000
     val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
     val recentFavors = favors.filter { favor ->
@@ -551,15 +550,16 @@ fun getUsersWithNoResponsesInLast24Hours(favors: List<Favor>, selectedCategory: 
             val localDateTime = LocalDateTime.parse(it, formatter)
             localDateTime.atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
         }
-        favorCreatedAtMillis != null && favorCreatedAtMillis >= (currentTimeMillis - twentyFourHoursAgoMillis) &&
+        favorCreatedAtMillis != null && favorCreatedAtMillis >= (currentTimeMillis - twentyFourHoursInMillis) &&
                 favor.category == selectedCategory
     }
 
-    val usersWithNoResponses = recentFavors.filter { favor ->
-        favor.accept_user_id == null || favor.accepted_at == null
-    }.map { it.request_user_id }.toSet()
+    val count = recentFavors.groupBy { it.request_user_id }
+        .count { (_, userFavors) ->
+            userFavors.all { favor -> favor.accept_user_id == null || favor.accepted_at == null }
+        }
 
-    return usersWithNoResponses.size
+    return count
 }
 
 @SuppressLint("DefaultLocale")
