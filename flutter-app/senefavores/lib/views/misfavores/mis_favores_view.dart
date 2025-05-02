@@ -126,18 +126,6 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
             final favor = favorsList[index];
             final userAsync = ref.watch(userProvider(favor.requestUserId));
 
-            final connectivity = ref.watch(connectivityProvider).value;
-            if (connectivity == ConnectivityResult.none) {
-              return FavorCard(
-                favor: favor,
-                user: UserModel(
-                  email: " ",
-                  id: " ",
-                  name: " ",
-                ),
-              );
-            }
-
             return userAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
@@ -191,17 +179,6 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
           itemBuilder: (context, index) {
             final favor = favorsList[index];
             final userAsync = ref.watch(userProvider(favor.requestUserId));
-            final connectivity = ref.watch(connectivityProvider).value;
-            if (connectivity == ConnectivityResult.none) {
-              return FavorCard(
-                favor: favor,
-                user: UserModel(
-                  email: " ",
-                  id: " ",
-                  name: " ",
-                ),
-              );
-            }
 
             return userAsync.when(
               loading: () => const Padding(

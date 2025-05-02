@@ -1,7 +1,10 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/utils/logger.dart';
 
 class LoginView extends ConsumerWidget {
@@ -9,6 +12,7 @@ class LoginView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final connectivity = ref.watch(connectivityProvider).value;
     return Scaffold(
       body: SizedBox(
         width: double.infinity,
@@ -56,9 +60,15 @@ class LoginView extends ConsumerWidget {
                   final start = DateTime.now();
 
                   try {
-                    await ref
-                        .read(authStateProvider.notifier)
-                        .signInWithMicrosoft();
+                    if (connectivity == ConnectivityResult.none) {
+                      ref.read(snackbarProvider).showSnackbar(
+                          "Sin conexion a internet",
+                          isError: true);
+                    } else {
+                      await ref
+                          .read(authStateProvider.notifier)
+                          .signInWithMicrosoft();
+                    }
 
                     final duration =
                         DateTime.now().difference(start).inMilliseconds;

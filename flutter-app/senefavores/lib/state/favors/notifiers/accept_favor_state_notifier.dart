@@ -15,6 +15,7 @@ class AcceptFavorNotifier extends StateNotifier<bool> {
           .from('favors')
           .update({
             'accept_user_id': userId,
+            'favor_time': DateTime.now().toIso8601String(),
             'status': 'accepted',
           })
           .eq('id', favorId)
