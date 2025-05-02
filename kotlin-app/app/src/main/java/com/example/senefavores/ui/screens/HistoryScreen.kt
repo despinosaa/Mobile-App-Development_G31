@@ -37,7 +37,8 @@ enum class Tab {
 @Composable
 fun TabRow(
     selectedTab: Tab,
-    onTabSelected: (Tab) -> Unit
+    onTabSelected: (Tab) -> Unit,
+    enabled: Boolean
 ) {
     Row(
         modifier = Modifier.padding(vertical = 16.dp),
@@ -45,7 +46,8 @@ fun TabRow(
     ) {
         if (selectedTab == Tab.SOLICITADOS) {
             Button(
-                onClick = { onTabSelected(Tab.SOLICITADOS) },
+                onClick = { if (enabled) onTabSelected(Tab.SOLICITADOS) },
+                enabled = enabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFFFC107),
                     contentColor = Color.Black
@@ -54,13 +56,17 @@ fun TabRow(
                 Text(text = "Solicitados")
             }
         } else {
-            TextButton(onClick = { onTabSelected(Tab.SOLICITADOS) }) {
+            TextButton(
+                onClick = { if (enabled) onTabSelected(Tab.SOLICITADOS) },
+                enabled = enabled
+            ) {
                 Text(text = "Solicitados")
             }
         }
         if (selectedTab == Tab.ACEPTADOS) {
             Button(
-                onClick = { onTabSelected(Tab.ACEPTADOS) },
+                onClick = { if (enabled) onTabSelected(Tab.ACEPTADOS) },
+                enabled = enabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFFFC107),
                     contentColor = Color.Black
@@ -69,7 +75,10 @@ fun TabRow(
                 Text(text = "Aceptados")
             }
         } else {
-            TextButton(onClick = { onTabSelected(Tab.ACEPTADOS) }) {
+            TextButton(
+                onClick = { if (enabled) onTabSelected(Tab.ACEPTADOS) },
+                enabled = enabled
+            ) {
                 Text(text = "Aceptados")
             }
         }
@@ -87,7 +96,6 @@ fun HistoryScreen(
     networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
-
     val scope = rememberCoroutineScope()
     val user by userViewModel.user.collectAsState()
     val startTime = remember { System.currentTimeMillis() }
@@ -106,46 +114,53 @@ fun HistoryScreen(
     var selectedTab by remember { mutableStateOf(Tab.SOLICITADOS) }
     var selectedItem by remember { mutableStateOf(2) }
     val userInfo by userViewModel.user.collectAsState()
-    val allFavors by favorViewModel.allFavors.collectAsState()
+    val allFavorsOr by favorViewModel.allFavors.collectAsState()
+    val allFavors = allFavorsOr
     val reviews by favorViewModel.reviews.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
 
     var refreshKey by remember { mutableStateOf(0) }
 
+    // Fetch user ID from SharedPreferences if userInfo is null and offline
+    val effectiveUserId = userInfo?.id ?: if (!isOnline) userViewModel.getSavedUserId() else null
+
     LaunchedEffect(userInfo, refreshKey) {
-        if (userInfo == null) {
+        if (userInfo == null && isOnline) {
             Log.d("HistoryScreen", "UserInfo is null, attempting to load user")
             userViewModel.loadUserClientInfo()
         }
         Log.d("HistoryScreen", "Fetching all favors (refreshKey=$refreshKey)")
         favorViewModel.fetchAllFavors()
-        favorViewModel.fetchReviews()
+        if (isOnline) {
+            favorViewModel.fetchReviews()
+        }
     }
 
-    val filteredFavors = allFavors.filter { favor ->
-        when (selectedTab) {
-            Tab.SOLICITADOS -> favor.request_user_id == userInfo?.id
-            Tab.ACEPTADOS -> favor.accept_user_id == userInfo?.id
-        }
-    }.filter { favor ->
-        // Ensure created_at is non-null for SOLICITADOS tab, and either created_at or accepted_at is non-null for ACEPTADOS tab
-        when (selectedTab) {
-            Tab.SOLICITADOS -> favor.created_at != null
-            Tab.ACEPTADOS -> favor.created_at != null || favor.accepted_at != null
-        }
-    }.sortedByDescending { favor ->
-        try {
+    val filteredFavors = if (effectiveUserId != null) {
+        allFavors.filter { favor ->
             when (selectedTab) {
-                Tab.SOLICITADOS -> parseDateTime(favor.created_at!!)
-                Tab.ACEPTADOS -> {
-                    favor.accepted_at?.let { parseDateTime(it) } ?: parseDateTime(favor.created_at!!)
-                }
+                Tab.SOLICITADOS -> favor.request_user_id == effectiveUserId
+                Tab.ACEPTADOS -> favor.accept_user_id == effectiveUserId
             }
-        } catch (e: IllegalArgumentException) {
-            Log.e("HistoryScreen", "Invalid date format for favor ${favor.id}: created_at=${favor.created_at}, accepted_at=${favor.accepted_at}")
-            LocalDateTime.MIN
+        }.filter { favor ->
+            when (selectedTab) {
+                Tab.SOLICITADOS -> favor.created_at != null
+                Tab.ACEPTADOS -> favor.created_at != null || favor.accepted_at != null
+            }
+        }.sortedByDescending { favor ->
+            try {
+                when (selectedTab) {
+                    Tab.SOLICITADOS -> parseDateTime(favor.created_at!!)
+                    Tab.ACEPTADOS -> favor.accepted_at?.let { parseDateTime(it) } ?: parseDateTime(favor.created_at!!)
+                }
+            } catch (e: IllegalArgumentException) {
+                Log.e("HistoryScreen", "Invalid date format for favor ${favor.id}: created_at=${favor.created_at}, accepted_at=${favor.accepted_at}")
+                LocalDateTime.MIN
+            }
         }
+    } else {
+        emptyList()
     }
 
     Scaffold(
@@ -180,7 +195,8 @@ fun HistoryScreen(
         ) {
             TabRow(
                 selectedTab = selectedTab,
-                onTabSelected = { tab -> selectedTab = tab }
+                onTabSelected = { tab -> selectedTab = tab },
+                enabled = effectiveUserId != null
             )
 
             if (!isOnline) {
@@ -197,6 +213,46 @@ fun HistoryScreen(
                         color = Color.Gray,
                         textAlign = TextAlign.Center
                     )
+                    if (effectiveUserId == null) {
+                        Text(
+                            text = "No hay datos de usuario disponibles para mostrar el historial",
+                            fontSize = 16.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    } else if (filteredFavors.isEmpty()) {
+                        Text(
+                            text = if (selectedTab == Tab.SOLICITADOS) {
+                                "No tienes favores solicitados"
+                            } else {
+                                "No tienes favores aceptados"
+                            },
+                            fontSize = 16.sp,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 16.dp)
+                        ) {
+                            items(filteredFavors, key = { it.id.toString() }) { favor ->
+                                HistoryFavorCard(
+                                    favor = favor,
+                                    isSolicitados = selectedTab == Tab.SOLICITADOS,
+                                    hasReview = reviews.any { it.id == favor.id },
+                                    navController = navController,
+                                    userViewModel = userViewModel,
+                                    favorViewModel = favorViewModel,
+                                    onStatusUpdate = { refreshKey++ },
+                                    enabled = false, // This disables the entire card interaction, but buttons are controlled by isOnline
+                                    isOnline = isOnline // Pass isOnline to control buttons
+                                )
+                            }
+                        }
+                    }
                 }
             } else if (userInfo?.id == null) {
                 Text(
@@ -226,7 +282,8 @@ fun HistoryScreen(
                             navController = navController,
                             userViewModel = userViewModel,
                             favorViewModel = favorViewModel,
-                            onStatusUpdate = { refreshKey++ }
+                            onStatusUpdate = { refreshKey++ },
+                            isOnline = isOnline // Pass isOnline to control buttons
                         )
                     }
                 }

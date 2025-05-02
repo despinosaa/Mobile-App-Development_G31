@@ -54,7 +54,7 @@ fun timeToMinutes(favorTime: String): Int {
         dateTime.hour * 60 + dateTime.minute
     } catch (e: IllegalArgumentException) {
         Log.e("HomeScreen", "Invalid date format in timeToMinutes: $favorTime", e)
-        0 // Fallback to 0 minutes (earliest possible time)
+        0
     }
 }
 
@@ -100,8 +100,6 @@ fun HomeScreen(
     LaunchedEffect(userInfo, hasCompletedInfo, hasChecked) {
         if (!hasChecked) {
             Log.d("HomeScreen", "Checking user session and info: showDialog=$showDialog, hasCompletedInfo=$hasCompletedInfo")
-            Log.d("UserInfo", "Waiting for session check...")
-            // Increased delay to ensure session is loaded
             var user = userViewModel.loadUserClientInfo()
             delay(2000)
             user = userViewModel.loadUserClientInfo()
@@ -114,8 +112,6 @@ fun HomeScreen(
             } else if (isOnline && (user?.name.isNullOrEmpty() || user?.phone.isNullOrEmpty())) {
                 Log.d("UserInfo", "Incomplete user info: name=${user?.name}, phone=${user?.phone}")
                 showDialog = true
-            } else {
-                Log.d("UserInfo", "User info complete or offline, no dialog needed")
             }
             hasChecked = true
             Log.d("HomeScreen", "Session check complete: showDialog=$showDialog")
@@ -138,33 +134,20 @@ fun HomeScreen(
     val acceptedFavorsHistory = listOf("Favor", "Favor", "Compra", "Tutoría", "Favor")
 
     val filteredFavors = allFavors.let { favors ->
-        if (selectedCategory == null) {
-            Log.d("Favors", "$favors")
-            favors
-        } else {
-            favors.filter { it.category == selectedCategory }
-        }
+        if (selectedCategory == null) favors else favors.filter { it.category == selectedCategory }
     }.let { favors ->
-        // Filter out favors with null created_at
-        val validFavors = favors.filter { favor ->
-            favor.created_at != null
-        }
+        val validFavors = favors.filter { favor -> favor.created_at != null }
         try {
-            if (isSortDescending) {
-                validFavors.sortedBy { timeToMinutes(it.created_at!!) }.reversed()
-            } else {
-                validFavors.sortedBy { timeToMinutes(it.created_at!!) }
-            }
+            if (isSortDescending) validFavors.sortedBy { timeToMinutes(it.created_at!!) }.reversed()
+            else validFavors.sortedBy { timeToMinutes(it.created_at!!) }
         } catch (e: Exception) {
             Log.e("HomeScreen", "Error sorting favors: ${e.message}", e)
-            validFavors // Fallback to unsorted list
+            validFavors
         }
     }
 
     val displayedFavors by remember(filteredFavors, isSmartSortActive) {
-        mutableStateOf(
-            if (isSmartSortActive) smartSortFavors(filteredFavors, acceptedFavorsHistory) else filteredFavors
-        )
+        mutableStateOf(if (isSmartSortActive) smartSortFavors(filteredFavors, acceptedFavorsHistory) else filteredFavors)
     }
 
     Scaffold(
@@ -200,25 +183,12 @@ fun HomeScreen(
                     .padding(top = 4.dp, bottom = 0.dp, start = 8.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
-                    isSmartSortActive = !isSmartSortActive
-                    if (isSmartSortActive) isSortDescending = false
-                }) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_smart_sort),
-                        contentDescription = "Smart Sort",
-                        modifier = Modifier.size(24.dp),
-                        contentScale = ContentScale.Fit
-                    )
+                IconButton(onClick = { isSmartSortActive = !isSmartSortActive; if (isSmartSortActive) isSortDescending = false }) {
+                    Image(painter = painterResource(R.drawable.ic_smart_sort), contentDescription = "Smart Sort", modifier = Modifier.size(24.dp), contentScale = ContentScale.Fit)
                 }
-                IconButton(onClick = {
-                    isSortDescending = !isSortDescending
-                    isSmartSortActive = false
-                }) {
+                IconButton(onClick = { isSortDescending = !isSortDescending; isSmartSortActive = false }) {
                     Image(
-                        painter = painterResource(
-                            if (isSortDescending) R.drawable.ic_sort_down else R.drawable.ic_sort_up
-                        ),
+                        painter = painterResource(if (isSortDescending) R.drawable.ic_sort_down else R.drawable.ic_sort_up),
                         contentDescription = "Ordenar",
                         modifier = Modifier.size(24.dp),
                         contentScale = ContentScale.Fit
@@ -253,20 +223,7 @@ fun HomeScreen(
                     )
                 }
             }
-            if (isOnline) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    items(displayedFavors) { favor ->
-                        FavorCard(favor = favor, userViewModel = userViewModel, onClick = {
-                            val favorJson = Json.encodeToString(favor)
-                            navController.navigate("favorScreen/$favorJson")
-                        })
-                    }
-                }
-            } else {
+            if (!isOnline) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -280,6 +237,31 @@ fun HomeScreen(
                         color = Color.Gray,
                         textAlign = TextAlign.Center
                     )
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        items(displayedFavors) { favor ->
+                            FavorCard(favor = favor, userViewModel = userViewModel, onClick = {
+                                val favorJson = Json.encodeToString(favor)
+                                navController.navigate("favorScreen/$favorJson")
+                            })
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    items(displayedFavors) { favor ->
+                        FavorCard(favor = favor, userViewModel = userViewModel, onClick = {
+                            val favorJson = Json.encodeToString(favor)
+                            navController.navigate("favorScreen/$favorJson")
+                        })
+                    }
                 }
             }
         }

@@ -1,6 +1,8 @@
 package com.example.senefavores.ui.viewmodel
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.senefavores.data.model.Favor
@@ -10,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,10 +37,18 @@ class FavorViewModel @Inject constructor(
     private val pageSize = 100
     private var hasMoreFavors = true
 
+    init {
+        viewModelScope.launch {
+            favorRepository.getLocalFavors().collectLatest { localFavors ->
+                _allFavors.value = localFavors
+                Log.d("FavorViewModel", "Loaded ${localFavors.size} local favors")
+            }
+        }
+    }
+
     fun fetchFavors(userId: String?) {
         viewModelScope.launch {
             try {
-                // Reset pagination state when fetching anew
                 currentOffset = 0
                 hasMoreFavors = true
                 val fetchedFavors = favorRepository.getFavors(userId, currentOffset, pageSize)
@@ -50,8 +61,9 @@ class FavorViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("FavorViewModel", "Error fetching favors: ${e.localizedMessage}", e)
-                _favors.value = emptyList()
-                hasMoreFavors = false
+                favorRepository.getLocalFavors().collectLatest { localFavors ->
+                    _favors.value = localFavors
+                }
             }
         }
     }
@@ -81,8 +93,15 @@ class FavorViewModel @Inject constructor(
 
     fun fetchAllFavors() {
         viewModelScope.launch {
-            _allFavors.value = favorRepository.getAllFavors()
-            Log.d("DEBUG", "All favors from API: ${_allFavors.value}")
+            try {
+                _allFavors.value = favorRepository.getAllFavors()
+                Log.d("DEBUG", "All favors from API: ${_allFavors.value}")
+            } catch (e: Exception) {
+                Log.e("FavorViewModel", "Error fetching all favors: ${e.localizedMessage}", e)
+                favorRepository.getLocalFavors().collectLatest { localFavors ->
+                    _allFavors.value = localFavors
+                }
+            }
         }
     }
 
@@ -92,6 +111,7 @@ class FavorViewModel @Inject constructor(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun acceptFavor(favorId: String, userId: String) {
         viewModelScope.launch {
             try {
