@@ -48,7 +48,9 @@ fun HistoryFavorCard(
     navController: NavController,
     userViewModel: UserViewModel = hiltViewModel(),
     favorViewModel: FavorViewModel = hiltViewModel(),
-    onStatusUpdate: () -> Unit = {}
+    onStatusUpdate: () -> Unit = {},
+    enabled: Boolean = true,
+    isOnline: Boolean = true // Add isOnline parameter
 ) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
@@ -250,7 +252,8 @@ fun HistoryFavorCard(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(40.dp)
+                                .height(40.dp),
+                            enabled = isOnline // Disable when offline
                         ) {
                             Text(text = "Cancelar", fontSize = 14.sp)
                         }
@@ -272,7 +275,8 @@ fun HistoryFavorCard(
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(40.dp)
+                                    .height(40.dp),
+                                enabled = isOnline // Disable when offline
                             ) {
                                 Text(text = "Cancelar", fontSize = 11.sp)
                             }
@@ -288,7 +292,8 @@ fun HistoryFavorCard(
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(40.dp)
+                                    .height(40.dp),
+                                enabled = isOnline // Disable when offline
                             ) {
                                 Text(text = "Finalizar", fontSize = 11.sp)
                             }
@@ -310,7 +315,7 @@ fun HistoryFavorCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp),
-                                enabled = favor.accept_user_id != null
+                                enabled = favor.accept_user_id != null && isOnline // Disable when offline
                             ) {
                                 Text(text = "Senetendero", fontSize = 11.sp)
                             }
@@ -330,7 +335,8 @@ fun HistoryFavorCard(
                                 ),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(40.dp)
+                                    .height(40.dp),
+                                enabled = isOnline // Disable when offline
                             ) {
                                 Text(text = "Hacer Reseña", fontSize = 14.sp)
                             }

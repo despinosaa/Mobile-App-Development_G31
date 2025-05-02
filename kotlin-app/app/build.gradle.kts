@@ -15,12 +15,11 @@ android {
 
     defaultConfig {
         applicationId = "com.example.senefavores"
-        minSdk = 23
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
@@ -45,12 +44,10 @@ android {
 }
 
 dependencies {
-
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
     implementation("com.google.firebase:firebase-analytics")
-
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -63,7 +60,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0") // ✅ Fix for hiltViewModel issue
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)
@@ -81,7 +78,12 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:storage-kt:3.1.4")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
     implementation(libs.ktor.client.android)
-    //implementation("io.ktor:ktor-client-okhttp:$3.1.2")
+
+    // Room
+    implementation("androidx.room:room-runtime:2.7.1")
+    implementation("androidx.room:room-ktx:2.7.1")
+    kapt("androidx.room:room-compiler:2.7.1")
+    implementation("androidx.room:room-paging:2.7.1")
 
     // Testing
     testImplementation(libs.junit)
@@ -97,7 +99,6 @@ dependencies {
     kapt(libs.hilt.android.compiler)
 }
 
-// Allow references to generated code
 kapt {
     correctErrorTypes = true
 }

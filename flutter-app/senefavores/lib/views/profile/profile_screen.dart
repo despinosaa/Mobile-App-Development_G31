@@ -1,9 +1,11 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/reviews/providers/user_reviews_provider.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
@@ -24,6 +26,7 @@ class ProfileScreen extends ConsumerWidget {
 
     ref.read(currentUserNotifierProvider.notifier).refreshUser();
     final currentUser = ref.watch(currentUserNotifierProvider);
+    final connectivity = ref.watch(connectivityProvider).value;
 
     // If currentUser is still loading (null), show a loader or placeholder
     if (currentUser == null) {
@@ -47,7 +50,11 @@ class ProfileScreen extends ConsumerWidget {
         actions: [
           IconButton(
             onPressed: () {
-              ref.read(authStateProvider.notifier).signOut();
+              if (connectivity == ConnectivityResult.none) {
+                ref.read(authStateProvider.notifier).signOutWithNoConnection();
+              } else {
+                ref.read(authStateProvider.notifier).signOut();
+              }
               Navigator.pop(context);
               ref
                   .read(snackbarProvider)
@@ -218,7 +225,7 @@ class ProfileScreen extends ConsumerWidget {
                                     );
 
                                     ref.read(snackbarProvider).showSnackbar(
-                                          "Excepción al actualizar: $e",
+                                          "No se pudo actualizar el teléfono, conectate a internet e intenta de nuevo",
                                           isError: true,
                                         );
                                   }

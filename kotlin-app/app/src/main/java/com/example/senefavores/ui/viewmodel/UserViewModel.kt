@@ -1,6 +1,7 @@
 package com.example.senefavores.ui.viewmodel
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
@@ -9,6 +10,7 @@ import com.example.senefavores.data.model.User
 import com.example.senefavores.data.remote.SupabaseManagement
 import com.example.senefavores.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
@@ -21,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class UserViewModel @Inject constructor(
     private val supabaseClient: SupabaseManagement,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    @ApplicationContext private val context: Context // Inject Context for SharedPreferences
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -32,6 +35,14 @@ class UserViewModel @Inject constructor(
     val hasCompletedInfo: StateFlow<Boolean> = _hasCompletedInfo
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
     val error: StateFlow<String?> = _error
+
+    // Initialize SharedPreferences
+    private val sharedPreferences: SharedPreferences =
+        context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val KEY_USER_ID = "user_id"
+    }
 
     suspend fun loadUserAuthInfo(): User? {
         Log.d("UserViewModel", "Fetching user auth data...")
@@ -82,6 +93,13 @@ class UserViewModel @Inject constructor(
             _hasCompletedInfo.value = !userData?.name.isNullOrEmpty() && !userData?.phone.isNullOrEmpty()
             Log.d("UserViewModel", "hasCompletedInfo: ${_hasCompletedInfo.value}")
             _error.value = null
+
+            // Save user ID to SharedPreferences if userData is not null
+            if (userData != null) {
+                sharedPreferences.edit().putString(KEY_USER_ID, userData.id).apply()
+                Log.d("UserViewModel", "Saved user ID to SharedPreferences: ${userData.id}")
+            }
+
             return userData
         } catch (e: Exception) {
             Log.e("UserViewModel", "Error loading user client: ${e.localizedMessage}", e)
@@ -276,6 +294,9 @@ class UserViewModel @Inject constructor(
                 _isAuthenticated.value = false
                 _user.value = null
                 _error.value = null
+                // Clear user ID from SharedPreferences on logout
+                sharedPreferences.edit().remove(KEY_USER_ID).apply()
+                Log.d("UserViewModel", "Cleared user ID from SharedPreferences on logout")
                 Toast.makeText(context, "Logged out successfully!", Toast.LENGTH_SHORT).show()
                 Log.d("UserViewModel", "User signed out")
             } catch (e: Exception) {
@@ -395,5 +416,12 @@ class UserViewModel @Inject constructor(
 
     fun getCurrentUserId(): String? {
         return _user.value?.id
+    }
+
+    // Function to get the user ID from SharedPreferences when offline
+    fun getSavedUserId(): String? {
+        val userId = sharedPreferences.getString(KEY_USER_ID, null)
+        Log.d("UserViewModel", "Retrieved user ID from SharedPreferences: $userId")
+        return userId
     }
 }

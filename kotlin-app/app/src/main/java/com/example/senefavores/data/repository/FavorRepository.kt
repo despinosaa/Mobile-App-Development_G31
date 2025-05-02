@@ -3,6 +3,9 @@ package com.example.senefavores.data.repository
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.room.withTransaction
+import com.example.senefavores.data.local.FavorDao
+import com.example.senefavores.data.local.FavorEntity
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
 import io.github.jan.supabase.SupabaseClient
@@ -11,16 +14,20 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class FavorRepository @Inject constructor(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val favorDao: FavorDao
 ) {
 
     suspend fun getFavors(userId: String?, offset: Int = 0, limit: Int = 100): List<Favor> {
@@ -28,7 +35,7 @@ class FavorRepository @Inject constructor(
             runCatching {
                 val query = supabaseClient.from("favors").select {
                     filter {
-                        eq("status", "pending")
+                        eq("status", "pending") // Ensure status is non-null
                         if (userId != null) {
                             neq("request_user_id", userId)
                         }
@@ -36,71 +43,85 @@ class FavorRepository @Inject constructor(
                     order("created_at", order = Order.DESCENDING)
                     range(offset.toLong(), (offset + limit - 1).toLong())
                 }
-                val favors = query.decodeList<Favor>()
-                Log.d("FavorRepository", "Fetched favors: $favors")
+                val favors = query.decodeList<Favor>().filter { it.id != null && it.status != null }
+                favorDao.insertAll(favors.map { favor -> FavorEntity(favor.id ?: "", favor, getCurrentTime()) })
+                Log.d("FavorRepository", "Fetched and synced favors: $favors")
                 favors
             }.getOrElse {
                 Log.e("FavorRepository", "Error fetching favors: ${it.localizedMessage}", it)
-                emptyList()
+                favorDao.getAllFavors().map { it.favor }
             }
         }
     }
 
     suspend fun getFavorById(favorId: String): Favor? {
-        return try {
-            val favor = supabaseClient
-                .from("favors")
-                .select(
-                    columns = Columns.list(
-                        "id",
-                        "title",
-                        "description",
-                        "category",
-                        "reward",
-                        "favor_time",
-                        "created_at",
-                        "request_user_id",
-                        "accept_user_id",
-                        "accepted_at",
-                        "latitude",
-                        "longitude",
-                        "status"
-                    )
-                ) {
-                    filter {
-                        eq("id", favorId)
+        return withContext(Dispatchers.IO) {
+            favorDao.getFavorById(favorId)?.favor ?: run {
+                try {
+                    val favor = supabaseClient
+                        .from("favors")
+                        .select(
+                            columns = Columns.list(
+                                "id",
+                                "title",
+                                "description",
+                                "category",
+                                "reward",
+                                "favor_time",
+                                "created_at",
+                                "request_user_id",
+                                "accept_user_id",
+                                "accepted_at",
+                                "latitude",
+                                "longitude",
+                                "status"
+                            )
+                        ) {
+                            filter {
+                                eq("id", favorId)
+                            }
+                        }
+                        .decodeSingle<Favor>()
+                    if (favor.id == null || favor.status == null) {
+                        Log.w("FavorRepository", "Favor with id $favorId has null id or status")
+                        null
+                    } else {
+                        favorDao.insert(FavorEntity(favor.id, favor, getCurrentTime()))
+                        Log.d("FavorRepository", "Fetched and synced favor: $favor")
+                        favor
                     }
+                } catch (e: Exception) {
+                    Log.e("FavorRepository", "Error fetching favor: ${e.localizedMessage}", e)
+                    null
                 }
-                .decodeSingle<Favor>()
-            Log.d("FavorRepository", "Fetched favor: $favor")
-            favor
-        } catch (e: Exception) {
-            Log.e("FavorRepository", "Error fetching favor: ${e.localizedMessage}", e)
-            null
+            }
         }
     }
 
     suspend fun getAllFavors(): List<Favor> {
         return withContext(Dispatchers.IO) {
             runCatching {
-                val favors = supabaseClient.from("favors").select().decodeList<Favor>()
-                Log.d("FavorRepository", "Fetched all favors: $favors")
+                val favors = supabaseClient.from("favors").select().decodeList<Favor>().filter { it.id != null && it.status != null }
+                favorDao.insertAll(favors.map { favor -> FavorEntity(favor.id ?: "", favor, getCurrentTime()) })
+                Log.d("FavorRepository", "Fetched and synced all favors: $favors")
                 favors
             }.getOrElse {
                 Log.e("FavorRepository", "Error fetching all favors: ${it.localizedMessage}", it)
-                emptyList()
+                favorDao.getAllFavors().map { it.favor }
             }
         }
     }
 
     suspend fun addFavor(favor: Favor) {
-        runCatching {
-            supabaseClient
-                .from("favors")
-                .insert(favor)
-            Log.d("FavorRepository", "Added favor: $favor")
-        }.onFailure {
-            Log.e("FavorRepository", "Error adding favor: ${it.localizedMessage}", it)
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val validFavor = favor.copy(id = favor.id ?: UUID.randomUUID().toString(), status = favor.status ?: "pending")
+                supabaseClient.from("favors").insert(validFavor)
+                favorDao.insert(FavorEntity(validFavor.id!!, validFavor, getCurrentTime()))
+                Log.d("FavorRepository", "Added and synced favor: $validFavor")
+            }.onFailure {
+                Log.e("FavorRepository", "Error adding favor: ${it.localizedMessage}", it)
+            }
         }
     }
 
@@ -118,6 +139,10 @@ class FavorRepository @Inject constructor(
                     }
                 ) {
                     filter { eq("id", favorId) }
+                }
+                val favor = getFavorById(favorId)
+                favor?.let {
+                    favorDao.insert(FavorEntity(it.id!!, it, getCurrentTime()))
                 }
                 Log.d("FavorRepository", "Favor $favorId accepted by user $userId at $currentTime")
             }.onFailure {
@@ -137,6 +162,10 @@ class FavorRepository @Inject constructor(
                 filter {
                     eq("id", favorId)
                 }
+            }
+            val favor = getFavorById(favorId)
+            favor?.let {
+                favorDao.insert(FavorEntity(it.id!!, it, getCurrentTime()))
             }
             Log.d("FavorRepository", "Updated favor $favorId to status=$status")
         } catch (e: Exception) {
@@ -202,6 +231,30 @@ class FavorRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e("FavorRepository", "Error updating client stars for id=$clientId: ${e.message}", e)
             throw e
+        }
+    }
+
+    fun getLocalFavors(): Flow<List<Favor>> {
+        return favorDao.getAllFavorsFlow().map { entities -> entities.map { it.favor } }
+    }
+
+    // Helper function updated to return LocalDateTime with API compatibility
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Suppress("DEPRECATION")
+    private fun getCurrentTime(): LocalDateTime {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            LocalDateTime.now(ZoneId.of("UTC"))
+        } else {
+            // Fallback for API < 26
+            val calendar = Calendar.getInstance()
+            LocalDateTime.of(
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.DAY_OF_MONTH),
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                calendar.get(Calendar.SECOND)
+            )
         }
     }
 }

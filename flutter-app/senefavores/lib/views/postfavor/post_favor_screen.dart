@@ -1,18 +1,26 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hive/hive.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
+import 'package:senefavores/state/favors/providers/category_text_provider.dart';
+import 'package:senefavores/state/favors/providers/reward_text_provider.dart';
+import 'package:senefavores/state/favors/providers/reward_value_provider.dart';
 import 'package:senefavores/state/favors/providers/upload_favor_state_notifier_provider.dart.dart';
+import 'package:senefavores/state/favors/providers/favor_acceptance_time_provider.dart';
+import 'package:senefavores/state/favors/providers/no_response_favors_count_provider.dart';
 import 'package:senefavores/state/location/providers/user_location_state_notifier_provider.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
-import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 import 'package:senefavores/utils/logger.dart';
-import 'package:senefavores/state/favors/providers/favor_acceptance_rate_provider.dart';
+import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
+import 'package:senefavores/views/navigation/navigation_screen.dart';
 
 class PostFavorScreen extends HookConsumerWidget {
   const PostFavorScreen({super.key});
@@ -24,14 +32,60 @@ class PostFavorScreen extends HookConsumerWidget {
     final descriptionController = useTextEditingController();
     final rewardController = useTextEditingController();
     final selectedCategory = useState<String?>(null);
+
     final averageAcceptanceTimeAsync = ref.watch(
       favorAverageAcceptanceTimeProvider(selectedCategory.value ?? ''),
     );
+
+    final pendingFavorsCountAsync = ref.watch(noResponseFavorsCountProvider);
     final connectivity = ref.watch(connectivityProvider).value;
 
-    // Hooks to listen to text field changes.
     final titleValue = useValueListenable(titleController);
     final descriptionValue = useValueListenable(descriptionController);
+
+    useEffect(() {
+      final favorDraftBox = Hive.box('favor_drafts');
+      if (connectivity != ConnectivityResult.none) {
+        if (favorDraftBox.containsKey('draft')) {
+          final cached = favorDraftBox.get('draft') as Map;
+
+          titleController.text = cached['title'] ?? '';
+          descriptionController.text = cached['description'] ?? '';
+          rewardController.text = cached['reward'] ?? '';
+          selectedCategory.value = cached['category'];
+
+          favorDraftBox.delete('draft');
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            ref.read(snackbarProvider).showSnackbar(
+                  "Se restauró un borrador guardado anteriormente",
+                  isError: false,
+                );
+          });
+        }
+      }
+      return null;
+    }, []);
+
+    useEffect(() {
+      void rewardListener() {
+        ref.read(rewardTextProvider.notifier).state = rewardController.text;
+      }
+
+      rewardController.addListener(rewardListener);
+      return () => rewardController.removeListener(rewardListener);
+    }, [rewardController]);
+
+    useEffect(() {
+      void categoryListener() {
+        ref.read(categoryTextProvider.notifier).state =
+            selectedCategory.value ?? '';
+      }
+
+      selectedCategory.addListener(categoryListener);
+      return () => selectedCategory.removeListener(categoryListener);
+    }, [selectedCategory]);
+
+    final acceptanceProbability = ref.watch(acceptanceProbabilityProvider);
 
     return SafeArea(
       child: Column(
@@ -51,7 +105,7 @@ class PostFavorScreen extends HookConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title Field with a live counter and a 60 character limit.
+                  // Title Field
                   Row(
                     children: [
                       Text("Título:", style: AppTextStyles.oswaldSubtitle),
@@ -69,7 +123,7 @@ class PostFavorScreen extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 15),
-                  // Description Field with a live counter and a 250 character limit.
+                  // Description Field
                   Text("Descripción:", style: AppTextStyles.oswaldSubtitle),
                   const SizedBox(height: 5),
                   TextField(
@@ -83,7 +137,7 @@ class PostFavorScreen extends HookConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  // Reward Field.
+                  // Reward Field
                   Row(
                     children: [
                       Text("Recompensa:", style: AppTextStyles.oswaldSubtitle),
@@ -94,78 +148,110 @@ class PostFavorScreen extends HookConsumerWidget {
                           cursorColor: Colors.black,
                           keyboardType: TextInputType.number,
                           decoration: customInputDecoration(
-                              hintText: r"$100 - $1.000.000"),
+                            hintText: r"$100 - $1.000.000",
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 15),
-                  // Category Selection.
+                  // Category Selection
                   Text("Categoría:", style: AppTextStyles.oswaldSubtitle),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       _categoryButton(
-                        "Favor",
-                        AppColors.lightRed,
-                        selectedCategory,
-                      ),
+                          "Favor", AppColors.lightRed, selectedCategory),
                       const SizedBox(width: 10),
                       _categoryButton(
-                        "Compra",
-                        AppColors.lightSkyBlue,
-                        selectedCategory,
-                      ),
+                          "Compra", AppColors.lightSkyBlue, selectedCategory),
                       const SizedBox(width: 10),
                       _categoryButton(
-                        "Tutoría",
-                        AppColors.orangeWeb,
-                        selectedCategory,
-                      ),
+                          "Tutoría", AppColors.orangeWeb, selectedCategory),
                     ],
                   ),
                   const SizedBox(height: 10),
+                  // Average acceptance time
                   if (selectedCategory.value != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
                       child: averageAcceptanceTimeAsync.when(
-                        data: (time) {
-                          return Text(
-                            "Tiempo promedio de aceptación: ${time.toStringAsFixed(2)} minutos",
-                            style: AppTextStyles.oswaldSubtitle,
-                          );
-                        },
+                        data: (time) => Text(
+                          "Tiempo promedio de aceptación: ${time.toStringAsFixed(2)} minutos",
+                          style: AppTextStyles.oswaldSubtitle,
+                        ),
                         loading: () => const CircularProgressIndicator(),
-                        error: (error, stackTrace) =>
-                            Text("Error al cargar el tiempo promedio"),
+                        error: (e, _) => Text(
+                          "Error al cargar el tiempo promedio",
+                          style: AppTextStyles.oswaldSubtitle
+                              .copyWith(color: Colors.red),
+                        ),
                       ),
                     ),
+                  const SizedBox(height: 20),
+                  // Pending favors count
+                  pendingFavorsCountAsync.when(
+                    data: (count) => Text(
+                      "Favores sin aceptar hoy: $count",
+                      style: AppTextStyles.oswaldSubtitle,
+                    ),
+                    loading: () => const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    error: (e, _) => Text(
+                      "Error al cargar conteo de favores",
+                      style: AppTextStyles.oswaldSubtitle
+                          .copyWith(color: Colors.red),
+                    ),
+                  ),
+                  Text(
+                    "Probabilidad de aceptacion: $acceptanceProbability%",
+                    style: AppTextStyles.oswaldSubtitle,
+                  ),
+                  Text(
+                    "Hora con mayor aceptacion: 2:32pm",
+                    style: AppTextStyles.oswaldSubtitle,
+                  ),
+
                   const SizedBox(height: 30),
                 ],
               ),
             ),
           ),
-          // Publish Button.
+          // Publish Button
           Padding(
             padding: const EdgeInsets.all(20),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
+                  final favorDraftBox = Hive.box('favor_drafts');
+
+                  // Check connectivity
                   if (connectivity == ConnectivityResult.none) {
+                    // Cache current input
+                    favorDraftBox.put('draft', {
+                      'title': titleController.text.trim(),
+                      'description': descriptionController.text.trim(),
+                      'reward': rewardController.text.trim(),
+                      'category': selectedCategory.value,
+                    });
+
                     ref.read(snackbarProvider).showSnackbar(
-                          "No se puede publicar sin conexión a Internet",
+                          "No se puede publicar sin conexión a Internet. El favor fue guardado como borrador.",
                           isError: true,
                         );
                     return;
                   }
 
+                  // START actual logic if online
                   final start = DateTime.now();
-
                   final title = titleController.text.trim();
                   final description = descriptionController.text.trim();
                   final rewardText = rewardController.text.trim();
 
+                  // Validation
                   if (title.isEmpty ||
                       description.isEmpty ||
                       rewardText.isEmpty ||
@@ -193,7 +279,6 @@ class PostFavorScreen extends HookConsumerWidget {
                     return;
                   }
 
-                  // Parse and validate the reward value.
                   final rewardValue = int.tryParse(rewardText);
                   if (rewardValue == null) {
                     ref.read(snackbarProvider).showSnackbar(
@@ -215,7 +300,6 @@ class PostFavorScreen extends HookConsumerWidget {
                     final isNear = await ref
                         .read(userLocationProvider.notifier)
                         .isUserNearLocation();
-
                     if (!isNear) {
                       ref.read(snackbarProvider).showSnackbar(
                             "Debes estar cerca de la Universidad de los Andes para publicar un favor de tipo Favor o Compra",
@@ -256,14 +340,23 @@ class PostFavorScreen extends HookConsumerWidget {
                     );
 
                     if (success) {
+                      // Clear inputs
                       titleController.clear();
                       descriptionController.clear();
                       rewardController.clear();
                       selectedCategory.value = null;
+
                       ref.read(snackbarProvider).showSnackbar(
                             "Favor publicado con éxito",
                             isError: false,
                           );
+
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const NavigationScreen(initialIndex: 0),
+                        ),
+                      );
                     } else {
                       ref.read(snackbarProvider).showSnackbar(
                             "Error al publicar el favor",
@@ -275,7 +368,6 @@ class PostFavorScreen extends HookConsumerWidget {
                       screen: 'PostFavorScreen',
                       crashInfo: e.toString(),
                     );
-
                     ref.read(snackbarProvider).showSnackbar(
                           "Error: $e",
                           isError: true,
@@ -308,27 +400,21 @@ class PostFavorScreen extends HookConsumerWidget {
   InputDecoration customInputDecoration({
     String? hintText,
     String? counterText,
-  }) {
-    return InputDecoration(
-      hintText: hintText,
-      counterText: counterText,
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: const BorderSide(
-          color: Colors.grey,
-          width: 4,
+  }) =>
+      InputDecoration(
+        hintText: hintText,
+        counterText: counterText,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Colors.grey, width: 4),
         ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: const BorderSide(
-          color: Colors.black,
-          width: 2,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Colors.black, width: 2),
         ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    );
-  }
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      );
 
   Widget _categoryButton(
     String text,

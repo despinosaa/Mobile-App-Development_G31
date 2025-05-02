@@ -1,0 +1,1 @@
+F:\Universidad\Semestre_8\Moviles\Proyect\Mobile-App-Development_G31\flutter-app\senefavores\build\app\intermediates\cxx\RelWithDebInfo\141t321y\obj\arm64-v8a

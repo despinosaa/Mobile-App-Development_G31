@@ -1,6 +1,7 @@
 package com.example.senefavores.di
 
 import android.content.Context
+import com.example.senefavores.data.local.FavorDatabase
 import com.example.senefavores.data.remote.SupabaseManagement
 import com.example.senefavores.data.repository.FavorRepository
 import com.example.senefavores.data.repository.UserRepository
@@ -41,10 +42,12 @@ object AppModule {
         return LocationHelper(context, locationCache)
     }
 
-    @Provides
-    @Singleton
-    fun provideFavorRepository(supabaseClient: SupabaseClient): FavorRepository {
-        return FavorRepository(supabaseClient)
+    fun provideFavorRepository(
+        supabaseClient: SupabaseClient,
+        @ApplicationContext context: Context
+    ): FavorRepository {
+        return FavorRepository(supabaseClient, FavorDatabase.getDatabase(context).favorDao())
+
     }
 
     @Provides
