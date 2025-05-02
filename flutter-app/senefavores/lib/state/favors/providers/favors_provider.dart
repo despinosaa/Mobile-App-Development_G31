@@ -33,10 +33,6 @@ final favorsStreamProvider =
   }
 
   if (connectivity == ConnectivityResult.none) {
-    ref.read(snackbarProvider).showSnackbar(
-          "No internet connection. Showing cached favors.",
-          isError: true,
-        );
     final cachedFavors = box.get('cachedFavors', defaultValue: []);
     try {
       List<FavorModel> favorsList =

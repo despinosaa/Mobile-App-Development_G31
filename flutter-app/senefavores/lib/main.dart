@@ -1,9 +1,11 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/theme.dart';
 import 'package:senefavores/state/auth/models/auth_result.dart';
 import 'package:senefavores/state/auth/provider/auth_state_notifier_provider.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/loading/is_loading_provider.dart';
 import 'package:senefavores/state/snackbar/models/snackbar_message_model.dart';
 import 'package:senefavores/state/snackbar/providers/snackbar_notification_provider.dart';
@@ -28,6 +30,7 @@ void main() {
 
     await Hive.initFlutter();
     await Hive.openBox('favors');
+    await Hive.openBox('favor_drafts');
 
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
@@ -75,6 +78,23 @@ class MyApp extends StatelessWidget {
                     .show(context: context, text: 'Loading...');
               } else {
                 LoadingScreen.instance().hide();
+              }
+            });
+
+            ref.listen<AsyncValue<ConnectivityResult>>(connectivityProvider,
+                (previous, next) {
+              final connectivity = next.value;
+              if (connectivity == ConnectivityResult.none) {
+                ref.read(snackbarProvider).showSnackbar(
+                      "Sin conexión a internet, mostrando datos en caché.",
+                      isError: true,
+                    );
+              }
+              if (connectivity != ConnectivityResult.none) {
+                ref.read(snackbarProvider).showSnackbar(
+                      "Conexión a internet restaurada !",
+                      isError: false,
+                    );
               }
             });
 
