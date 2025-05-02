@@ -218,7 +218,7 @@ fun AccountScreen(
                     user == null -> {
                         item {
                             Text(
-                                text = if (isOnline) "Cargando reseñas..." else "No hay conexión, mostrando reseñas guardadas...",
+                                text = if (isOnline) "Cargando reseñas..." else "No hay conexión",
                                 fontSize = 14.sp,
                                 color = Color.Gray,
                                 modifier = Modifier.padding(16.dp)

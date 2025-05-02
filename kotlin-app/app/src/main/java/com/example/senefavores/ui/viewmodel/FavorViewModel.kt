@@ -197,4 +197,11 @@ class FavorViewModel @Inject constructor(
             }
         }
     }
+
+    //Michi
+    fun processQueue(){
+        viewModelScope.launch {
+            favorRepository.processQueuedFavors()
+        }
+    }
 }

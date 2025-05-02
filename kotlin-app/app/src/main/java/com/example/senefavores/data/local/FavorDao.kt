@@ -5,6 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import androidx.room.Delete
+
 
 @Dao
 interface FavorDao {
@@ -22,4 +24,20 @@ interface FavorDao {
 
     @Query("SELECT * FROM favors")
     suspend fun getAllFavors(): List<FavorEntity>
+}
+
+//Michi
+@Dao
+interface FavorQueueDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun enqueueFavor(queuedFavor: QueuedFavorEntity)
+
+    @Query("SELECT * FROM favor_queue")
+    suspend fun getAllQueuedFavors(): List<QueuedFavorEntity>
+
+    @Delete
+    suspend fun removeFavorFromQueue(queuedFavor: QueuedFavorEntity)
+
+    @Query("DELETE FROM favor_queue")
+    suspend fun clearQueue()
 }

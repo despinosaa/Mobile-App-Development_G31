@@ -42,14 +42,14 @@ object AppModule {
         return LocationHelper(context, locationCache)
     }
 
+    //Michi
     @Provides
     @Singleton
     fun provideFavorRepository(
         supabaseClient: SupabaseClient,
         @ApplicationContext context: Context
     ): FavorRepository {
-        return FavorRepository(supabaseClient, FavorDatabase.getDatabase(context).favorDao())
-
+        return FavorRepository(supabaseClient, FavorDatabase.getDatabase(context).favorDao(), FavorDatabase.getDatabase(context).favorQueueDao())
     }
 
     @Provides
