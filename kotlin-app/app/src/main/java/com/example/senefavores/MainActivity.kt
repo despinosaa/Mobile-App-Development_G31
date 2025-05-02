@@ -16,6 +16,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.senefavores.data.repository.FavorRepository
 import com.example.senefavores.data.repository.UserRepository
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Set up global uncaught exception handler
+        // Global uncaught exception handler
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             val crashInfo = throwable.stackTraceToString()
@@ -100,19 +101,19 @@ class MainActivity : ComponentActivity() {
                     val userViewModel: UserViewModel = hiltViewModel()
                     val user by userViewModel.user.collectAsState()
 
-                    // Fetch user info
+                    // Load user info
                     LaunchedEffect(Unit) {
                         userViewModel.loadUserClientInfo()
                     }
 
-                    // Fetch location when permissions are granted and user is loaded
+                    // Load location if permission granted
                     LaunchedEffect(hasLocationPermission, user) {
                         if (hasLocationPermission) {
                             locationHelper.getLastLocation(user?.id)
                         }
                     }
 
-                    // Check network and session on startup
+                    // Set initial route
                     LaunchedEffect(Unit) {
                         coroutineScope.launch {
                             initialRoute = if (!isOnline) {
@@ -131,8 +132,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Handle deep link and initial navigation
-                    HandleDeepLink(intent, navController, isOnline)
+                    // Only render navigation once route is decided
                     if (initialRoute != null) {
                         AppNavHost(
                             navController = navController,
@@ -148,6 +148,9 @@ class MainActivity : ComponentActivity() {
                                 currentScreen = screenName
                             }
                         )
+
+                        // ✅ Deep link handling AFTER NavHost is set up
+                        HandleDeepLink(intent, navController, isOnline)
                     }
                 }
             }
@@ -157,22 +160,24 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleDeepLink(intent, null, networkChecker.isOnline())
+        handleDeepLink(intent, null)
     }
 
     @Composable
-    private fun HandleDeepLink(intent: Intent?, navController: androidx.navigation.NavController, isOnline: Boolean) {
+    private fun HandleDeepLink(intent: Intent?, navController: NavController, isOnline: Boolean) {
         LaunchedEffect(intent?.data?.toString(), isOnline) {
-            intent?.let { handleDeepLink(it, navController, isOnline) }
+            intent?.let { handleDeepLink(it, navController) }
         }
     }
 
-    private fun handleDeepLink(intent: Intent, navController: androidx.navigation.NavController?, isOnline: Boolean) {
+    private fun handleDeepLink(
+        intent: Intent,
+        navController: NavController?
+    ) {
         val uri: Uri? = intent.data
         val uriString = uri?.toString()
         Log.d("AmongUs", "Deep link received: $uri")
 
-        // Prevent processing the same URI twice
         if (uriString == lastProcessedUri) {
             Log.d("AmongUs", "Duplicate deep link ignored: $uri")
             return
@@ -195,16 +200,23 @@ class MainActivity : ComponentActivity() {
                 return
             }
 
-            val code = uri.getQueryParameter("code")
-            if (code != null && isOnline) {
-                Log.d("AmongUs", "Deep link detected, code=$code")
-                // Exchange code for session
+            val code = uri.getQueryParameter("code") ?: run {
+                val raw = uri.toString()
+                Log.w("AmongUs", "getQueryParameter failed, trying manual parse. Raw URI: $raw")
+                Uri.parse("http://dummy?${raw.substringAfter('?')}").getQueryParameter("code")
+            }
+
+            val latestOnlineStatus = networkChecker.isOnline()
+            Log.d("AmongUs", "Parsed code=$code | Online=$latestOnlineStatus")
+
+            if (!code.isNullOrBlank() && latestOnlineStatus) {
+                Log.d("AmongUs", "Deep link valid, starting session exchange for code=$code")
                 runBlocking {
                     try {
                         userRepository.exchangeCodeForSession(code)
-                        Log.d("AmongUs", "Session exchanged for code=$code")
+                        Log.d("AmongUs", "Session successfully exchanged")
                         navController.navigate("home") {
-                            popUpTo("home") { inclusive = true }
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             launchSingleTop = true
                         }
                     } catch (e: Exception) {
@@ -216,12 +228,14 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             } else {
-                Log.d("AmongUs", "No code or offline, navigating to signIn")
+                Log.d("AmongUs", "Missing code or offline, navigating to signIn")
                 navController.navigate("signIn") {
                     popUpTo(navController.graph.startDestinationId) { inclusive = true }
                     launchSingleTop = true
                 }
             }
+        } else {
+            Log.w("AmongUs", "URI did not match expected schema/host")
         }
     }
 }
