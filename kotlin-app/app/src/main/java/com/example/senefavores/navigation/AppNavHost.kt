@@ -24,6 +24,7 @@ import com.example.senefavores.ui.screens.ReviewScreen
 import com.example.senefavores.ui.screens.SignInScreen
 import com.example.senefavores.ui.screens.RegisterScreen
 import com.example.senefavores.ui.screens.ResetPasswordScreen
+import com.example.senefavores.util.LocationCache
 import com.example.senefavores.util.LocationHelper
 import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
@@ -34,6 +35,7 @@ import kotlinx.serialization.json.Json
 fun AppNavHost(
     navController: NavHostController,
     locationHelper: LocationHelper,
+    locationCache: LocationCache,
     hasLocationPermission: Boolean,
     telemetryLogger: TelemetryLogger,
     favorRepository: FavorRepository,

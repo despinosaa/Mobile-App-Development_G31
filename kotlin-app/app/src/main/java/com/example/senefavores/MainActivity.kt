@@ -15,11 +15,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.senefavores.data.repository.FavorRepository
 import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.navigation.AppNavHost
 import com.example.senefavores.ui.theme.SenefavoresTheme
+import com.example.senefavores.ui.viewmodel.UserViewModel
+import com.example.senefavores.util.LocationCache
 import com.example.senefavores.util.LocationHelper
 import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
@@ -37,6 +40,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var locationHelper: LocationHelper
+
+    @Inject
+    lateinit var locationCache: LocationCache
 
     @Inject
     lateinit var telemetryLogger: TelemetryLogger
@@ -76,9 +82,6 @@ class MainActivity : ComponentActivity() {
             hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                     permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
             Log.d("MainActivity", "Location permissions granted: $hasLocationPermission")
-            if (hasLocationPermission) {
-                locationHelper.getLastLocation()
-            }
         }
         permissionLauncher.launch(
             arrayOf(
@@ -94,6 +97,20 @@ class MainActivity : ComponentActivity() {
                     val coroutineScope = rememberCoroutineScope()
                     var initialRoute by remember { mutableStateOf<String?>(null) }
                     val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
+                    val userViewModel: UserViewModel = hiltViewModel()
+                    val user by userViewModel.user.collectAsState()
+
+                    // Fetch user info
+                    LaunchedEffect(Unit) {
+                        userViewModel.loadUserClientInfo()
+                    }
+
+                    // Fetch location when permissions are granted and user is loaded
+                    LaunchedEffect(hasLocationPermission, user) {
+                        if (hasLocationPermission) {
+                            locationHelper.getLastLocation(user?.id)
+                        }
+                    }
 
                     // Check network and session on startup
                     LaunchedEffect(Unit) {
@@ -120,6 +137,7 @@ class MainActivity : ComponentActivity() {
                         AppNavHost(
                             navController = navController,
                             locationHelper = locationHelper,
+                            locationCache = locationCache,
                             hasLocationPermission = hasLocationPermission,
                             telemetryLogger = telemetryLogger,
                             favorRepository = favorRepository,
