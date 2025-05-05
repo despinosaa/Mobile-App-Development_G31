@@ -97,7 +97,10 @@ class UserViewModel @Inject constructor(
             // Save user ID to SharedPreferences if userData is not null
             if (userData != null) {
                 sharedPreferences.edit().putString(KEY_USER_ID, userData.id).apply()
+                sharedPreferences.edit().putString("${userData.id}_name", userData.name).apply()
+                sharedPreferences.edit().putString("${userData.id}_phone", userData.phone).apply()
                 Log.d("UserViewModel", "Saved user ID to SharedPreferences: ${userData.id}")
+
             }
 
             return userData
@@ -423,5 +426,12 @@ class UserViewModel @Inject constructor(
         val userId = sharedPreferences.getString(KEY_USER_ID, null)
         Log.d("UserViewModel", "Retrieved user ID from SharedPreferences: $userId")
         return userId
+    }
+
+    fun getUserInfoFromPreferences(userId: String): List<String?> {
+        Log.d("UserViewModel", "Retrieving user info for userId: $userId from SharedPreferences")
+        val name = sharedPreferences.getString("${userId}_name", null)
+        val phone = sharedPreferences.getString("${userId}_phone", null)
+        return listOf(name, phone)
     }
 }

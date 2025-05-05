@@ -1,6 +1,8 @@
 
 package com.example.senefavores.ui.screens
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +33,8 @@ import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
 import kotlinx.coroutines.launch
+import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Composable
 fun AccountScreen(
@@ -45,6 +49,11 @@ fun AccountScreen(
     val scope = rememberCoroutineScope()
     val startTime = remember { System.currentTimeMillis() }
     val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
+
+    val userInfo by userViewModel.user.collectAsState()
+    val effectiveUserId = userInfo?.id ?: if (!isOnline) userViewModel.getSavedUserId() else null
+    val noWifiUser = ""
+    val noWifiPhone = ""
 
     // Notify parent of current screen
     LaunchedEffect(Unit) {
@@ -68,10 +77,22 @@ fun AccountScreen(
     // Map of reviewer_id to name
     val reviewerNames = remember { mutableStateMapOf<String, String?>() }
 
+    var name by remember { mutableStateOf<String?>(null) }
+    var phone by remember { mutableStateOf<String?>(null) }
+
     // Load user and reviews (only if online)
     LaunchedEffect(isOnline) {
         if (isOnline) {
             userViewModel.loadUserClientInfo()
+        } else {
+            Log.d("User", "$effectiveUserId")
+            effectiveUserId?.let { userId ->
+                val userInfo = userViewModel.getUserInfoFromPreferences(userId)
+                name = userInfo[0]
+                phone = userInfo[1]
+            }
+            // Use name and phone as needed
+            Log.d("User", "Loaded from SharedPreferences - Name: $name, Phone: $phone")
         }
     }
     LaunchedEffect(user, isOnline) {
@@ -189,9 +210,20 @@ fun AccountScreen(
                 }
                 else -> {
                     Text(
-                        text = if (isOnline) "Cargando información del usuario..." else "No hay conexión, mostrando datos guardados...",
+                        text = "No hay conexión, mostrando datos guardados...",
                         fontSize = 16.sp,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                    )
+                    Text(
+                        text = name?.takeIf { it.isNotEmpty() } ?: "Sin nombre",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = phone?.takeIf { it.isNotEmpty() } ?: "Sin teléfono",
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
                     )
                 }
             }
