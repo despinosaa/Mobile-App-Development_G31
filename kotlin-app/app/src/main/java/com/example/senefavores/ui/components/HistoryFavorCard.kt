@@ -4,6 +4,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +31,8 @@ import com.example.senefavores.ui.viewmodel.FavorViewModel
 import com.example.senefavores.ui.viewmodel.UserViewModel
 import com.example.senefavores.util.formatTime2
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 fun truncateText(text: String, maxLength: Int = 32): String {
     return if (text.length > maxLength) {
@@ -50,7 +53,7 @@ fun HistoryFavorCard(
     favorViewModel: FavorViewModel = hiltViewModel(),
     onStatusUpdate: () -> Unit = {},
     enabled: Boolean = true,
-    isOnline: Boolean = true // Add isOnline parameter
+    isOnline: Boolean = true
 ) {
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
@@ -62,19 +65,21 @@ fun HistoryFavorCard(
 
     // Fetch user name based on tab
     LaunchedEffect(favor.id, isSolicitados) {
-        if (isSolicitados) {
-            // Solicitados: Use accept_user_id
-            userName = favor.accept_user_id?.let { acceptId ->
-                userViewModel.getClientById(acceptId)?.name ?: "Usuario desconocido"
-            } ?: "Ninguno"
-            userRating = favor.accept_user_id?.let { acceptId ->
-                userViewModel.getClientById(acceptId)?.stars ?: 0.0f
-            } ?: 0.0f
-        } else {
-            // Aceptados: Use request_user_id
-            userViewModel.getClientById(favor.request_user_id)?.let { user ->
-                userName = user.name ?: "Usuario desconocido"
-                userRating = user.stars ?: 0.0f
+        coroutineScope.launch {
+            if (isSolicitados) {
+                // Solicitados: Use accept_user_id
+                userName = favor.accept_user_id?.let { acceptId ->
+                    userViewModel.getClientById(acceptId)?.name ?: "Usuario desconocido"
+                } ?: "Ninguno"
+                userRating = favor.accept_user_id?.let { acceptId ->
+                    userViewModel.getClientById(acceptId)?.stars ?: 0.0f
+                } ?: 0.0f
+            } else {
+                // Aceptados: Use request_user_id
+                userViewModel.getClientById(favor.request_user_id)?.let { user ->
+                    userName = user.name ?: "Usuario desconocido"
+                    userRating = user.stars ?: 0.0f
+                }
             }
         }
     }
@@ -148,6 +153,14 @@ fun HistoryFavorCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
+            .clickable(enabled = enabled) {
+                val favorJson = Json.encodeToString(favor)
+                when (localStatus) {
+                    "done" -> navController.navigate("doneFavorDetail/$favorJson/$hasReview")
+                    "pending" -> navController.navigate("pendingFavorDetail/$favorJson")
+                    "accepted" -> navController.navigate("acceptedFavorDetail/$favorJson")
+                }
+            }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -253,7 +266,7 @@ fun HistoryFavorCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(40.dp),
-                            enabled = isOnline // Disable when offline
+                            enabled = isOnline
                         ) {
                             Text(text = "Cancelar", fontSize = 14.sp)
                         }
@@ -276,7 +289,7 @@ fun HistoryFavorCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp),
-                                enabled = isOnline // Disable when offline
+                                enabled = isOnline
                             ) {
                                 Text(text = "Cancelar", fontSize = 11.sp)
                             }
@@ -293,7 +306,7 @@ fun HistoryFavorCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp),
-                                enabled = isOnline // Disable when offline
+                                enabled = isOnline
                             ) {
                                 Text(text = "Finalizar", fontSize = 11.sp)
                             }
@@ -309,13 +322,13 @@ fun HistoryFavorCard(
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.Black,
+                                    containerColor = Color.Gray,
                                     contentColor = Color.White
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp),
-                                enabled = favor.accept_user_id != null && isOnline // Disable when offline
+                                enabled = favor.accept_user_id != null && isOnline
                             ) {
                                 Text(text = "Senetendero", fontSize = 11.sp)
                             }
@@ -336,7 +349,7 @@ fun HistoryFavorCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(40.dp),
-                                enabled = isOnline // Disable when offline
+                                enabled = isOnline
                             ) {
                                 Text(text = "Hacer Reseña", fontSize = 14.sp)
                             }

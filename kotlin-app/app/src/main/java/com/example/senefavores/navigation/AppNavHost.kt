@@ -16,15 +16,17 @@ import com.example.senefavores.data.repository.FavorRepository
 import com.example.senefavores.data.repository.UserRepository
 import com.example.senefavores.ui.screens.AccountScreen
 import com.example.senefavores.ui.screens.CreateFavorScreen
+import com.example.senefavores.ui.screens.DoneFavorDetailScreen
 import com.example.senefavores.ui.screens.ForgotPasswordScreen
 import com.example.senefavores.ui.screens.HistoryScreen
 import com.example.senefavores.ui.screens.HomeScreen
 import com.example.senefavores.ui.screens.FavorScreen
+import com.example.senefavores.ui.screens.PendingFavorDetailScreen
+import com.example.senefavores.ui.screens.AcceptedFavorDetailScreen
 import com.example.senefavores.ui.screens.ReviewScreen
 import com.example.senefavores.ui.screens.SignInScreen
 import com.example.senefavores.ui.screens.RegisterScreen
 import com.example.senefavores.ui.screens.ResetPasswordScreen
-import com.example.senefavores.util.LocationCache
 import com.example.senefavores.util.LocationHelper
 import com.example.senefavores.util.NetworkChecker
 import com.example.senefavores.util.TelemetryLogger
@@ -35,20 +37,20 @@ import kotlinx.serialization.json.Json
 fun AppNavHost(
     navController: NavHostController,
     locationHelper: LocationHelper,
-    locationCache: LocationCache,
     hasLocationPermission: Boolean,
     telemetryLogger: TelemetryLogger,
     favorRepository: FavorRepository,
     userRepository: UserRepository,
     networkChecker: NetworkChecker,
-    initialRoute: String,
     onScreenChange: (String) -> Unit
 ) {
     // Validate initialRoute
     val validRoutes = listOf(
         "signIn", "register", "forgot", "home", "history", "account",
         "resetPassword", "createFavor", "favorScreen/{favorJson}",
-        "review/{favorId}/{requestUserId}/{acceptUserId}"
+        "review/{favorId}/{requestUserId}/{acceptUserId}",
+        "doneFavorDetail/{favorJson}/{hasReview}", "pendingFavorDetail/{favorJson}",
+        "acceptedFavorDetail/{favorJson}"
     )
     val startDestination = if (initialRoute in validRoutes) {
         initialRoute
@@ -64,8 +66,7 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange,
-                networkChecker = networkChecker
+                onScreenChange = onScreenChange
             )
             Log.d("AppNavHost", "Navigated to signIn")
         }
@@ -74,8 +75,7 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange,
-                networkChecker = networkChecker
+                onScreenChange = onScreenChange
             )
             Log.d("AppNavHost", "Navigated to register")
         }
@@ -97,7 +97,6 @@ fun AppNavHost(
                 networkChecker = networkChecker,
                 onScreenChange = onScreenChange
             )
-            Log.d("AppNavHost", "Navigated to home")
         }
         composable("history") {
             HistoryScreen(
@@ -116,8 +115,7 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange,
-                networkChecker = networkChecker
+                onScreenChange = onScreenChange
             )
             Log.d("AppNavHost", "Navigated to account")
         }
@@ -126,8 +124,7 @@ fun AppNavHost(
                 navController = navController,
                 userRepository = userRepository,
                 telemetryLogger = telemetryLogger,
-                onScreenChange = onScreenChange,
-                networkChecker = networkChecker
+                onScreenChange = onScreenChange
             )
             Log.d("AppNavHost", "Navigated to resetPassword")
         }
@@ -138,8 +135,7 @@ fun AppNavHost(
                 hasLocationPermission = hasLocationPermission,
                 telemetryLogger = telemetryLogger,
                 favorRepository = favorRepository,
-                onScreenChange = onScreenChange,
-                networkChecker = networkChecker
+                onScreenChange = onScreenChange
             )
             onScreenChange("createFavor")
             Log.d("AppNavHost", "Navigated to createFavor")
@@ -157,8 +153,7 @@ fun AppNavHost(
                     locationHelper = locationHelper,
                     hasLocationPermission = hasLocationPermission,
                     telemetryLogger = telemetryLogger,
-                    onScreenChange = onScreenChange,
-                    networkChecker = networkChecker
+                    onScreenChange = onScreenChange
                 )
                 Log.d("AppNavHost", "Navigated to favorScreen with favor=$favor")
             } else {
@@ -187,10 +182,73 @@ fun AppNavHost(
                     requestUserId = requestUserId,
                     acceptUserId = acceptUserId,
                     telemetryLogger = telemetryLogger,
-                    onScreenChange = onScreenChange,
-                    networkChecker = networkChecker
+                    onScreenChange = onScreenChange
                 )
                 Log.d("AppNavHost", "Navigated to review with favorId=$favorId, requestUserId=$requestUserId, acceptUserId=$acceptUserId")
+            }
+        }
+        composable(
+            route = "doneFavorDetail/{favorJson}/{hasReview}",
+            arguments = listOf(
+                navArgument("favorJson") { type = NavType.StringType },
+                navArgument("hasReview") { type = NavType.BoolType }
+            )
+        ) { backStackEntry ->
+            val favorJson = backStackEntry.arguments?.getString("favorJson") ?: ""
+            val hasReview = backStackEntry.arguments?.getBoolean("hasReview") ?: false
+            if (favorJson.isEmpty()) {
+                Text("Error: Favor no encontrado")
+                Log.e("AppNavHost", "Invalid favorJson: $favorJson")
+            } else {
+                DoneFavorDetailScreen(
+                    navController = navController,
+                    favorJson = favorJson,
+                    hasReview = hasReview,
+                    userViewModel = hiltViewModel(),
+                    networkChecker = networkChecker,
+                    onScreenChange = onScreenChange
+                )
+                Log.d("AppNavHost", "Navigated to doneFavorDetail with favorJson=$favorJson, hasReview=$hasReview")
+            }
+        }
+        composable(
+            route = "pendingFavorDetail/{favorJson}",
+            arguments = listOf(navArgument("favorJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val favorJson = backStackEntry.arguments?.getString("favorJson") ?: ""
+            if (favorJson.isEmpty()) {
+                Text("Error: Favor no encontrado")
+                Log.e("AppNavHost", "Invalid favorJson: $favorJson")
+            } else {
+                PendingFavorDetailScreen(
+                    navController = navController,
+                    favorJson = favorJson,
+                    userViewModel = hiltViewModel(),
+                    favorViewModel = hiltViewModel(),
+                    networkChecker = networkChecker,
+                    onScreenChange = onScreenChange
+                )
+                Log.d("AppNavHost", "Navigated to pendingFavorDetail with favorJson=$favorJson")
+            }
+        }
+        composable(
+            route = "acceptedFavorDetail/{favorJson}",
+            arguments = listOf(navArgument("favorJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val favorJson = backStackEntry.arguments?.getString("favorJson") ?: ""
+            if (favorJson.isEmpty()) {
+                Text("Error: Favor no encontrado")
+                Log.e("AppNavHost", "Invalid favorJson: $favorJson")
+            } else {
+                AcceptedFavorDetailScreen(
+                    navController = navController,
+                    favorJson = favorJson,
+                    userViewModel = hiltViewModel(),
+                    favorViewModel = hiltViewModel(),
+                    networkChecker = networkChecker,
+                    onScreenChange = onScreenChange
+                )
+                Log.d("AppNavHost", "Navigated to acceptedFavorDetail with favorJson=$favorJson")
             }
         }
     }
