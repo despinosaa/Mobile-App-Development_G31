@@ -247,8 +247,7 @@ fun HistoryScreen(
                                     userViewModel = userViewModel,
                                     favorViewModel = favorViewModel,
                                     onStatusUpdate = { refreshKey++ },
-                                    enabled = false, // This disables the entire card interaction, but buttons are controlled by isOnline
-                                    isOnline = isOnline // Pass isOnline to control buttons
+                                    isOnline = isOnline // Pass isOnline to control buttons, remove enabled = false
                                 )
                             }
                         }

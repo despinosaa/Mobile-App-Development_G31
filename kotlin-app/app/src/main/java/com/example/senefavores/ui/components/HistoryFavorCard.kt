@@ -52,7 +52,6 @@ fun HistoryFavorCard(
     userViewModel: UserViewModel = hiltViewModel(),
     favorViewModel: FavorViewModel = hiltViewModel(),
     onStatusUpdate: () -> Unit = {},
-    enabled: Boolean = true,
     isOnline: Boolean = true
 ) {
     var userName by remember { mutableStateOf("Cargando...") }
@@ -153,7 +152,7 @@ fun HistoryFavorCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .clickable(enabled = enabled) {
+            .clickable {
                 val favorJson = Json.encodeToString(favor)
                 when (localStatus) {
                     "done" -> navController.navigate("doneFavorDetail/$favorJson/$hasReview")

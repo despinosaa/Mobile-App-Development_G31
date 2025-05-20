@@ -100,7 +100,6 @@ class UserViewModel @Inject constructor(
                 sharedPreferences.edit().putString("${userData.id}_name", userData.name).apply()
                 sharedPreferences.edit().putString("${userData.id}_phone", userData.phone).apply()
                 Log.d("UserViewModel", "Saved user ID to SharedPreferences: ${userData.id}")
-
             }
 
             return userData
@@ -418,7 +417,15 @@ class UserViewModel @Inject constructor(
     }
 
     fun getCurrentUserId(): String? {
-        return _user.value?.id
+        val userIdFromState = _user.value?.id
+        if (userIdFromState != null) {
+            Log.d("UserViewModel", "Returning user ID from state: $userIdFromState")
+            return userIdFromState
+        }
+        // Fallback to SharedPreferences if user state is null
+        val userIdFromPrefs = getSavedUserId()
+        Log.d("UserViewModel", "User state is null, returning user ID from SharedPreferences: $userIdFromPrefs")
+        return userIdFromPrefs
     }
 
     // Function to get the user ID from SharedPreferences when offline
