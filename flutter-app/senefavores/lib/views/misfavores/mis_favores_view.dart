@@ -10,6 +10,8 @@ import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 import 'package:senefavores/views/home/components/favor_card.dart';
 import 'package:senefavores/utils/logger.dart';
+import 'package:senefavores/views/home/components/favor_card_display_at.dart';
+import 'package:senefavores/views/requestedfavor/requested_favor_screen.dart';
 
 class MisFavoresView extends ConsumerStatefulWidget {
   const MisFavoresView({super.key});
@@ -143,7 +145,23 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
                   height: 0,
                 );
               },
-              data: (reqUser) => FavorCard(favor: favor, user: reqUser),
+              data: (reqUser) => InkWell(
+                child: FavorCard(
+                  favor: favor,
+                  user: reqUser,
+                  showButton: true,
+                  favorScreen: FavorScreen.requested,
+                ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RequestedFavorScreen(
+                      favor: favor,
+                      favorScreen: FavorScreen.requested,
+                    ),
+                  ),
+                ),
+              ),
             );
           },
         );
@@ -194,7 +212,23 @@ class _MisFavoresViewState extends ConsumerState<MisFavoresView> {
                   height: 0,
                 );
               },
-              data: (reqUser) => FavorCard(favor: favor, user: reqUser),
+              data: (reqUser) => InkWell(
+                child: FavorCard(
+                  favor: favor,
+                  user: reqUser,
+                  showButton: true,
+                  favorScreen: FavorScreen.accepted,
+                ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RequestedFavorScreen(
+                      favor: favor,
+                      favorScreen: FavorScreen.accepted,
+                    ),
+                  ),
+                ),
+              ),
             );
           },
         );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/core/format_utils.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/favors/providers/accept_favor_state_notifier_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
@@ -46,7 +47,7 @@ class AcceptFavorScreen extends ConsumerWidget {
                   Text(favor.description, style: AppTextStyles.oswaldBody),
                   const SizedBox(height: 10),
                   Text(
-                    'Recompensa: ${favor.reward}',
+                    'Recompensa: ${formatCurrency(favor.reward)}',
                     style: AppTextStyles.oswaldBody,
                   ),
                   const SizedBox(height: 10),
