@@ -3,7 +3,7 @@ package com.example.senefavores.data.repository
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.    room.withTransaction
+import androidx.room.withTransaction
 import com.example.senefavores.data.local.FavorDao
 import com.example.senefavores.data.local.FavorQueueDao
 import com.example.senefavores.data.local.FavorEntity
@@ -194,8 +194,14 @@ class FavorRepository @Inject constructor(
     suspend fun addReview(review: Review) {
         withContext(Dispatchers.IO) {
             runCatching {
-                Log.d("FavorRepository", "Adding review: id=${review.id}, title=${review.title}, reviewer_id=${review.reviewer_id}, reviewed_id=${review.reviewed_id}")
-                supabaseClient.from("reviews").insert(review)
+                val validReview = if (review.favor_id == null) {
+                    Log.w("FavorRepository", "favor_id is null in review: $review, setting to empty string")
+                    review.copy(favor_id = "") // Use copy to create a new instance
+                } else {
+                    review
+                }
+                Log.d("FavorRepository", "Adding review: id=${validReview.id}, favor_id=${validReview.favor_id}, title=${validReview.title}, reviewer_id=${validReview.reviewer_id}, reviewed_id=${validReview.reviewed_id}")
+                supabaseClient.from("reviews").insert(validReview)
                 Log.d("FavorRepository", "Review added successfully")
             }.onFailure {
                 Log.e("FavorRepository", "Error adding review: ${it.localizedMessage}, cause: ${it.cause}", it)
@@ -305,5 +311,4 @@ class FavorRepository @Inject constructor(
     suspend fun emptyQueue() {
         favorQueueDao.clearQueue()
     }
-
 }

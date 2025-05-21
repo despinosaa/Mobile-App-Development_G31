@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Review(
     val id: String,
+    val favor_id: String,
     val title: String,
     val description: String,
     val stars: Int,

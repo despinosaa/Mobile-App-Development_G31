@@ -239,15 +239,16 @@ fun HistoryScreen(
                             contentPadding = PaddingValues(bottom = 16.dp)
                         ) {
                             items(filteredFavors, key = { it.id.toString() }) { favor ->
+                                val hasReview = reviews.any { it.favor_id == favor.id } // Updated to use favor_id
                                 HistoryFavorCard(
                                     favor = favor,
                                     isSolicitados = selectedTab == Tab.SOLICITADOS,
-                                    hasReview = reviews.any { it.id == favor.id },
+                                    hasReview = hasReview,
                                     navController = navController,
                                     userViewModel = userViewModel,
                                     favorViewModel = favorViewModel,
                                     onStatusUpdate = { refreshKey++ },
-                                    isOnline = isOnline // Pass isOnline to control buttons, remove enabled = false
+                                    isOnline = isOnline
                                 )
                             }
                         }
@@ -273,7 +274,7 @@ fun HistoryScreen(
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(filteredFavors, key = { it.id.toString() }) { favor ->
-                        val hasReview = reviews.any { it.id == favor.id }
+                        val hasReview = reviews.any { it.favor_id == favor.id } // Updated to use favor_id
                         HistoryFavorCard(
                             favor = favor,
                             isSolicitados = selectedTab == Tab.SOLICITADOS,
@@ -282,7 +283,7 @@ fun HistoryScreen(
                             userViewModel = userViewModel,
                             favorViewModel = favorViewModel,
                             onStatusUpdate = { refreshKey++ },
-                            isOnline = isOnline // Pass isOnline to control buttons
+                            isOnline = isOnline
                         )
                     }
                 }

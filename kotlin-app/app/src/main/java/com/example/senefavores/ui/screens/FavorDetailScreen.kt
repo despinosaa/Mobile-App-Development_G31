@@ -44,13 +44,14 @@ import kotlinx.serialization.json.Json
 fun DoneFavorDetailScreen(
     navController: NavController,
     favorJson: String,
-    hasReview: Boolean,
     userViewModel: UserViewModel = hiltViewModel(),
+    favorViewModel: FavorViewModel = hiltViewModel(), // Add FavorViewModel to fetch reviews
     networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val favor = Json.decodeFromString<Favor>(favorJson)
     val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
+    val reviews by favorViewModel.reviews.collectAsState(initial = emptyList()) // Fetch reviews
 
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
@@ -60,9 +61,12 @@ fun DoneFavorDetailScreen(
     val coroutineScope = rememberCoroutineScope()
     var selectedItem by remember { mutableStateOf(2) } // "history" tab
 
+    // Recalculate hasReview using favor_id
+    val calculatedHasReview = reviews.any { it.favor_id == favor.id }
+
     // Debug logs for state tracking
     LaunchedEffect(Unit) {
-        Log.d("DoneFavorDetailScreen", "Initial state - isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $hasReview, currentUserId: $currentUserId, favor.request_user_id: ${favor.request_user_id}, favor.accept_user_id: ${favor.accept_user_id}")
+        Log.d("DoneFavorDetailScreen", "Initial state - isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $calculatedHasReview, currentUserId: $currentUserId, favor.request_user_id: ${favor.request_user_id}, favor.accept_user_id: ${favor.accept_user_id}")
     }
 
     // Retry loading user data when network status changes to online
@@ -110,7 +114,7 @@ fun DoneFavorDetailScreen(
 
     LaunchedEffect(Unit) {
         onScreenChange("DoneFavorDetailScreen")
-        Log.d("DoneFavorDetailScreen", "isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $hasReview, accept_user_id: ${favor.accept_user_id}, currentUserId: $currentUserId")
+        Log.d("DoneFavorDetailScreen", "isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $calculatedHasReview, accept_user_id: ${favor.accept_user_id}, currentUserId: $currentUserId")
     }
 
     val displayTime = if (favor.created_at != null) {
@@ -250,7 +254,7 @@ fun DoneFavorDetailScreen(
             }
 
             // Buttons at the bottom
-            if (currentUserId != null && (isSolicitados || isAccepter) && !hasReview && favor.accept_user_id != null) {
+            if (currentUserId != null && (isSolicitados || isAccepter) && !calculatedHasReview && favor.accept_user_id != null) {
                 Button(
                     onClick = {
                         navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
@@ -270,7 +274,7 @@ fun DoneFavorDetailScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp)) // Add spacing before BottomNavigationBar
             } else {
-                Log.d("DoneFavorDetailScreen", "Button not displayed - currentUserId: $currentUserId, isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $hasReview, accept_user_id: ${favor.accept_user_id}")
+                Log.d("DoneFavorDetailScreen", "Button not displayed - currentUserId: $currentUserId, isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $calculatedHasReview, accept_user_id: ${favor.accept_user_id}")
             }
         }
     }

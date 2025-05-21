@@ -148,14 +148,16 @@ fun HistoryFavorCard(
         )
     }
 
+    // Serialize favor to JSON for navigation
+    val favorJson = Json.encodeToString(favor)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .clickable {
-                val favorJson = Json.encodeToString(favor)
                 when (localStatus) {
-                    "done" -> navController.navigate("doneFavorDetail/$favorJson/$hasReview")
+                    "done" -> navController.navigate("doneFavorDetail/$favorJson") // Removed hasReview parameter
                     "pending" -> navController.navigate("pendingFavorDetail/$favorJson")
                     "accepted" -> navController.navigate("acceptedFavorDetail/$favorJson")
                 }
@@ -224,8 +226,8 @@ fun HistoryFavorCard(
 
             Text(
                 text = truncateText(favor.description),
-                fontSize = 14.sp,
-                maxLines = 1
+                maxLines = 1,
+                fontSize = 14.sp
             )
 
             Spacer(modifier = Modifier.height(8.dp))
