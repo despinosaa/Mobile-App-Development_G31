@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import com.example.senefavores.data.model.Favor
 import com.example.senefavores.data.model.Review
@@ -32,6 +31,7 @@ import com.example.senefavores.util.TelemetryLogger
 import com.example.senefavores.util.formatTime2
 import com.example.senefavores.util.truncateText
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -298,6 +298,13 @@ fun ReviewScreen(
                             }
                             return@Button
                         }
+                        if (favorId.isEmpty()) {
+                            Log.d("ReviewScreen", "Submit failed: Invalid favorId")
+                            scope.launch {
+                                snackbarHostState.showSnackbar("ID de favor inválido")
+                            }
+                            return@Button
+                        }
                         if (!isOnline) {
                             Log.d("ReviewScreen", "Submit failed: No internet connection")
                             scope.launch {
@@ -307,9 +314,11 @@ fun ReviewScreen(
                         }
                         scope.launch {
                             try {
-                                Log.d("ReviewScreen", "Creating review: id=$favorId, reviewer_id=${userInfo!!.id}, reviewed_id=$acceptUserId")
+                                val reviewId = UUID.randomUUID().toString() // Generate unique ID for the review
+                                Log.d("ReviewScreen", "Creating review: id=$reviewId, favor_id=$favorId, reviewer_id=${userInfo!!.id}, reviewed_id=$acceptUserId")
                                 val review = Review(
-                                    id = favorId,
+                                    id = reviewId, // Unique ID for the review
+                                    favor_id = favorId, // Link to the favor
                                     title = title,
                                     description = description,
                                     stars = stars,

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -43,25 +44,45 @@ import kotlinx.serialization.json.Json
 fun DoneFavorDetailScreen(
     navController: NavController,
     favorJson: String,
-    hasReview: Boolean,
     userViewModel: UserViewModel = hiltViewModel(),
+    favorViewModel: FavorViewModel = hiltViewModel(), // Add FavorViewModel to fetch reviews
     networkChecker: NetworkChecker,
     onScreenChange: (String) -> Unit
 ) {
     val favor = Json.decodeFromString<Favor>(favorJson)
     val isOnline by networkChecker.networkStatus.collectAsState(initial = false)
+    val reviews by favorViewModel.reviews.collectAsState(initial = emptyList()) // Fetch reviews
 
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
-    val isSolicitados = favor.request_user_id == userViewModel.getCurrentUserId()
-    val isAccepter = favor.accept_user_id == userViewModel.getCurrentUserId()
+    val currentUserId = userViewModel.getCurrentUserId()
+    val isSolicitados = favor.request_user_id == currentUserId
+    val isAccepter = favor.accept_user_id == currentUserId
     val coroutineScope = rememberCoroutineScope()
     var selectedItem by remember { mutableStateOf(2) } // "history" tab
+
+    // Recalculate hasReview using favor_id
+    val calculatedHasReview = reviews.any { it.favor_id == favor.id }
+
+    // Debug logs for state tracking
+    LaunchedEffect(Unit) {
+        Log.d("DoneFavorDetailScreen", "Initial state - isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $calculatedHasReview, currentUserId: $currentUserId, favor.request_user_id: ${favor.request_user_id}, favor.accept_user_id: ${favor.accept_user_id}")
+    }
+
+    // Retry loading user data when network status changes to online
+    LaunchedEffect(isOnline) {
+        if (isOnline && userViewModel.getCurrentUserId() == null) {
+            coroutineScope.launch {
+                userViewModel.loadUserClientInfo()
+                Log.d("DoneFavorDetailScreen", "Retried loading user data due to network change")
+            }
+        }
+    }
 
     // Force load user data if not loaded
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            if (userViewModel.getCurrentUserId() == null) {
+            if (currentUserId == null) {
                 userViewModel.loadUserClientInfo()
                 Log.d("DoneFavorDetailScreen", "Forced load of user data")
             }
@@ -86,10 +107,14 @@ fun DoneFavorDetailScreen(
         }
     }
 
+    // Re-evaluate network status changes
+    LaunchedEffect(isOnline) {
+        Log.d("DoneFavorDetailScreen", "Network status changed: isOnline=$isOnline")
+    }
+
     LaunchedEffect(Unit) {
         onScreenChange("DoneFavorDetailScreen")
-        val currentUserId = userViewModel.getCurrentUserId()
-        Log.d("DoneFavorDetailScreen", "isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $hasReview, accept_user_id: ${favor.accept_user_id}, currentUserId: $currentUserId")
+        Log.d("DoneFavorDetailScreen", "isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $calculatedHasReview, accept_user_id: ${favor.accept_user_id}, currentUserId: $currentUserId")
     }
 
     val displayTime = if (favor.created_at != null) {
@@ -130,6 +155,19 @@ fun DoneFavorDetailScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.Top
         ) {
+            // Offline warning
+            if (!isOnline) {
+                Text(
+                    text = "Estás sin conexión",
+                    fontSize = 18.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                )
+            }
+
             // Favor details
             Column(
                 modifier = Modifier.weight(1f),
@@ -216,14 +254,16 @@ fun DoneFavorDetailScreen(
             }
 
             // Buttons at the bottom
-            if ((isSolicitados || isAccepter) && !hasReview && favor.accept_user_id != null) {
+            if (currentUserId != null && (isSolicitados || isAccepter) && !calculatedHasReview && favor.accept_user_id != null) {
                 Button(
                     onClick = {
                         navController.navigate("review/${favor.id}/${favor.request_user_id}/${favor.accept_user_id}")
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MikadoYellow,
-                        contentColor = BlackTextColor
+                        containerColor = if (isOnline) MikadoYellow else Color.Gray,
+                        contentColor = if (isOnline) BlackTextColor else Color.LightGray,
+                        disabledContainerColor = Color.Gray,
+                        disabledContentColor = Color.LightGray
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -233,6 +273,8 @@ fun DoneFavorDetailScreen(
                     Text(text = "Hacer Reseña", fontSize = 14.sp)
                 }
                 Spacer(modifier = Modifier.height(16.dp)) // Add spacing before BottomNavigationBar
+            } else {
+                Log.d("DoneFavorDetailScreen", "Button not displayed - currentUserId: $currentUserId, isSolicitados: $isSolicitados, isAccepter: $isAccepter, hasReview: $calculatedHasReview, accept_user_id: ${favor.accept_user_id}")
             }
         }
     }
@@ -254,14 +296,30 @@ fun PendingFavorDetailScreen(
 
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
-    val isSolicitados = favor.request_user_id == userViewModel.getCurrentUserId()
+    val currentUserId = userViewModel.getCurrentUserId()
+    val isSolicitados = favor.request_user_id == currentUserId
     val coroutineScope = rememberCoroutineScope()
     var selectedItem by remember { mutableStateOf(2) } // "history" tab
+
+    // Debug logs for state tracking
+    LaunchedEffect(Unit) {
+        Log.d("PendingFavorDetailScreen", "Initial state - isSolicitados: $isSolicitados, currentUserId: $currentUserId, favor.request_user_id: ${favor.request_user_id}")
+    }
+
+    // Retry loading user data when network status changes to online
+    LaunchedEffect(isOnline) {
+        if (isOnline && userViewModel.getCurrentUserId() == null) {
+            coroutineScope.launch {
+                userViewModel.loadUserClientInfo()
+                Log.d("PendingFavorDetailScreen", "Retried loading user data due to network change")
+            }
+        }
+    }
 
     // Force load user data if not loaded
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            if (userViewModel.getCurrentUserId() == null) {
+            if (currentUserId == null) {
                 userViewModel.loadUserClientInfo()
                 Log.d("PendingFavorDetailScreen", "Forced load of user data")
             }
@@ -286,9 +344,13 @@ fun PendingFavorDetailScreen(
         }
     }
 
+    // Re-evaluate network status changes
+    LaunchedEffect(isOnline) {
+        Log.d("PendingFavorDetailScreen", "Network status changed: isOnline=$isOnline")
+    }
+
     LaunchedEffect(Unit) {
         onScreenChange("PendingFavorDetailScreen")
-        val currentUserId = userViewModel.getCurrentUserId()
         Log.d("PendingFavorDetailScreen", "isSolicitados: $isSolicitados, currentUserId: $currentUserId")
     }
 
@@ -330,6 +392,19 @@ fun PendingFavorDetailScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.Top
         ) {
+            // Offline warning
+            if (!isOnline) {
+                Text(
+                    text = "Estás sin conexión",
+                    fontSize = 18.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                )
+            }
+
             // Favor details
             Column(
                 modifier = Modifier.weight(1f),
@@ -416,7 +491,7 @@ fun PendingFavorDetailScreen(
             }
 
             // Buttons at the bottom
-            if (isSolicitados) {
+            if (currentUserId != null && isSolicitados) {
                 Button(
                     onClick = {
                         localStatus = "cancelled"
@@ -424,8 +499,10 @@ fun PendingFavorDetailScreen(
                         navController.popBackStack()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red,
-                        contentColor = Color.White
+                        containerColor = if (isOnline) Color.Red else Color.Gray,
+                        contentColor = if (isOnline) Color.White else Color.LightGray,
+                        disabledContainerColor = Color.Gray,
+                        disabledContentColor = Color.LightGray
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -435,6 +512,8 @@ fun PendingFavorDetailScreen(
                     Text(text = "Cancelar", fontSize = 14.sp)
                 }
                 Spacer(modifier = Modifier.height(16.dp)) // Add spacing before BottomNavigationBar
+            } else {
+                Log.d("PendingFavorDetailScreen", "Button not displayed - currentUserId: $currentUserId, isSolicitados: $isSolicitados")
             }
         }
     }
@@ -456,16 +535,32 @@ fun AcceptedFavorDetailScreen(
 
     var userName by remember { mutableStateOf("Cargando...") }
     var userRating by remember { mutableStateOf(0.0f) }
-    val isSolicitados = favor.request_user_id == userViewModel.getCurrentUserId()
+    val currentUserId = userViewModel.getCurrentUserId()
+    val isSolicitados = favor.request_user_id == currentUserId
     val coroutineScope = rememberCoroutineScope()
     var showDialog by remember { mutableStateOf(false) }
     var selectedUser by remember { mutableStateOf<User?>(null) }
     var selectedItem by remember { mutableStateOf(2) } // "history" tab
 
+    // Debug logs for state tracking
+    LaunchedEffect(Unit) {
+        Log.d("AcceptedFavorDetailScreen", "Initial state - isSolicitados: $isSolicitados, currentUserId: $currentUserId, favor.request_user_id: ${favor.request_user_id}, favor.accept_user_id: ${favor.accept_user_id}")
+    }
+
+    // Retry loading user data when network status changes to online
+    LaunchedEffect(isOnline) {
+        if (isOnline && userViewModel.getCurrentUserId() == null) {
+            coroutineScope.launch {
+                userViewModel.loadUserClientInfo()
+                Log.d("AcceptedFavorDetailScreen", "Retried loading user data due to network change")
+            }
+        }
+    }
+
     // Force load user data if not loaded
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            if (userViewModel.getCurrentUserId() == null) {
+            if (currentUserId == null) {
                 userViewModel.loadUserClientInfo()
                 Log.d("AcceptedFavorDetailScreen", "Forced load of user data")
             }
@@ -490,9 +585,13 @@ fun AcceptedFavorDetailScreen(
         }
     }
 
+    // Re-evaluate network status changes
+    LaunchedEffect(isOnline) {
+        Log.d("AcceptedFavorDetailScreen", "Network status changed: isOnline=$isOnline, isSolicitados=$isSolicitados")
+    }
+
     LaunchedEffect(Unit) {
         onScreenChange("AcceptedFavorDetailScreen")
-        val currentUserId = userViewModel.getCurrentUserId()
         Log.d("AcceptedFavorDetailScreen", "isSolicitados: $isSolicitados, accept_user_id: ${favor.accept_user_id}, currentUserId: $currentUserId")
     }
 
@@ -534,6 +633,19 @@ fun AcceptedFavorDetailScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.Top
         ) {
+            // Offline warning
+            if (!isOnline) {
+                Text(
+                    text = "Estás sin conexión",
+                    fontSize = 18.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                )
+            }
+
             // Favor details
             Column(
                 modifier = Modifier.weight(1f),
@@ -619,11 +731,11 @@ fun AcceptedFavorDetailScreen(
                 )
             }
 
-            // Buttons at the bottom
-            if (isSolicitados) {
+            // Buttons at the bottom, stacked vertically
+            if (currentUserId != null && isSolicitados) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp) // Adds spacing between buttons
                 ) {
                     Button(
                         onClick = {
@@ -632,12 +744,15 @@ fun AcceptedFavorDetailScreen(
                             navController.popBackStack()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red,
-                            contentColor = Color.White
+                            containerColor = if (isOnline) Color.Red else Color.Gray,
+                            contentColor = if (isOnline) Color.White else Color.LightGray,
+                            disabledContainerColor = Color.Gray,
+                            disabledContentColor = Color.LightGray
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(50.dp),
+                        enabled = isOnline
                     ) {
                         Text(text = "Cancelar", fontSize = 14.sp)
                     }
@@ -648,12 +763,15 @@ fun AcceptedFavorDetailScreen(
                             navController.popBackStack()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MikadoYellow,
-                            contentColor = BlackTextColor
+                            containerColor = if (isOnline) MikadoYellow else Color.Gray,
+                            contentColor = if (isOnline) BlackTextColor else Color.LightGray,
+                            disabledContainerColor = Color.Gray,
+                            disabledContentColor = Color.LightGray
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(50.dp),
+                        enabled = isOnline
                     ) {
                         Text(text = "Finalizar", fontSize = 14.sp)
                     }
@@ -669,17 +787,22 @@ fun AcceptedFavorDetailScreen(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black,
-                            contentColor = Color.White
+                            containerColor = if (isOnline) Color.Black else Color.Gray,
+                            contentColor = if (isOnline) Color.White else Color.LightGray,
+                            disabledContainerColor = Color.Gray,
+                            disabledContentColor = Color.LightGray
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(50.dp),
+                        enabled = isOnline && favor.accept_user_id != null
                     ) {
                         Text(text = "Senetendero", fontSize = 14.sp)
                     }
-                    Spacer(modifier = Modifier.height(16.dp)) // Add spacing before BottomNavigationBar
                 }
+                Spacer(modifier = Modifier.height(16.dp)) // Add spacing before BottomNavigationBar
+            } else {
+                Log.d("AcceptedFavorDetailScreen", "Buttons not displayed - currentUserId: $currentUserId, isSolicitados: $isSolicitados")
             }
         }
     }

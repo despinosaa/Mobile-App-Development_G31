@@ -180,6 +180,10 @@ class FavorViewModel @Inject constructor(
     fun addReview(review: Review) {
         viewModelScope.launch {
             try {
+                if (review.favor_id == null) {
+                    Log.w("FavorViewModel", "favor_id is null in review: $review, skipping addition")
+                    return@launch
+                }
                 favorRepository.addReview(review)
                 Log.d("FavorViewModel", "Review added: $review")
                 val reviews = favorRepository.getReviewsByReviewedId(review.reviewed_id)

@@ -52,7 +52,7 @@ fun AppNavHost(
         "signIn", "register", "forgot", "home", "history", "account",
         "resetPassword", "createFavor", "favorScreen/{favorJson}",
         "review/{favorId}/{requestUserId}/{acceptUserId}",
-        "doneFavorDetail/{favorJson}/{hasReview}", "pendingFavorDetail/{favorJson}",
+        "doneFavorDetail/{favorJson}", "pendingFavorDetail/{favorJson}",
         "acceptedFavorDetail/{favorJson}"
     )
     val startDestination = if (initialRoute in validRoutes) {
@@ -199,14 +199,12 @@ fun AppNavHost(
             }
         }
         composable(
-            route = "doneFavorDetail/{favorJson}/{hasReview}",
+            route = "doneFavorDetail/{favorJson}",
             arguments = listOf(
-                navArgument("favorJson") { type = NavType.StringType },
-                navArgument("hasReview") { type = NavType.BoolType }
+                navArgument("favorJson") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val favorJson = backStackEntry.arguments?.getString("favorJson") ?: ""
-            val hasReview = backStackEntry.arguments?.getBoolean("hasReview") ?: false
             if (favorJson.isEmpty()) {
                 Text("Error: Favor no encontrado")
                 Log.e("AppNavHost", "Invalid favorJson: $favorJson")
@@ -214,12 +212,11 @@ fun AppNavHost(
                 DoneFavorDetailScreen(
                     navController = navController,
                     favorJson = favorJson,
-                    hasReview = hasReview,
                     userViewModel = hiltViewModel(),
                     networkChecker = networkChecker,
                     onScreenChange = onScreenChange
                 )
-                Log.d("AppNavHost", "Navigated to doneFavorDetail with favorJson=$favorJson, hasReview=$hasReview")
+                Log.d("AppNavHost", "Navigated to doneFavorDetail with favorJson=$favorJson")
             }
         }
         composable(
