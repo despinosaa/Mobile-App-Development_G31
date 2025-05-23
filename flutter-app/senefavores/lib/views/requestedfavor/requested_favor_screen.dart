@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/core/format_utils.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/favors/providers/cancel_favor_state_notifier_provider.dart';
 import 'package:senefavores/state/favors/providers/complete_favor_state_notifier_provider.dart';
+import 'package:senefavores/state/reviews/providers/review_exists_provider.dart';
+import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
-import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
+
 import 'package:senefavores/views/acceptfavor/components/favor_category_chip.dart';
 import 'package:senefavores/views/acceptfavor/components/favor_status_chip.dart';
 import 'package:senefavores/views/components/build_star_rating.dart';
@@ -18,14 +21,14 @@ import 'package:senefavores/views/requestedfavor/components/senetendero_dialog.d
 import 'package:senefavores/views/review/upload_review_screen.dart';
 
 class RequestedFavorScreen extends ConsumerWidget {
-  final FavorModel favor;
-  final FavorScreen favorScreen;
-
   const RequestedFavorScreen({
     super.key,
     required this.favor,
     required this.favorScreen,
   });
+
+  final FavorModel favor;
+  final FavorScreen favorScreen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,24 +41,21 @@ class RequestedFavorScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SenefavoresImageAndTitleAndProfile(),
+
+            /* ---- favor info ---- */
             Padding(
-              padding: const EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    favor.title,
-                    style: AppTextStyles.oswaldTitle.copyWith(
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  Text(favor.title,
+                      style: AppTextStyles.oswaldTitle
+                          .copyWith(fontWeight: FontWeight.w400)),
                   const SizedBox(height: 10),
                   Text(favor.description, style: AppTextStyles.oswaldBody),
                   const SizedBox(height: 10),
-                  Text(
-                    'Recompensa: ${formatCurrency(favor.reward)}',
-                    style: AppTextStyles.oswaldBody,
-                  ),
+                  Text('Recompensa: ${formatCurrency(favor.reward)}',
+                      style: AppTextStyles.oswaldBody),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -71,109 +71,36 @@ class RequestedFavorScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    'Solicitado por: ',
-                    style: AppTextStyles.oswaldSubtitle.copyWith(
-                      fontWeight: FontWeight.w300,
-                    ),
-                  ),
+                  Text('Solicitado por:',
+                      style: AppTextStyles.oswaldSubtitle
+                          .copyWith(fontWeight: FontWeight.w300)),
                   const SizedBox(height: 10),
                   requesterAsync.when(
                     data: (reqUser) => Row(
                       children: [
                         const FaIcon(FontAwesomeIcons.circleUser),
                         const SizedBox(width: 10),
-                        Text(
-                          reqUser.name ?? "Anónimo",
-                          style: AppTextStyles.oswaldBody,
-                        ),
+                        Text(reqUser.name ?? 'Anónimo',
+                            style: AppTextStyles.oswaldBody),
                         const SizedBox(width: 10),
                         buildStarRating(reqUser.stars ?? 0, size: 18),
                       ],
                     ),
-                    loading: () => const CircularProgressIndicator(
-                      color: Colors.black,
-                    ),
-                    error: (error, stack) =>
-                        Text('Error: $error', style: AppTextStyles.oswaldBody),
+                    loading: () =>
+                        const CircularProgressIndicator(color: Colors.black),
+                    error: (e, _) =>
+                        Text('Error: $e', style: AppTextStyles.oswaldBody),
                   ),
                 ],
               ),
             ),
             const Spacer(),
-            buildFavorActionButtons(
-              status: favor.status,
-              onDonePressed: () {
-                String userToReviewId = favor.requestUserId;
-                if (favorScreen == FavorScreen.requested) {
-                  userToReviewId = favor.acceptUserId!;
-                } else if (favorScreen == FavorScreen.accepted) {
-                  userToReviewId = favor.requestUserId!;
-                }
 
-                if (favor.status.toLowerCase() != 'done') {
-                  ref
-                      .watch(completeFavorProvider.notifier)
-                      .completeFavor(favorId: favor.id);
-                  ref.read(snackbarProvider).showSnackbar(
-                      'Favor completado con exito',
-                      isError: false);
-                }
-
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UploadReviewScreen(
-                      userToReviewId: userToReviewId,
-                      favor: favor,
-                      favorScreen: favorScreen,
-                    ),
-                  ),
-                );
-              },
-              onCancelPressed: () async {
-                final notifier = ref.read(cancelFavorProvider.notifier);
-                await notifier.cancelFavor(favorId: favor.id);
-                ref
-                    .read(snackbarProvider)
-                    .showSnackbar('Favor cancelado', isError: false);
-                Navigator.pop(context);
-              },
-              onAcceptPressed: () async {
-                final favorStatus = favorScreen;
-
-                if (favorStatus == FavorScreen.accepted) {
-                  final requesterAsync =
-                      ref.watch(userProvider(favor.requestUserId));
-
-                  requesterAsync.whenData((requesterUser) async {
-                    if (requesterUser != null) {
-                      await showDialog(
-                        context: context,
-                        builder: (_) => buildCustomSenetenderoDialog(
-                            context, requesterUser, favor),
-                      );
-                    }
-                  });
-                }
-
-                if (favorStatus == FavorScreen.requested &&
-                    favor.acceptUserId != null) {
-                  final acceptedAsync =
-                      ref.watch(userProvider(favor.acceptUserId!));
-
-                  acceptedAsync.whenData((acceptedUser) async {
-                    if (acceptedUser != null) {
-                      await showDialog(
-                        context: context,
-                        builder: (_) => buildCustomSenetenderoDialog(
-                            context, acceptedUser, favor),
-                      );
-                    }
-                  });
-                }
-              },
+            /* ---- live action area ---- */
+            _ActionArea(
+              favor: favor,
+              favorScreen: favorScreen,
+              currentUserId: currentUser?.id,
             ),
             const SizedBox(height: 16),
           ],
@@ -183,85 +110,166 @@ class RequestedFavorScreen extends ConsumerWidget {
   }
 }
 
-Widget buildFavorActionButtons({
-  required String status,
-  required VoidCallback onDonePressed, // for "Hacer reseña" or "Finalizar"
-  required VoidCallback onCancelPressed, // for "Cancelar"
-  required VoidCallback onAcceptPressed, // for "Senetendero"
-}) {
-  final lowerStatus = status.toLowerCase();
+/* ░░░ shared helper widgets ░░░ */
 
-  Widget buildButton({
-    required String text,
-    required Color backgroundColor,
-    Color textColor = Colors.white,
-    required VoidCallback onPressed,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: SizedBox(
+class _Spinner extends StatelessWidget {
+  const _Spinner();
+  @override
+  Widget build(BuildContext context) => const SizedBox(
         width: double.infinity,
         height: 50,
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: backgroundColor,
-            foregroundColor: textColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            elevation: 0,
-            shadowColor: Colors.transparent,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+}
+
+class _ReviewSentLabel extends StatelessWidget {
+  const _ReviewSentLabel();
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(8),
+        child: Container(
+          width: double.infinity,
+          height: 50,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(30),
           ),
-          child: Text(
-            text,
-            style: AppTextStyles.oswaldBody.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          child: Text('Reseña enviada ✔', style: AppTextStyles.oswaldBody),
         ),
-      ),
-    );
-  }
-
-  switch (lowerStatus) {
-    case 'done':
-      return buildButton(
-        text: "Hacer reseña",
-        backgroundColor: AppColors.mikadoYellow,
-        onPressed: onDonePressed,
       );
+}
 
-    case 'pending':
-      return buildButton(
-        text: "Cancelar",
-        backgroundColor: Colors.red,
-        onPressed: onCancelPressed,
-      );
+/* ---- action buttons --------------------------------------------------- */
+class _ActionArea extends ConsumerWidget {
+  const _ActionArea({
+    required this.favor,
+    required this.favorScreen,
+    required this.currentUserId,
+  });
 
-    case 'accepted':
-      return Column(
-        children: [
-          buildButton(
-            text: "Senetendero",
-            backgroundColor: AppColors.lightSkyBlue,
-            onPressed: onAcceptPressed,
-          ),
-          buildButton(
-            text: "Finalizar",
-            backgroundColor: Colors.amber,
-            textColor: Colors.black,
-            onPressed: onDonePressed,
-          ),
-          buildButton(
-            text: "Cancelar",
-            backgroundColor: Colors.red,
-            onPressed: onCancelPressed,
-          ),
-        ],
-      );
+  final FavorModel favor;
+  final FavorScreen favorScreen;
+  final String? currentUserId;
 
-    default:
-      return const SizedBox.shrink(); // No action for unknown status
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reviewed = currentUserId == null
+        ? const AsyncValue<bool>.data(false)
+        : ref.watch(
+            reviewExistsProvider(
+              (favorId: favor.id, reviewerId: currentUserId!),
+            ),
+          );
+
+    if (reviewed.isLoading) {
+      return const Padding(padding: EdgeInsets.all(8), child: _Spinner());
+    }
+
+    final bool hasReviewed =
+        reviewed.maybeWhen(data: (d) => d, orElse: () => false);
+
+    if (favor.status.toLowerCase() == 'done' && hasReviewed) {
+      return const _ReviewSentLabel();
+    }
+
+    Widget btn(String label, Color bg, VoidCallback onPressed,
+            {Color textColor = Colors.white}) =>
+        Padding(
+          padding: const EdgeInsets.all(8),
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: bg,
+                foregroundColor: textColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 0,
+                shadowColor: Colors.transparent,
+              ),
+              child: Text(label,
+                  style: AppTextStyles.oswaldBody
+                      .copyWith(fontWeight: FontWeight.bold)),
+            ),
+          ),
+        );
+
+    /* original button logic */
+    switch (favor.status.toLowerCase()) {
+      case 'done':
+        return btn('Hacer reseña', AppColors.mikadoYellow, () {
+          if (currentUserId == null) return;
+          String userToReviewId = favor.requestUserId;
+          if (favorScreen == FavorScreen.requested) {
+            userToReviewId = favor.acceptUserId!;
+          } else if (favorScreen == FavorScreen.accepted) {
+            userToReviewId = favor.requestUserId;
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => UploadReviewScreen(
+                userToReviewId: userToReviewId,
+                favor: favor,
+                favorScreen: favorScreen,
+              ),
+            ),
+          );
+        });
+
+      case 'pending':
+        return btn('Cancelar', Colors.red, () async {
+          await ref
+              .read(cancelFavorProvider.notifier)
+              .cancelFavor(favorId: favor.id);
+          if (!context.mounted) return;
+          ref
+              .read(snackbarProvider)
+              .showSnackbar('Favor cancelado', isError: false);
+          Navigator.pop(context);
+        });
+
+      case 'accepted':
+        return Column(
+          children: [
+            btn('Senetendero', AppColors.lightSkyBlue, () async {
+              final targetAsync = ref.watch(userProvider(favor.requestUserId));
+              targetAsync.whenData((targetUser) async {
+                if (!context.mounted) return;
+                await showDialog(
+                  context: context,
+                  builder: (_) =>
+                      buildCustomSenetenderoDialog(context, targetUser, favor),
+                );
+              });
+            }),
+            btn('Finalizar', Colors.amber, () {
+              ref
+                  .read(completeFavorProvider.notifier)
+                  .completeFavor(favorId: favor.id);
+              ref
+                  .read(snackbarProvider)
+                  .showSnackbar('Favor completado con éxito', isError: false);
+            }, textColor: Colors.black),
+            btn('Cancelar', Colors.red, () async {
+              await ref
+                  .read(cancelFavorProvider.notifier)
+                  .cancelFavor(favorId: favor.id);
+              if (!context.mounted) return;
+              ref
+                  .read(snackbarProvider)
+                  .showSnackbar('Favor cancelado', isError: false);
+              Navigator.pop(context);
+            }),
+          ],
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
