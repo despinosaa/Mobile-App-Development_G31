@@ -99,6 +99,8 @@ class UserViewModel @Inject constructor(
                 sharedPreferences.edit().putString(KEY_USER_ID, userData.id).apply()
                 sharedPreferences.edit().putString("${userData.id}_name", userData.name).apply()
                 sharedPreferences.edit().putString("${userData.id}_phone", userData.phone).apply()
+                sharedPreferences.edit().putString("${userData.id}_stars", userData.stars.toString()).apply()
+                sharedPreferences.edit().putString("${userData.id}_email", userData.email).apply()
                 Log.d("UserViewModel", "Saved user ID to SharedPreferences: ${userData.id}")
             }
 
@@ -439,6 +441,8 @@ class UserViewModel @Inject constructor(
         Log.d("UserViewModel", "Retrieving user info for userId: $userId from SharedPreferences")
         val name = sharedPreferences.getString("${userId}_name", null)
         val phone = sharedPreferences.getString("${userId}_phone", null)
-        return listOf(name, phone)
+        val stars = sharedPreferences.getString("${userId}_stars", null)
+        val email = sharedPreferences.getString("${userId}_email", null)
+        return listOf(name, phone, stars, email)
     }
 }

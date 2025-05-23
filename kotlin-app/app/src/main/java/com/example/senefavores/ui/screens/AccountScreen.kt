@@ -79,6 +79,8 @@ fun AccountScreen(
 
     var name by remember { mutableStateOf<String?>(null) }
     var phone by remember { mutableStateOf<String?>(null) }
+    var stars by remember { mutableStateOf<Float?>(null) }
+    var email by remember { mutableStateOf<String?>(null) }
 
     // Load user and reviews (only if online)
     LaunchedEffect(isOnline) {
@@ -90,6 +92,8 @@ fun AccountScreen(
                 val userInfo = userViewModel.getUserInfoFromPreferences(userId)
                 name = userInfo[0]
                 phone = userInfo[1]
+                stars = userInfo[2]?.toFloat()
+                email = userInfo[3]
             }
             // Use name and phone as needed
             Log.d("User", "Loaded from SharedPreferences - Name: $name, Phone: $phone")
@@ -218,6 +222,12 @@ fun AccountScreen(
                         text = name?.takeIf { it.isNotEmpty() } ?: "Sin nombre",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    stars?.let { RatingStars(rating = it) }
+                    Text(
+                        text = email?.takeIf { it.isNotEmpty() } ?: "Sin nombre",
+                        fontSize = 16.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
