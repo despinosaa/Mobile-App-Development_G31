@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,42 @@ fun ReviewScreen(
         Log.d("ReviewScreen", "UserInfo: id=${userInfo?.id}, name=${userInfo?.name}, favorId=$favorId, requestUserId=$requestUserId, acceptUserId=$acceptUserId")
     }
 
+    var annotatedTitle       by remember { mutableStateOf(AnnotatedString("")) }
+    var annotatedDescription by remember { mutableStateOf(AnnotatedString("")) }
+    var annotatedTime        by remember { mutableStateOf(AnnotatedString("")) }
+    var annotatedStatus      by remember { mutableStateOf(AnnotatedString("")) }
+    var annotatedRequester   by remember { mutableStateOf(AnnotatedString("")) }
+
+    LaunchedEffect(favor, acceptUserName) {
+        favor?.let { f ->
+            annotatedTitle = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Título: ") }
+                append(truncateText(f.title))
+            }
+            annotatedDescription = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Descripción: ") }
+                append(truncateText(f.description))
+            }
+            annotatedTime = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Hora: ") }
+                append(f.favor_time?.let { formatTime2(it) } ?: "N/A")
+            }
+            annotatedStatus = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Estado: ") }
+                append( when (f.status) {
+                    "pending"  -> "Pendiente"
+                    "accepted" -> "Aceptado"
+                    "done"     -> "Completado"
+                    else       -> "Desconocido"
+                })
+            }
+            annotatedRequester = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Senetendero: ") }
+                append(truncateText(acceptUserName))
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             Row(
@@ -150,58 +187,11 @@ fun ReviewScreen(
                     fontWeight = FontWeight.Bold
                 )
                 if (favor != null) {
-                    Text(
-                        text = AnnotatedString.Builder().apply {
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append("Título: ")
-                            }
-                            append(truncateText(favor!!.title))
-                        }.toAnnotatedString(),
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = AnnotatedString.Builder().apply {
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append("Descripción: ")
-                            }
-                            append(truncateText(favor!!.description))
-                        }.toAnnotatedString(),
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = AnnotatedString.Builder().apply {
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append("Hora: ")
-                            }
-                            append(favor!!.favor_time?.let { formatTime2(it) } ?: "N/A")
-                        }.toAnnotatedString(),
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = AnnotatedString.Builder().apply {
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append("Estado: ")
-                            }
-                            append(
-                                when (favor!!.status) {
-                                    "pending" -> "Pendiente"
-                                    "accepted" -> "Aceptado"
-                                    "done" -> "Completado"
-                                    else -> "Desconocido"
-                                }
-                            )
-                        }.toAnnotatedString(),
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = AnnotatedString.Builder().apply {
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append("Senetendero: ")
-                            }
-                            append(truncateText(acceptUserName))
-                        }.toAnnotatedString(),
-                        fontSize = 14.sp
-                    )
+                    Text(text = annotatedTitle,       fontSize = 14.sp)
+                    Text(text = annotatedDescription, fontSize = 14.sp)
+                    Text(text = annotatedTime,        fontSize = 14.sp)
+                    Text(text = annotatedStatus,      fontSize = 14.sp)
+                    Text(text = annotatedRequester,   fontSize = 14.sp)
                 } else {
                     Text(
                         text = if (isOnline) "Cargando información del favor..." else "Sin conexión, información no disponible",
