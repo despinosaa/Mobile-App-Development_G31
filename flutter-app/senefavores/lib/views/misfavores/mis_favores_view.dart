@@ -1,10 +1,7 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:senefavores/core/constant.dart';
-import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/providers/mis_favores_provider.dart';
-import 'package:senefavores/state/user/models/user_model.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';

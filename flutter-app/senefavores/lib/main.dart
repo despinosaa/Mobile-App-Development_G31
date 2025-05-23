@@ -31,6 +31,7 @@ void main() {
     await Hive.initFlutter();
     await Hive.openBox('favors');
     await Hive.openBox('favor_drafts');
+    await Hive.openBox('review_drafts');
 
     FlutterError.onError = (details) {
       FlutterError.presentError(details);

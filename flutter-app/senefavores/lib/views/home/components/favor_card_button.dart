@@ -1,7 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:senefavores/core/constant.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/favors/providers/cancel_favor_state_notifier_provider.dart';
 import 'package:senefavores/state/reviews/providers/review_exists_provider.dart';
@@ -26,6 +27,7 @@ class FavorCardButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     /* ── current user ───────────────────────────────────────────── */
     final currentUser = ref.watch(currentUserNotifierProvider);
+    final connectivity = ref.watch(connectivityProvider).value;
     if (currentUser == null) return const SizedBox.shrink();
 
     /* ── realtime flag: has this user already reviewed? ─────────── */
@@ -35,7 +37,52 @@ class FavorCardButton extends ConsumerWidget {
       ),
     );
 
+    if (favorScreen == FavorScreen.accepted &&
+        favor.status.toLowerCase() == 'done') {
+      return const SizedBox.shrink();
+    }
+
     /* ── decide what to show ────────────────────────────────────── */
+    if (connectivity == ConnectivityResult.none) {
+      String? text;
+      String emojiSuffix = ' 📡🚫';
+      Color bg = Colors.grey;
+      // ignore: prefer_function_declarations_over_variables
+      VoidCallback onPressed = () {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Sin conexión'),
+            content: const Text('Estas sin internet Oopsie-doopsie!'),
+          ),
+        );
+      };
+
+      switch (favor.status.toLowerCase()) {
+        case 'done':
+          text = 'Hacer reseña';
+          break;
+
+        case 'pending':
+          text = 'Cancelar';
+          break;
+
+        case 'accepted':
+          text = 'Senetendero';
+          break;
+
+        default:
+          return const SizedBox.shrink();
+      }
+      if (favorScreen != FavorScreen.accepted &&
+          favor.status.toLowerCase() != 'done') {}
+      return _ActionButton(
+        text: '$text$emojiSuffix',
+        background: bg,
+        onPressed: onPressed,
+      );
+    }
+
     return alreadyReviewed.when(
       loading: () => const _SpinnerPlaceholder(),
       error: (_, __) => const SizedBox.shrink(),

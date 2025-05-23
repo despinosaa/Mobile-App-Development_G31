@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/user/models/user_model.dart';
-import 'package:senefavores/views/navigation/navigation_screen.dart';
 
 Widget buildCustomSenetenderoDialog(
     BuildContext context, UserModel requesterUser, FavorModel favor) {

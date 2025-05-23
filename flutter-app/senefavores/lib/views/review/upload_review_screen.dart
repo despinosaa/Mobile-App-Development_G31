@@ -1,5 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hive/hive.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
@@ -7,6 +10,7 @@ import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/reviews/providers/upload_review_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/views/components/senefavores_image_and_title_and_profile.dart';
 
 class UploadReviewScreen extends HookConsumerWidget {
@@ -19,20 +23,49 @@ class UploadReviewScreen extends HookConsumerWidget {
 
   final FavorModel favor;
   final String userToReviewId;
-  final dynamic favorScreen; // keep nullable enum if you need it
+  final dynamic favorScreen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    /* ── controllers & state ─────────────────────────────────────── */
     final titleCtrl = useTextEditingController();
     final bodyCtrl = useTextEditingController();
     final rating = useState<double>(0);
     final isSending = ref.watch(uploadReviewProvider);
+    final connectivity = ref.watch(connectivityProvider).value;
+    final hasRestoredDraft = useState(false);
 
     final titleValue = useValueListenable(titleCtrl);
     final bodyValue = useValueListenable(bodyCtrl);
 
-    /* ── helpers ─────────────────────────────────────────────────── */
+    // Restore draft when online
+    useEffect(() {
+      if (!hasRestoredDraft.value && connectivity != ConnectivityResult.none) {
+        final box = Hive.box('review_drafts');
+        final key = 'draft_review_${favor.id}';
+
+        if (box.containsKey(key)) {
+          final cached = box.get(key) as Map;
+
+          titleCtrl.text = cached['title'] ?? '';
+          bodyCtrl.text = cached['body'] ?? '';
+          rating.value = (cached['rating'] ?? 0).toDouble();
+
+          box.delete(key);
+          hasRestoredDraft.value = true;
+
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Se restauró una reseña guardada anteriormente'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          });
+        }
+      }
+      return null;
+    }, [connectivity]);
+
     void snack(String msg, {bool ok = false}) =>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -77,6 +110,22 @@ class UploadReviewScreen extends HookConsumerWidget {
         return;
       }
 
+      // Save draft if offline
+      if (connectivity == ConnectivityResult.none) {
+        final box = Hive.box('review_drafts');
+        box.put('draft_review_${favor.id}', {
+          'title': title,
+          'body': body,
+          'rating': rating.value,
+        });
+
+        snack(
+          'Sin conexión: se guardó la reseña como borrador.',
+          ok: false,
+        );
+        return;
+      }
+
       final currentUser = ref.read(currentUserNotifierProvider);
       if (currentUser == null) {
         snack('Debes iniciar sesión');
@@ -97,10 +146,8 @@ class UploadReviewScreen extends HookConsumerWidget {
       if (ok) Navigator.pop(context);
     }
 
-    /* ── UI ──────────────────────────────────────────────────────── */
     return SafeArea(
       child: Scaffold(
-        // ⬅ NO AppBar, so no back arrow
         body: Stack(
           children: [
             SingleChildScrollView(
@@ -108,7 +155,6 @@ class UploadReviewScreen extends HookConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /* header identical to Crear Favor */
                   const SenefavoresImageAndTitleAndProfile(),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -118,8 +164,6 @@ class UploadReviewScreen extends HookConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-
-                  /* Title field */
                   Text('Título:', style: AppTextStyles.oswaldSubtitle),
                   const SizedBox(height: 5),
                   TextField(
@@ -129,8 +173,6 @@ class UploadReviewScreen extends HookConsumerWidget {
                     decoration: deco(counter: '${titleValue.text.length}/60'),
                   ),
                   const SizedBox(height: 15),
-
-                  /* Description field */
                   Text('Tu reseña:', style: AppTextStyles.oswaldSubtitle),
                   const SizedBox(height: 5),
                   TextField(
@@ -144,12 +186,10 @@ class UploadReviewScreen extends HookConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  /* Rating selector */
                   Text('Tu puntuación:', style: AppTextStyles.oswaldSubtitle),
                   const SizedBox(height: 8),
                   RatingBar.builder(
-                    initialRating: 0,
+                    initialRating: rating.value,
                     minRating: 0.5,
                     allowHalfRating: true,
                     itemCount: 5,
@@ -162,8 +202,6 @@ class UploadReviewScreen extends HookConsumerWidget {
                 ],
               ),
             ),
-
-            /* publish button pinned at bottom */
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
@@ -188,8 +226,6 @@ class UploadReviewScreen extends HookConsumerWidget {
                 ),
               ),
             ),
-
-            /* loader overlay */
             if (isSending)
               const ColoredBox(
                 color: Colors.black38,

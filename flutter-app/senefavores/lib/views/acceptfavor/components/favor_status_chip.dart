@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/core/extension.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
-import 'package:senefavores/state/home/models/filter_button_category.dart';
 
 class FavorStatusChip extends StatelessWidget {
   final FavorModel favor;

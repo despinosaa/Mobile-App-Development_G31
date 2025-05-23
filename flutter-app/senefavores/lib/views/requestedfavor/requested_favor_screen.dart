@@ -1,9 +1,10 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
 import 'package:senefavores/core/constant.dart';
 import 'package:senefavores/core/format_utils.dart';
+import 'package:senefavores/state/connectivity/connectivity_provider.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/favors/providers/cancel_favor_state_notifier_provider.dart';
 import 'package:senefavores/state/favors/providers/complete_favor_state_notifier_provider.dart';
@@ -11,7 +12,6 @@ import 'package:senefavores/state/reviews/providers/review_exists_provider.dart'
 import 'package:senefavores/state/snackbar/providers/snackbar_provider.dart';
 import 'package:senefavores/state/user/providers/user_provider.dart';
 import 'package:senefavores/state/user/providers/current_user_provider.dart';
-
 import 'package:senefavores/views/acceptfavor/components/favor_category_chip.dart';
 import 'package:senefavores/views/acceptfavor/components/favor_status_chip.dart';
 import 'package:senefavores/views/components/build_star_rating.dart';
@@ -111,7 +111,6 @@ class RequestedFavorScreen extends ConsumerWidget {
 }
 
 /* ░░░ shared helper widgets ░░░ */
-
 class _Spinner extends StatelessWidget {
   const _Spinner();
   @override
@@ -162,6 +161,8 @@ class _ActionArea extends ConsumerWidget {
             ),
           );
 
+    final connectivity = ref.watch(connectivityProvider).value;
+
     if (reviewed.isLoading) {
       return const Padding(padding: EdgeInsets.all(8), child: _Spinner());
     }
@@ -173,6 +174,8 @@ class _ActionArea extends ConsumerWidget {
       return const _ReviewSentLabel();
     }
 
+    final bool isOffline = connectivity == ConnectivityResult.none;
+
     Widget btn(String label, Color bg, VoidCallback onPressed,
             {Color textColor = Colors.white}) =>
         Padding(
@@ -183,7 +186,7 @@ class _ActionArea extends ConsumerWidget {
             child: ElevatedButton(
               onPressed: onPressed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: bg,
+                backgroundColor: isOffline ? Colors.grey : bg,
                 foregroundColor: textColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -191,85 +194,143 @@ class _ActionArea extends ConsumerWidget {
                 elevation: 0,
                 shadowColor: Colors.transparent,
               ),
-              child: Text(label,
-                  style: AppTextStyles.oswaldBody
-                      .copyWith(fontWeight: FontWeight.bold)),
+              child: Text(
+                isOffline ? '$label 📡🚫' : label,
+                style: AppTextStyles.oswaldBody
+                    .copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         );
 
-    /* original button logic */
-    switch (favor.status.toLowerCase()) {
-      case 'done':
-        return btn('Hacer reseña', AppColors.mikadoYellow, () {
-          if (currentUserId == null) return;
-          String userToReviewId = favor.requestUserId;
-          if (favorScreen == FavorScreen.requested) {
-            userToReviewId = favor.acceptUserId!;
-          } else if (favorScreen == FavorScreen.accepted) {
-            userToReviewId = favor.requestUserId;
-          }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => UploadReviewScreen(
-                userToReviewId: userToReviewId,
-                favor: favor,
-                favorScreen: favorScreen,
-              ),
+    VoidCallback offlineHandler() => () {
+          showDialog(
+            context: context,
+            builder: (_) => const AlertDialog(
+              title: Text('Sin conexión'),
+              content: Text('Estas sin internet Oopsie-doopsie!'),
             ),
           );
-        });
+        };
+
+    switch (favor.status.toLowerCase()) {
+      case 'done':
+        return btn(
+          'Hacer reseña',
+          AppColors.mikadoYellow,
+          isOffline
+              ? offlineHandler()
+              : () {
+                  if (currentUserId == null) return;
+                  String userToReviewId = favor.requestUserId;
+                  if (favorScreen == FavorScreen.requested) {
+                    userToReviewId = favor.acceptUserId!;
+                  } else if (favorScreen == FavorScreen.accepted) {
+                    userToReviewId = favor.requestUserId;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => UploadReviewScreen(
+                        userToReviewId: userToReviewId,
+                        favor: favor,
+                        favorScreen: favorScreen,
+                      ),
+                    ),
+                  );
+                },
+        );
 
       case 'pending':
-        return btn('Cancelar', Colors.red, () async {
-          await ref
-              .read(cancelFavorProvider.notifier)
-              .cancelFavor(favorId: favor.id);
-          if (!context.mounted) return;
-          ref
-              .read(snackbarProvider)
-              .showSnackbar('Favor cancelado', isError: false);
-          Navigator.pop(context);
-        });
+        return btn(
+          'Cancelar',
+          Colors.red,
+          isOffline
+              ? offlineHandler()
+              : () async {
+                  await ref
+                      .read(cancelFavorProvider.notifier)
+                      .cancelFavor(favorId: favor.id);
+                  if (!context.mounted) return;
+                  ref
+                      .read(snackbarProvider)
+                      .showSnackbar('Favor cancelado', isError: false);
+                  Navigator.pop(context);
+                },
+        );
 
       case 'accepted':
         return Column(
           children: [
-            btn('Senetendero', AppColors.lightSkyBlue, () async {
-              final targetAsync = ref.watch(userProvider(favor.requestUserId));
-              targetAsync.whenData((targetUser) async {
-                if (!context.mounted) return;
-                await showDialog(
-                  context: context,
-                  builder: (_) =>
-                      buildCustomSenetenderoDialog(context, targetUser, favor),
-                );
-              });
-            }),
-            btn('Finalizar', Colors.amber, () {
-              ref
-                  .read(completeFavorProvider.notifier)
-                  .completeFavor(favorId: favor.id);
-              ref
-                  .read(snackbarProvider)
-                  .showSnackbar('Favor completado con éxito', isError: false);
-            }, textColor: Colors.black),
-            btn('Cancelar', Colors.red, () async {
-              await ref
-                  .read(cancelFavorProvider.notifier)
-                  .cancelFavor(favorId: favor.id);
-              if (!context.mounted) return;
-              ref
-                  .read(snackbarProvider)
-                  .showSnackbar('Favor cancelado', isError: false);
-              Navigator.pop(context);
-            }),
+            btn(
+              'Senetendero',
+              AppColors.lightSkyBlue,
+              isOffline
+                  ? offlineHandler()
+                  : () async {
+                      final userId = favorScreen == FavorScreen.accepted
+                          ? favor.requestUserId
+                          : favor.acceptUserId!;
+                      try {
+                        final targetUser =
+                            await ref.read(userProvider(userId).future);
+                        if (!context.mounted) return;
+                        await showDialog(
+                          context: context,
+                          builder: (_) => buildCustomSenetenderoDialog(
+                            context,
+                            targetUser,
+                            favor,
+                          ),
+                        );
+                      } catch (error) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('Failed to load user: $error')),
+                          );
+                        }
+                      }
+                    },
+            ),
+            if (favorScreen == FavorScreen.requested)
+              btn(
+                'Finalizar',
+                Colors.amber,
+                isOffline
+                    ? offlineHandler()
+                    : () {
+                        ref
+                            .read(completeFavorProvider.notifier)
+                            .completeFavor(favorId: favor.id);
+                        ref.read(snackbarProvider).showSnackbar(
+                            'Favor completado con éxito',
+                            isError: false);
+                        Navigator.pop(context);
+                      },
+                textColor: Colors.black,
+              ),
+            btn(
+              'Cancelar',
+              Colors.red,
+              isOffline
+                  ? offlineHandler()
+                  : () async {
+                      await ref
+                          .read(cancelFavorProvider.notifier)
+                          .cancelFavor(favorId: favor.id);
+                      if (!context.mounted) return;
+                      ref
+                          .read(snackbarProvider)
+                          .showSnackbar('Favor cancelado', isError: false);
+                      Navigator.pop(context);
+                    },
+            ),
           ],
         );
 
       default:
-        return const SizedBox.shrink();
+        return Text(favor.status, style: AppTextStyles.oswaldBody);
     }
   }
 }
