@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -41,7 +40,8 @@ class LocalDatabase {
         stars REAL NOT NULL,
         created_at TEXT NOT NULL,
         reviewer_id TEXT NOT NULL,
-        reviewed_id TEXT NOT NULL
+        reviewed_id TEXT NOT NULL,
+        favor_id TEXT NOT NULL
       )
     ''');
   }
@@ -51,7 +51,7 @@ class LocalDatabase {
     final db = await database;
     final maps = await db.query(
       'clients',
-      columns: ['id','name','email','phone','profile_pic','stars'],
+      columns: ['id', 'name', 'email', 'phone', 'profile_pic', 'stars'],
       where: 'id = ?',
       whereArgs: [id],
     );

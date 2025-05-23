@@ -6,6 +6,7 @@ class ReviewModel {
   final DateTime createdAt;
   final String reviewerId;
   final String reviewedId;
+  final String favorId;
 
   ReviewModel({
     required this.id,
@@ -15,6 +16,7 @@ class ReviewModel {
     required this.createdAt,
     required this.reviewerId,
     required this.reviewedId,
+    required this.favorId,
   });
 
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
@@ -26,18 +28,19 @@ class ReviewModel {
       createdAt: DateTime.parse(json['created_at']),
       reviewerId: json['reviewer_id'] as String,
       reviewedId: json['reviewed_id'] as String,
+      favorId: json['favor_id'] as String,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'title': title,
       'description': description,
       'stars': stars,
       'created_at': createdAt.toIso8601String(),
       'reviewer_id': reviewerId,
       'reviewed_id': reviewedId,
+      'favor_id': favorId,
     };
   }
 }

@@ -5,16 +5,23 @@ import 'package:senefavores/core/format_utils.dart';
 import 'package:senefavores/state/favors/models/favor_model.dart';
 import 'package:senefavores/state/home/models/filter_button_category.dart';
 import 'package:senefavores/state/user/models/user_model.dart';
+import 'package:senefavores/views/acceptfavor/components/favor_status_chip.dart';
 import 'package:senefavores/views/components/build_star_rating.dart';
+import 'package:senefavores/views/home/components/favor_card_button.dart';
+import 'package:senefavores/views/home/components/favor_card_display_at.dart';
 
 class FavorCard extends StatelessWidget {
   final FavorModel favor;
   final UserModel user;
+  final bool showButton;
+  final FavorScreen favorScreen;
 
   const FavorCard({
     super.key,
     required this.favor,
     required this.user,
+    this.showButton = false,
+    this.favorScreen = FavorScreen.none,
   });
 
   @override
@@ -102,7 +109,7 @@ class FavorCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 14, color: Colors.black54),
                 ),
                 const SizedBox(width: 8),
-                statusBadge,
+                FavorStatusChip(favor: favor),
                 const Spacer(),
                 categoryBadge,
                 const SizedBox(width: 10),
@@ -162,6 +169,12 @@ class FavorCard extends StatelessWidget {
                 buildStarRating(user.stars ?? 0.0),
               ],
             ),
+            showButton == true
+                ? FavorCardButton(
+                    favor: favor,
+                    favorScreen: favorScreen,
+                  )
+                : SizedBox.shrink(),
           ],
         ),
       ),
