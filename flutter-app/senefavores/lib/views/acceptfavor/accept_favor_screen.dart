@@ -83,8 +83,16 @@ class AcceptFavorScreen extends ConsumerWidget {
                         ],
                       );
                     },
-                    loading: () => const CircularProgressIndicator(
-                      color: Colors.black,
+                    loading: () => const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth:
+                              2.0, // Reduced stroke width for better performance
+                          color: Colors.black,
+                        ),
+                      ),
                     ),
                     error: (error, stack) =>
                         Text('Error: $error', style: AppTextStyles.oswaldBody),
