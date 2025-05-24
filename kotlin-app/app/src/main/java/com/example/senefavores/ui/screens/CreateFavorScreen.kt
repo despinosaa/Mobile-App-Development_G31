@@ -317,18 +317,7 @@ fun CreateFavorScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
-                val avgReward by remember(allFavors, selectedCategory) {
-                    mutableStateOf(calculateAverageReward(allFavors, selectedCategory))
-                }
-                val avgHour by remember(allFavors, selectedCategory) {
-                    mutableStateOf(calculateAverageAcceptanceHour(allFavors, selectedCategory))
-                }
-                val avgTime by remember(allFavors, selectedCategory) {
-                    mutableStateOf(calculateAverageAcceptanceTime(allFavors, selectedCategory))
-                }
-                val usersNoResponse by remember(allFavors, selectedCategory) {
-                    mutableStateOf(getUsersWithNoResponsesInLast24Hours(allFavors, selectedCategory))
-                }
+
 
                 // TIPS
                 var isTipsExpanded by remember { mutableStateOf(false) }
@@ -349,10 +338,10 @@ fun CreateFavorScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        Text("Recompensa promedio de $selectedCategory aceptados: $$avgReward")
-                        Text("Hora promedio de aceptación: $avgHour")
-                        Text("Tiempo promedio de aceptación: $avgTime minutos")
-                        Text("Usuarios sin respuesta en las ultimas 24h: $usersNoResponse")
+                        Text("Recompensa promedio de $selectedCategory aceptados: $${calculateAverageReward(allFavors, selectedCategory)}")
+                        Text("Hora promedio de aceptación: ${calculateAverageAcceptanceHour(allFavors, selectedCategory)}")
+                        Text("Tiempo promedio de aceptación: ${calculateAverageAcceptanceTime(allFavors, selectedCategory)} minutos")
+                        Text("Usuarios sin respuesta en las ultimas 24h: ${getUsersWithNoResponsesInLast24Hours(allFavors, selectedCategory)}")
                     }
                 }
 
