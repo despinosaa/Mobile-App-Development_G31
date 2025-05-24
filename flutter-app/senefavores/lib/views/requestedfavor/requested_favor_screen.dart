@@ -300,13 +300,19 @@ class _ActionArea extends ConsumerWidget {
                 isOffline
                     ? offlineHandler()
                     : () {
-                        ref
-                            .read(completeFavorProvider.notifier)
-                            .completeFavor(favorId: favor.id);
-                        ref.read(snackbarProvider).showSnackbar(
-                            'Favor completado con éxito',
-                            isError: false);
-                        Navigator.pop(context);
+                        if (favor.status.toLowerCase() != 'done') {
+                          ref
+                              .read(completeFavorProvider.notifier)
+                              .completeFavor(favorId: favor.id);
+                          ref.read(snackbarProvider).showSnackbar(
+                              'Favor completado con éxito',
+                              isError: false);
+                          Navigator.pop(context);
+                        } else {
+                          ref.read(snackbarProvider).showSnackbar(
+                              'El favor ya está marcado como completado',
+                              isError: false);
+                        }
                       },
                 textColor: Colors.black,
               ),

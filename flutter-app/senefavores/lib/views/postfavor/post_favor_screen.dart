@@ -39,6 +39,7 @@ class PostFavorScreen extends HookConsumerWidget {
 
     final pendingFavorsCountAsync = ref.watch(noResponseFavorsCountProvider);
     final connectivity = ref.watch(connectivityProvider).value;
+    final isUploading = ref.watch(uploadFavorStateNotifierProvider);
 
     final titleValue = useValueListenable(titleController);
     final descriptionValue = useValueListenable(descriptionController);
@@ -225,157 +226,165 @@ class PostFavorScreen extends HookConsumerWidget {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
-                  final favorDraftBox = Hive.box('favor_drafts');
+                onPressed: isUploading
+                    ? null
+                    : () async {
+                        final favorDraftBox = Hive.box('favor_drafts');
 
-                  // Check connectivity
-                  if (connectivity == ConnectivityResult.none) {
-                    // Cache current input
-                    favorDraftBox.put('draft', {
-                      'title': titleController.text.trim(),
-                      'description': descriptionController.text.trim(),
-                      'reward': rewardController.text.trim(),
-                      'category': selectedCategory.value,
-                    });
+                        // Check connectivity
+                        if (connectivity == ConnectivityResult.none) {
+                          // Cache current input
+                          favorDraftBox.put('draft', {
+                            'title': titleController.text.trim(),
+                            'description': descriptionController.text.trim(),
+                            'reward': rewardController.text.trim(),
+                            'category': selectedCategory.value,
+                          });
 
-                    ref.read(snackbarProvider).showSnackbar(
-                          "No se puede publicar sin conexión a Internet. El favor fue guardado como borrador.",
-                          isError: true,
-                        );
-                    return;
-                  }
+                          ref.read(snackbarProvider).showSnackbar(
+                                "No se puede publicar sin conexión a Internet. El favor fue guardado como borrador.",
+                                isError: true,
+                              );
+                          return;
+                        }
 
-                  // START actual logic if online
-                  final start = DateTime.now();
-                  final title = titleController.text.trim();
-                  final description = descriptionController.text.trim();
-                  final rewardText = rewardController.text.trim();
+                        // START actual logic if online
+                        final start = DateTime.now();
+                        final title = titleController.text.trim();
+                        final description = descriptionController.text.trim();
+                        final rewardText = rewardController.text.trim();
 
-                  // Validation
-                  if (title.isEmpty ||
-                      description.isEmpty ||
-                      rewardText.isEmpty ||
-                      selectedCategory.value == null) {
-                    ref.read(snackbarProvider).showSnackbar(
-                          "Por favor llena todos los campos",
-                          isError: true,
-                        );
-                    return;
-                  }
+                        // Validation
+                        if (title.isEmpty ||
+                            description.isEmpty ||
+                            rewardText.isEmpty ||
+                            selectedCategory.value == null) {
+                          ref.read(snackbarProvider).showSnackbar(
+                                "Por favor llena todos los campos",
+                                isError: true,
+                              );
+                          return;
+                        }
 
-                  if (title.length > 60) {
-                    ref.read(snackbarProvider).showSnackbar(
-                          "El título no puede exceder 60 caracteres",
-                          isError: true,
-                        );
-                    return;
-                  }
+                        if (title.length > 60) {
+                          ref.read(snackbarProvider).showSnackbar(
+                                "El título no puede exceder 60 caracteres",
+                                isError: true,
+                              );
+                          return;
+                        }
 
-                  if (!RegExp(r'[A-Za-z0-9]').hasMatch(title)) {
-                    ref.read(snackbarProvider).showSnackbar(
-                          "El título debe contener al menos un carácter alfanumérico",
-                          isError: true,
-                        );
-                    return;
-                  }
+                        if (!RegExp(r'[A-Za-z0-9]').hasMatch(title)) {
+                          ref.read(snackbarProvider).showSnackbar(
+                                "El título debe contener al menos un carácter alfanumérico",
+                                isError: true,
+                              );
+                          return;
+                        }
 
-                  final rewardValue = int.tryParse(rewardText);
-                  if (rewardValue == null) {
-                    ref.read(snackbarProvider).showSnackbar(
-                          "La recompensa debe ser un número válido",
-                          isError: true,
-                        );
-                    return;
-                  }
-                  if (rewardValue < 100 || rewardValue > 1000000) {
-                    ref.read(snackbarProvider).showSnackbar(
-                          r"La recompensa debe estar entre $100 y $1.000.000",
-                          isError: true,
-                        );
-                    return;
-                  }
+                        final rewardValue = int.tryParse(rewardText);
+                        if (rewardValue == null) {
+                          ref.read(snackbarProvider).showSnackbar(
+                                "La recompensa debe ser un número válido",
+                                isError: true,
+                              );
+                          return;
+                        }
+                        if (rewardValue < 100 || rewardValue > 1000000) {
+                          ref.read(snackbarProvider).showSnackbar(
+                                r"La recompensa debe estar entre $100 y $1.000.000",
+                                isError: true,
+                              );
+                          return;
+                        }
 
-                  if (selectedCategory.value == "Favor" ||
-                      selectedCategory.value == "Compra") {
-                    final isNear = await ref
-                        .read(userLocationProvider.notifier)
-                        .isUserNearLocation();
-                    if (!isNear) {
-                      ref.read(snackbarProvider).showSnackbar(
-                            "Debes estar cerca de la Universidad de los Andes para publicar un favor de tipo Favor o Compra",
-                            isError: true,
-                          );
-                      return;
-                    }
-                  }
+                        if (selectedCategory.value == "Favor" ||
+                            selectedCategory.value == "Compra") {
+                          final isNear = await ref
+                              .read(userLocationProvider.notifier)
+                              .isUserNearLocation();
+                          if (!isNear) {
+                            ref.read(snackbarProvider).showSnackbar(
+                                  "Debes estar cerca de la Universidad de los Andes para publicar un favor de tipo Favor o Compra",
+                                  isError: true,
+                                );
+                            return;
+                          }
+                        }
 
-                  try {
-                    final locationData = await ref
-                        .read(userLocationProvider.notifier)
-                        .getCurrentLocation();
+                        try {
+                          final locationData = await ref
+                              .read(userLocationProvider.notifier)
+                              .getCurrentLocation();
 
-                    final success = await ref
-                        .read(uploadFavorStateNotifierProvider.notifier)
-                        .uploadFavor(
-                          favor: FavorModel(
-                            id: '',
-                            title: title,
-                            description: description,
-                            category: (selectedCategory.value ?? "favor")
-                                .toLowerCase(),
-                            reward: rewardValue,
-                            createdAt: DateTime.now(),
-                            requestUserId: currentUser!.id,
-                            latitude: locationData?.latitude,
-                            longitude: locationData?.longitude,
-                            status: 'pending',
-                          ),
-                        );
+                          final success = await ref
+                              .read(uploadFavorStateNotifierProvider.notifier)
+                              .uploadFavor(
+                                favor: FavorModel(
+                                  id: '',
+                                  title: title,
+                                  description: description,
+                                  category: (selectedCategory.value ?? "favor")
+                                      .toLowerCase(),
+                                  reward: rewardValue,
+                                  createdAt: DateTime.now(),
+                                  requestUserId: currentUser!.id,
+                                  latitude: locationData?.latitude,
+                                  longitude: locationData?.longitude,
+                                  status: 'pending',
+                                ),
+                              );
 
-                    final duration =
-                        DateTime.now().difference(start).inMilliseconds;
-                    await AppLogger.logResponseTime(
-                      screen: 'PostFavorScreen',
-                      responseTimeMs: duration,
-                    );
-
-                    if (success) {
-                      // Clear inputs
-                      titleController.clear();
-                      descriptionController.clear();
-                      rewardController.clear();
-                      selectedCategory.value = null;
-
-                      ref.read(snackbarProvider).showSnackbar(
-                            "Favor publicado con éxito",
-                            isError: false,
+                          final duration =
+                              DateTime.now().difference(start).inMilliseconds;
+                          await AppLogger.logResponseTime(
+                            screen: 'PostFavorScreen',
+                            responseTimeMs: duration,
                           );
 
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const NavigationScreen(initialIndex: 0),
-                        ),
-                      );
-                    } else {
-                      ref.read(snackbarProvider).showSnackbar(
-                            "Error al publicar el favor",
-                            isError: true,
+                          if (success) {
+                            // Clear inputs only on success
+                            titleController.clear();
+                            descriptionController.clear();
+                            rewardController.clear();
+                            selectedCategory.value = null;
+
+                            if (context.mounted) {
+                              ref.read(snackbarProvider).showSnackbar(
+                                    "Favor publicado con éxito",
+                                    isError: false,
+                                  );
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const NavigationScreen(initialIndex: 0),
+                                ),
+                              );
+                            }
+                          } else {
+                            if (context.mounted) {
+                              ref.read(snackbarProvider).showSnackbar(
+                                    "Error al publicar el favor",
+                                    isError: true,
+                                  );
+                            }
+                          }
+                        } catch (e) {
+                          await AppLogger.logCrash(
+                            screen: 'PostFavorScreen',
+                            crashInfo: e.toString(),
                           );
-                    }
-                  } catch (e) {
-                    await AppLogger.logCrash(
-                      screen: 'PostFavorScreen',
-                      crashInfo: e.toString(),
-                    );
-                    ref.read(snackbarProvider).showSnackbar(
-                          "Error: $e",
-                          isError: true,
-                        );
-                  }
-                },
+                          if (context.mounted) {
+                            ref.read(snackbarProvider).showSnackbar(
+                                  "Error: $e",
+                                  isError: true,
+                                );
+                          }
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.mikadoYellow,
+                  backgroundColor:
+                      isUploading ? Colors.grey[300] : AppColors.mikadoYellow,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -385,10 +394,27 @@ class PostFavorScreen extends HookConsumerWidget {
                   elevation: 0,
                   shadowColor: Colors.transparent,
                 ),
-                child: Text(
-                  "Publicar",
-                  style: AppTextStyles.oswaldTitle,
-                ),
+                child: isUploading
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text("Publicando...",
+                              style: AppTextStyles.oswaldTitle),
+                        ],
+                      )
+                    : Text(
+                        "Publicar",
+                        style: AppTextStyles.oswaldTitle,
+                      ),
               ),
             ),
           ),
