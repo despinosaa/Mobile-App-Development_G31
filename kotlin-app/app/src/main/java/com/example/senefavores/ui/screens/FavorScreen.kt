@@ -425,13 +425,17 @@ fun FavorScreen(
 
 @Composable
 fun RatingStars(rating: Float) {
-    val filledStar = painterResource(id = R.drawable.ic_star_filled)
-    val emptyStar  = painterResource(id = R.drawable.ic_star_empty)
-
     Row {
         for (i in 1..5) {
             Image(
-                painter = if (i <= rating) filledStar else emptyStar,
+                painter = painterResource(
+
+
+
+                    if (i <= rating) R.drawable.ic_star_filled else R.drawable.ic_star_empty
+
+
+                ),
                 contentDescription = null,
                 modifier = Modifier.size(16.dp)
             )
