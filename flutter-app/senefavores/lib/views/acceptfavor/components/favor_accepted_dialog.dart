@@ -49,11 +49,15 @@ Widget buildCustomDialog(
             ),
           ),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => NavigationScreen(initialIndex: 2)),
-            );
+            Navigator.of(context).pop(); // close the dialog first
+            Future.microtask(() {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NavigationScreen(initialIndex: 2),
+                ),
+              );
+            });
           },
           child: const Text("Ir a Mis Favores"),
         ),
